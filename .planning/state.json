@@ -1,0 +1,53 @@
+{
+  "contract": "1.0.0",
+  "flavor": "core",
+  "milestone": "V1 — versus deferred scope",
+  "phases": [
+    {
+      "number": "1",
+      "name": "Portable foundation and Exabytes feasibility",
+      "status": "pending"
+    },
+    {
+      "number": "2",
+      "name": "Machine model and Payload owner workflow",
+      "status": "pending"
+    },
+    {
+      "number": "3",
+      "name": "Photography, media processing and JPJ protection",
+      "status": "pending"
+    },
+    {
+      "number": "4",
+      "name": "Public used-excavator inventory",
+      "status": "pending"
+    },
+    {
+      "number": "5",
+      "name": "Enquiries and supporting pages",
+      "status": "pending"
+    },
+    {
+      "number": "6",
+      "name": "Accessible design and inventory SEO",
+      "status": "pending"
+    },
+    {
+      "number": "7",
+      "name": "Measurement, privacy, security and recovery",
+      "status": "pending"
+    },
+    {
+      "number": "8",
+      "name": "Owner acceptance and launch readiness",
+      "status": "pending"
+    }
+  ],
+  "next": {
+    "command": "/gsd:progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 1 of 8 · executing"
+  },
+  "updated_at": "2026-09-30T13:54:54.726Z"
+}

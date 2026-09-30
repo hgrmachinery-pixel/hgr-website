@@ -28,7 +28,19 @@ Phases execute in the listed order. Earlier phases establish security and privac
 **Goal:** A documented Next.js/Payload/PostgreSQL/external-storage foundation and an evidence-based answer on whether the existing Exabytes account can run a representative application workload.  
 **Depends on:** Approved planning and source material.  
 **Requirements:** PORT-01, PORT-02, PORT-03, PORT-04, PORT-05, PORT-06, PORT-07.  
-**Plans:** TBD during `$gsd-plan-phase 1`.
+**Plans:** 0/4 plans executed.
+Plans:
+**Wave 1**
+- [ ] 01-01-PLAN.md — Verify the package set and configure the portable foundation.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 01-02-PLAN.md — Prove the synthetic end-to-end PostgreSQL and external-storage path.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 01-03-PLAN.md — Document local setup and portable redeployment.
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 01-04-PLAN.md — Gather Exabytes evidence and report conditional host feasibility.
 
 **Success criteria:**
 
@@ -153,7 +165,7 @@ Phases execute in the listed order. Earlier phases establish security and privac
 
 | Phase | Plans Complete | Status | Completed |
 |---|---:|---|---|
-| 1. Portable foundation and Exabytes feasibility | 0/TBD | Not started | — |
+| 1. Portable foundation and Exabytes feasibility | 0/4 | Planned    |  |
 | 2. Machine model and Payload owner workflow | 0/TBD | Not started | — |
 | 3. Photography, media processing and JPJ protection | 0/TBD | Not started | — |
 | 4. Public used-excavator inventory | 0/TBD | Not started | — |
