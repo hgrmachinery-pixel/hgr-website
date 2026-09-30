@@ -3,6 +3,9 @@ This repository contains the custom website and inventory management system for 
 
 The production domain is hgrmachinery.com.
 
+# Model and Task Routing
+Read and follow [MODEL-ROUTING.md](MODEL-ROUTING.md) for model/task routing, delegation and escalation. Existing safety, scope and owner-approval rules remain in force.
+
 # User and Working Style
 The project owner is nontechnical.
 - Use plain English when reporting work.
