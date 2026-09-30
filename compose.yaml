@@ -1,0 +1,38 @@
+# Local disposable services only. No application or cloud credentials belong here.
+name: hgr-foundation-smoke
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: hgr_foundation_smoke
+      POSTGRES_USER: ${SMOKE_PG_USER:?Set a disposable test username}
+      POSTGRES_PASSWORD: ${SMOKE_PG_PASSWORD:?Set a disposable test password}
+    ports:
+      - "127.0.0.1:${SMOKE_PG_PORT:?Set a local PostgreSQL port}:5432"
+    volumes:
+      - foundation-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d hgr_foundation_smoke"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+  gcs:
+    # Set a maintainer-reviewed fake-gcs-server image tag/digest before pulling.
+    image: ${SMOKE_GCS_IMAGE:?Set the reviewed fsouza/fake-gcs-server image}
+    command:
+      [
+        "-scheme",
+        "http",
+        "-port",
+        "4443",
+        "-external-url",
+        "http://127.0.0.1:${SMOKE_GCS_PORT:?Set a local GCS port}",
+      ]
+    ports:
+      - "127.0.0.1:${SMOKE_GCS_PORT}:4443"
+    volumes:
+      - foundation-gcs:/storage
+volumes:
+  foundation-postgres:
+  foundation-gcs:

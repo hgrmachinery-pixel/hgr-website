@@ -10,7 +10,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke:foundation": "node scripts/smoke-foundation.mjs",
+    "migrate:local": "node scripts/smoke-foundation.mjs --migrate-only"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.90.2",

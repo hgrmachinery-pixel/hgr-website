@@ -55,6 +55,7 @@ coverage/
 .codex/.gsd-staging/
 .codex/gsd-migration-journal/
 .codex/settings.local.json
+.gsd/
 
 # Operating-system files
 .DS_Store

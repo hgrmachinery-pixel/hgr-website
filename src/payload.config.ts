@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { buildConfig } from "payload";
 import sharp from "sharp";
 
-import { FoundationFixture } from "./collections/FoundationFixture.js";
+import { FoundationFixture } from "./collections/FoundationFixture";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,7 +28,14 @@ if (secret.length < 32) {
 }
 
 const serverURL = requiredEnvironment("SERVER_URL");
-const origin = new URL(serverURL);
+let origin: URL;
+try {
+  origin = new URL(serverURL);
+} catch {
+  throw new Error(
+    "SERVER_URL must be an HTTP or HTTPS URL without credentials",
+  );
+}
 if (
   !["http:", "https:"].includes(origin.protocol) ||
   origin.username ||
@@ -48,6 +55,9 @@ export default buildConfig({
   db: postgresAdapter({
     pool: { connectionString: databaseURL },
     disableCreateDatabase: true,
+    // Schema changes are explicit migrations in every environment.
+    push: false,
+    migrationDir: path.resolve(configDirectory, "migrations"),
   }),
   plugins: [
     gcsStorage({
