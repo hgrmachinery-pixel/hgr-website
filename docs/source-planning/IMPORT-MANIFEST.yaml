@@ -1,0 +1,66 @@
+# Prepared only; ingestion has NOT been run. Paths are relative to repository root.
+# Types classify document purpose, not approval or currency. No precedence overrides.
+# Read IMPORT-REPORT.md before ingestion; current user instructions govern older notes.
+docs:
+  - path: "docs/source-planning/obsidian/hgr website/00 - Project/Business Requirements.md"
+    type: PRD
+  - path: "docs/source-planning/obsidian/hgr website/00 - Project/HGR Project.md"
+    type: PRD
+  - path: "docs/source-planning/obsidian/hgr website/00 - Project/Project Roadmap.md"
+    type: DOC
+  - path: "docs/source-planning/obsidian/hgr website/01 - Brand/Brand Guidelines.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/01 - Brand/Design System.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/About.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/Admin System.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/Contact.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/Homepage.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/Individual Machine.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/Lubricants.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/Machinery Services.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/Rental.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/Sitemap.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/02 - Website Specification/Used Excavators.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/03 - Content/Company Information.md"
+    type: DOC
+  - path: "docs/source-planning/obsidian/hgr website/03 - Content/Content Requirements.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/03 - Content/Legal Content.md"
+    type: DOC
+  - path: "docs/source-planning/obsidian/hgr website/03 - Content/Website Copy.md"
+    type: DOC
+  - path: "docs/source-planning/obsidian/hgr website/04 - SEO/Keyword Strategy.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/04 - SEO/On-Page SEO.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/04 - SEO/SEO Strategy.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/04 - SEO/Technical & Local SEO.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/05 - Assets/Asset Requirements.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/05 - Assets/Brand Assets.md"
+    type: DOC
+  - path: "docs/source-planning/obsidian/hgr website/05 - Assets/Photography & Video.md"
+    type: SPEC
+  - path: "docs/source-planning/obsidian/hgr website/06 - References/Technical References.md"
+    type: DOC
+  - path: "docs/source-planning/obsidian/hgr website/06 - References/Website References.md"
+    type: DOC
+  - path: "docs/source-planning/obsidian/hgr website/07 - Decisions/Decision Log.md"
+    type: ADR
+  - path: "docs/source-planning/obsidian/hgr website/07 - Decisions/Deferred & Future Decisions.md"
+    type: DOC
+  - path: "docs/source-planning/obsidian/hgr website/07 - Decisions/Technical Architecture Decisions.md"
+    type: ADR

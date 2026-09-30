@@ -1,0 +1,61 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+.envrc
+.npmrc
+.pypirc
+.pgpass
+.netrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*service-account*.json
+*credentials*.json
+
+# Private business files and local uploads/backups
+private/
+private-originals/
+customer-documents/
+machinery-documents/
+uploads/
+backups/
+postgres-data/
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+# Machine/customer documents belong in controlled storage, not Git.
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# Application build, cache and test output
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+.cache/
+.vercel/
+*.tsbuildinfo
+*.log
+
+# Local GSD installer history and machine-specific settings
+.codex/.gsd-staging/
+.codex/gsd-migration-journal/
+.codex/settings.local.json
+
+# Operating-system files
+.DS_Store
+Thumbs.db
