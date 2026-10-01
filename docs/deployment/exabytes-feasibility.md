@@ -1,38 +1,48 @@
 # Exabytes feasibility: evidence and proposed test
 
-**Recorded: 1 October 2026. Status: pending owner evidence and exact test approval.**
+**Recorded: 1 October 2026. Status: Node 22.23.3 meets documented framework/runtime minimums and is now allowed by the project; the approved synthetic test remains pending because required test services do not exist.**
 
-No hosting-plan evidence, runtime evidence, safe isolated test endpoint, PostgreSQL/storage test service, or account capability evidence was present in the project records at planning time. None has been provided for this record. Second-host availability is unknown. No account has been accessed or remote test performed. These gaps establish neither suitability nor unsuitability of the existing Exabytes account.
+At the 1 October 2026 checkpoint, the owner reported: Exabytes Business Hosting – eBiz 12 Plus; Node.js support; Node.js 22.23.3; npm available; Application Mode `production`; Application Root `/httpdocs`; custom environment variables supported; startup file configurable; and File Manager available. This is owner-provided account evidence, not independently inspected in Plesk. Official [Next.js installation requirements](https://nextjs.org/docs/app/getting-started/installation), [Payload installation requirements](https://payloadcms.com/docs/getting-started/installation), and [Sharp prerequisites](https://sharp.pixelplumbing.com/install/) each state Node 20.9+; React has no stricter server runtime requirement. The locked dependency engine ranges also accept Node 22.23.3, with the caveat that an optional Windows x86 Sharp binary is Node-20-only and the Exabytes platform/architecture has not been supplied. The project engine range is updated to permit Node 22.23.3 and Node 24. The project was built on Node 24.21.0 only; Node 22 project build/runtime has not been exercised. Owner confirms no existing PostgreSQL or object-storage test services and no second compatible host. Therefore no remote write/upload test can run now, despite approval; no resource will be provisioned.
 
-This is the read-only checklist and proposed synthetic test for Plan 01-04 Task 1. It does not grant permission to upload, deploy, start/restart a remote application, migrate a remote database or change any account. Task 2 is an owner-required `blocking-human` checkpoint; Task 3 has not started. PORT-04, PORT-05 and PORT-06 remain pending.
+This record separates facts already established by the local Phase 1 work from Exabytes account facts. **Unverified** means the value is not established by current evidence; it does not by itself block local Phase 1 work. Only the deployment-critical items below are requested from the owner. The remaining technical limits may stay unverified unless visible in existing Plesk settings or readily available plan information. No exhaustive provider investigation is required.
+
+This record does not grant permission to upload, deploy, start/restart a remote application, migrate a remote database or change any account. The exact Exabytes synthetic write/upload test still requires explicit owner approval after the destination and safe existing resources are identified. PORT-04/05/06 host-specific conclusions remain pending until supported by evidence.
 
 ## Evidence to provide
 
 The owner may provide **redacted screenshots or capability descriptions** from the existing plan and application settings. Remove account identifiers, personal details, passwords, connection strings, tokens, keys and secret values. No credentials or service-account files should be sent or placed in Git/planning records. The owner need not run commands or change settings; the maintainer assesses supplied evidence and performs any subsequently authorized technical work.
 
-Every row below is currently **not provided / pending**. For each future fact record its evidence reference, capture date, exact observed value and whether it is a documented allowance or a measured result. Mark a limitation unsupported only when evidence shows it; never replace missing evidence with a guess or general provider advertising.
+For Plesk-visible information, redacted screenshots or short descriptions are sufficient. Do not change settings to make evidence available. Hide account identifiers, personal information, domains or paths where private, billing details, database/storage endpoints, and all credentials/secrets. Facts that are not visible in Plesk or existing plan materials are marked **unverified**; do not infer a value from generic advertising. Record a date/source for any fact supplied.
 
-| Capability | Exact read-only evidence needed | Current evidence |
+### Owner evidence needed to decide if an isolated deployment test is possible
+
+| Deployment-critical fact | What to confirm from existing Plesk/plan information | Current evidence |
 |---|---|---|
-| Product and plan | Existing hosting product/plan name; whether it includes a Node application facility and an isolated test slot | Not provided |
-| Runtime and build | Available Node/npm versions, OS/architecture, install/build support; project requires Node 24.x | Not provided |
-| Process/start/port mapping | Allowed start command, long-running Node process support, assigned listening port and HTTPS/reverse-proxy mapping | Not provided |
-| Restart behavior | Process supervision, manual/automatic restart rules, idle/sleep behavior and what survives an application restart | Not provided |
-| Persistent and temporary disk | Writable temp/build/cache paths, capacity/quotas, persistence across restart/redeploy, cleanup policies | Not provided |
-| CPU and memory | CPU and RAM allowance; build/runtime/image-processing ceilings and enforcement | Not provided |
-| Process and background jobs | Concurrent process limits, child-process support, execution duration and background-job restrictions | Not provided |
-| Request/upload size | Proxy and application request-body/upload limits; whether the 5 MiB foundation cap fits within them | Not provided |
-| Request time | Proxy/request/processing timeouts and any rate/concurrency restriction relevant to the test | Not provided |
-| PostgreSQL connectivity | Outbound TCP/TLS access to independently managed PostgreSQL; allowed ports and supported TLS requirements | Not provided |
-| GCS connectivity | Outbound HTTPS/TLS access to existing GCS or a confirmed compatible test endpoint; authentication support without sharing secrets | Not provided |
-| Network allowlists | Outbound restrictions and stable egress/allowlist requirements for database and storage; no rule changes under this review | Not provided |
-| Sharp/native processing | Supported native modules/platform, Sharp loading/image transformation support and writable temp space | Not provided |
-| Environment configuration | Protected environment injection during build/migration/start and existing secure authentication/credential mounting support | Not provided |
-| Isolation | Already available test app slot, separate disposable database/schema, existing isolated bucket/prefix and permitted test HTTPS route; separation from WordPress/production | Not provided |
-| Existing resources and charges | Which app/database/storage test resources already exist and are non-chargeable for this workload; any quota, usage or upgrade charges | Not provided |
-| Second host | Whether an already available compatible test host exists, its same capabilities/isolation and authorized services; answer yes, no or unknown | Not provided; availability unknown |
+| Node application and supported runtime | Whether this existing plan exposes a Node app facility and offers a version compatible with the selected dependencies | Owner reports Node support, Node 22.23.3, and npm. Official Next.js, Payload and Sharp requirements are Node 20.9+; selected package engine ranges accept Node 22.23.3. Project `package.json` now permits Node `>=22.23.3 <23 || >=24 <25`. Node 22 build/runtime has not been tested here; host OS/architecture and Sharp binary support are unverified. |
+| Existing app configuration (reported) | Application mode, root, startup file, environment-variable and File Manager capabilities | Owner reports production mode, `/httpdocs`, configurable startup file, custom environment variables, and File Manager. Not independently inspected. |
+| Existing isolated app slot | Whether a separate test app slot already exists, isolated from WordPress/production, and can serve an HTTPS test route | Unverified; owner has not confirmed a separate slot or route. `/httpdocs` alone does not establish isolation. |
+| Existing isolated PostgreSQL test service | Whether a separate disposable PostgreSQL service/schema is already available and can be used without charges; Exabytes MariaDB is not a substitute | Unverified; no service confirmed |
+| Existing isolated object-storage test service | Whether an isolated existing GCS-compatible bucket/prefix is available and non-chargeable | Unverified; no service confirmed |
+| Safe environment settings | Whether app secrets can be supplied through protected settings without putting them in source files | Owner reports custom environment variables. Whether values are protected and isolated from WordPress/production remains unverified. |
+| Test scope approval | Whether the owner approves the exact synthetic deployment, database migration, one fake record/image upload, read-only route/API checks, anonymous denied PATCH, test-app restart, and cleanup described below | Owner approved one minimal synthetic test subject to stated safety constraints; approval is not permission to create or pay for missing services. |
+| Second host (conditional) | Whether an already available compatible test host exists: yes / no / unknown. Only needed to report a real second-host result. | Owner confirms none is available; second-host deployment remains pending by plan. |
 
-The [portable redeployment procedure](portable-redeploy.md) defines the required Node application, PostgreSQL and external object-storage capabilities. The existing Exabytes MariaDB is never a PostgreSQL substitute. Missing services or unsafe isolation leave the test pending; no purchase, account creation, upgrade, subscription or potentially chargeable provisioning is part of this proposal.
+If a detail is not visible in Plesk and cannot be confirmed from existing plan material, simply report **unverified**. Do not contact support, change settings, create services, or undertake exhaustive evidence gathering for this checkpoint.
+
+### Other capability details (record if already visible; otherwise unverified)
+
+| Capability | Evidence that may be visible in existing Plesk/plan material | Current evidence |
+|---|---|---|
+| Process/start/port and HTTPS mapping | Existing Node app start command, long-running process support, assigned port and proxy mapping | Unverified |
+| Restart/sleep behavior | Process supervision, restart rules, idle behavior, restart persistence | Unverified |
+| Disk and temporary files | Writable paths, quotas and stated persistence/cleanup rules | Unverified |
+| CPU, memory and process limits | Stated runtime/build/image-processing and concurrent-process limits | Unverified |
+| Request/upload and timeout limits | Proxy/request limits and timeouts; note whether the 5 MiB cap fits if this is stated | Unverified |
+| Outbound network and allowlists | PostgreSQL TCP/TLS and storage HTTPS/TLS policy, outbound restrictions or stable egress requirements | Unverified |
+| Sharp/native processing | Stated native-module/platform and image-processing support | Unverified |
+| Usage charges/quotas | Existing resource quotas or usage charges relevant to the proposed test | Unverified |
+
+The [portable redeployment procedure](portable-redeploy.md) defines the required Node application, PostgreSQL and external object-storage capabilities. The existing Exabytes MariaDB is never a PostgreSQL substitute. Missing or unverified safe isolation/services leave the remote test pending; no purchase, account creation, upgrade, subscription or potentially chargeable provisioning is part of this proposal. These unknowns do not block already permitted local work.
 
 ## Exact proposed synthetic workload
 
@@ -60,21 +70,30 @@ For a second host, first obtain confirmed availability and authorization for tha
 | Destination/check | Status on 1 October 2026 | Evidence and precise gap |
 |---|---|---|
 | Local production build/type checks and 11 configuration/safety tests | Pass, local only | Prior [Plan 01-03 summary](../../.planning/phases/01-portable-foundation-and-exabytes-feasibility/01-03-SUMMARY.md) and [STATE](../../.planning/STATE.md); not rerun for this documentation task |
-| Local full migration/PostgreSQL/GCS/upload/public/API/Admin/restart integration | Pending | Disposable loopback PostgreSQL and compatible object endpoint not demonstrated; generated migration unapplied; no integrated timing/persistence result |
-| Actual Exabytes capabilities | Pending | Every checklist row above not provided; account not reviewed |
-| Actual Exabytes synthetic workload (PORT-05) | Pending | Exact approval not provided; isolated slot, existing non-chargeable database/storage endpoints and audited destination wrapper not confirmed |
-| Second-host rebuild/workload (PORT-04) | Pending | Availability unknown; evidence, authorization and safe existing destinations not confirmed |
+| Actual Exabytes capabilities | Partial owner evidence; Node 22.23.3 meets documented package requirements, subject to local verification | Owner reports Node/app settings as listed above. Official requirements and lockfile engine ranges support Node 22.23.3; project engine now allows it. The project's build under Node 22 and host platform/Sharp binary compatibility are unverified. Other unreported limits/isolation remain unverified. No account access or remote test performed. |
+| Local full migration/PostgreSQL/GCS/upload/public/API/Admin/restart integration | Pending | `npm run smoke:foundation` exited safely at its guard because `HGR_SMOKE_DISPOSABLE=yes` was not set. Per STATE, disposable local PostgreSQL/GCS services are unavailable; the flag was not set and no integration operation ran. This is not host evidence. |
+| Actual Exabytes synthetic workload (PORT-05) | Pending prerequisites | Owner approved one minimal fake-data test but confirms PostgreSQL and object-storage test services do not exist. No services will be created. Isolated app slot/route, OS/architecture, protected environment-value behavior and destination wrapper remain unverified/unprepared. No remote operation attempted. |
+| Second-host rebuild/workload (PORT-04) | Pending by owner-confirmed unavailability | Owner confirms no existing second compatible host; provisioning is out of scope. |
 | Actual host findings (PORT-06) | Pending | Checklist/protocol prepared; actual capability/workload evidence still absent |
 
-No host-specific pass or failure is recorded. A declined test and unavailable evidence are possible owner responses, **not responses already received**. Approval status is currently **not provided**.
+No host workload has been run, so no workload pass/failure is recorded. Node 22.23.3 satisfies the official framework/image-library minimums and selected package engine ranges, so Node 24 is not a documentation-based blocker. The project package engine was widened accordingly. This does not prove the project build/runtime or Sharp binary on the actual Exabytes OS/architecture. The exact synthetic test is **approved by the owner**, but cannot proceed because the owner confirms there is no PostgreSQL or object-storage test service; no account/resource setup is authorized.
 
 For each eventual destination run record: source commit; evidence references/dates; Node/npm/OS versions; explicit process, CPU/RAM, disk, request size/time and network limits; actual original/request/processed bytes; build/start/upload/public/API/Admin timings and statuses; restart persistence; exact cleanup outcome; error stage and redacted error description; and remaining unknowns. Use **pass** only for an observed completed check, **fail/unsupported** only with actual evidence, and **pending** for absent prerequisites or unrun checks. Local results never establish an Exabytes or second-host result.
 
 ## Owner checkpoint response
 
-Provide the redacted descriptions/screenshots for the checklist, and answer:
+The supplied evidence records Node 22.23.3, which meets documented framework/runtime requirements; see the references above. Remaining runtime verification is the project build/run and target-compatible Sharp binary on the actual host platform, which cannot be established from the version alone. The owner confirms PostgreSQL and object-storage test services do not exist, so those service prerequisites are pending and will not be provisioned under this test. Test-slot isolation and protected environment settings remain unverified.
 
-- Exact isolated Exabytes synthetic test: **approve / decline / unavailable**. Approval must identify the existing isolated slot and non-chargeable test services after their facts and destination wrapper are confirmed; approval without safe targets leaves execution pending.
-- Already available compatible second-host resource: **yes / no / unknown**, with redacted capability/isolation descriptions if yes. Availability alone does not grant test writes.
+The owner has approved one minimal synthetic write/upload test under the stated safety conditions. Approval covers only the proposed isolated fake-data workload and cleanup, not creating services, changing app/account settings, or incurring charges. No write is attempted while PostgreSQL and object-storage services are absent.
+
+Remaining owner responses, if already known:
+
+- The Node 22.23.3 package compatibility check is documented; project build/runtime on that target remains unverified.
+- Is there a separate test app slot and HTTPS route, isolated from WordPress/production? If not known, write unverified.
+- PostgreSQL and object-storage test services: owner confirms none exist; do not provision them.
+- Are the reported custom environment values protected? If not known, write unverified.
+
+- Exact isolated Exabytes synthetic test: **approved**, but pending prerequisites. Test cannot run without existing isolated PostgreSQL and object-storage services; none may be created.
+- Already available compatible second-host resource: **no**. Deployment remains pending; no host will be provisioned.
 
 No passwords, tokens, keys, connection strings or service-account files are requested. The maintainer handles technical execution after the required evidence and exact approval, preserving decisions D-01–D-04, D-06, D-08–D-09 and D-12–D-13 in the [Phase 1 context](../../.planning/phases/01-portable-foundation-and-exabytes-feasibility/01-CONTEXT.md).

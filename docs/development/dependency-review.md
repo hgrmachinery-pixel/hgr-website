@@ -1,6 +1,6 @@
 # Foundation dependency review
 
-The owner approved the 13 exact direct packages and proposed Windows x64 dependency list on 30 September 2026 before installation. This local foundation uses Node.js 24; the check ran on Node 24.21.0 and npm 11.19.0.
+The owner approved the 13 exact direct packages and proposed Windows x64 dependency list on 30 September 2026 before installation. The foundation build/check ran on Node.js 24.21.0 and npm 11.19.0. After owner-provided Exabytes evidence reported Node.js 22.23.3, official framework/runtime requirements and the locked package engine ranges were reviewed. The project engine now permits Node `>=22.23.3 <23 || >=24 <25`; Node 22.23.3 has not yet been used for this project's build or runtime integration.
 
 | Direct package | Version |
 | --- | --- |
@@ -23,6 +23,6 @@ The only automatic installation hooks applicable to this Windows tree are three 
 
 The approved tuple includes deprecated indirect esbuild-kit packages and older uuid copies. These are upstream dependencies, not replacement packages selected by HGR. No dependency upgrades were made outside the approved set.
 
-Official API and package references: [Payload installation](https://payloadcms.com/docs/getting-started/installation), [PostgreSQL adapter](https://payloadcms.com/docs/database/postgres), [GCS adapter](https://payloadcms.com/docs/upload/storage-adapters), [Next.js installation](https://nextjs.org/docs/app/getting-started/installation), and [Sharp installation](https://sharp.pixelplumbing.com/install/).
+Official API and package references: [Payload installation](https://payloadcms.com/docs/getting-started/installation), [PostgreSQL adapter](https://payloadcms.com/docs/database/postgres), [GCS adapter](https://payloadcms.com/docs/upload/storage-adapters), [Next.js installation](https://nextjs.org/docs/app/getting-started/installation), and [Sharp installation](https://sharp.pixelplumbing.com/install/). Next.js, Payload and Sharp document Node 20.9+; React 19 has no stricter server-runtime requirement. The audited lockfile package engine ranges accept Node 22.23.3 except the optional Windows x86 Sharp binary package (Sharp documents Windows x86 binaries for Node 20 only). The target host platform is not yet known, so Sharp's platform support must be confirmed before any actual deployment.
 
 Installing these packages provisions no database, bucket, hosting account, or paid service. Database, external-media, production build, Exabytes, and second-host integration results belong to the subsequent tracer and feasibility plans.

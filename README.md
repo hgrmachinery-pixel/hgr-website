@@ -6,7 +6,7 @@ These instructions are for the technical maintainer. HGR staff will manage ordin
 
 ## Prerequisites and current evidence
 
-- Node.js 24.x (`package.json` requires `>=24 <25`), npm and Git. Install from the committed `package-lock.json`; see [dependency review](docs/development/dependency-review.md).
+- Node.js 22.23.3 or later in the 22.x line, or Node.js 24.x (see the `package.json` engine range), npm and Git. Install from the committed `package-lock.json`; see [dependency review](docs/development/dependency-review.md).
 - Disposable PostgreSQL and a compatible GCS JSON API emulator on literal `127.0.0.1`, with three distinct explicit ports for database, storage and app. The local compose file uses PostgreSQL 17.
 - Docker with Compose is one local service option. `SMOKE_GCS_IMAGE` must identify a maintainer-reviewed `fsouza/fake-gcs-server` tag/digest before pulling it. No image version has been selected or proven compatible with this adapter yet.
 
@@ -99,4 +99,4 @@ Run only after `npm ci` has installed the approved local Payload binary; do not 
 
 ## References
 
-Checked against the retained source and official docs on 1 October 2026: [Payload installation](https://payloadcms.com/docs/getting-started/installation), [migrations](https://payloadcms.com/docs/database/migrations), [storage adapters](https://payloadcms.com/docs/upload/storage-adapters), [Next.js self-hosting](https://nextjs.org/docs/app/guides/self-hosting), and [Node.js 24 CLI](https://nodejs.org/docs/latest-v24.x/api/cli.html).
+Checked against the retained source and official docs on 1 October 2026: [Payload installation](https://payloadcms.com/docs/getting-started/installation), [migrations](https://payloadcms.com/docs/database/migrations), [storage adapters](https://payloadcms.com/docs/upload/storage-adapters), [Next.js self-hosting](https://nextjs.org/docs/app/guides/self-hosting), [Node.js 22 CLI](https://nodejs.org/docs/latest-v22.x/api/cli.html) and [Node.js 24 CLI](https://nodejs.org/docs/latest-v24.x/api/cli.html).
