@@ -23,13 +23,20 @@ These are conservative planning defaults for the user's instruction to continue 
 
 ### JPJ and serial privacy
 - **D-05:** Keep document originals, private previews and pending redacted copies staff-only. Store a redacted copy separately and do not expose it until a human reviewer has approved that specific file revision and explicit owner approval for public display is recorded. Replacing the copy invalidates approval. Keep document availability approval separate from file-display approval. A human review must consider visible content and embedded text/metadata; automated redaction alone is insufficient.
-- **D-06:** Do not grant approval authority to a role by assumption. Implement server-enforced approval state and an authorized human review action, with the approver role/person recorded as TO CONFIRM before real documents or services are used. Keep document display disabled by default.
+- **D-06:** Do not grant approval authority to a role by assumption. This constraint is resolved by D-08: the Owner role initially receives the explicit `Approve Public Documents` permission; do not hard-code publication to a role check. Keep public document display denied until the permission check, required review and publication action succeed.
 - **D-07:** Keep private serial values out of public projections unless independently enabled. Require human review of any image where a plate may be readable, across all photo categories. A photo replacement or serial-visibility change must invalidate affected review state.
+
+### Owner-approved public-document and photo-review policy
+- **D-08:** Use a permission named `Approve Public Documents`, initially assigned only to the Owner role. Store/check the named permission independently of role-specific publication logic so a future role can receive it without database-schema or business-logic changes. Administrators may upload documents, redact them, save drafts and submit them for Owner review; they cannot publish. Enforce this server-side for Payload Admin actions and direct API requests.
+- **D-09:** A user with `Approve Public Documents` publishes with one `Publish` action. That action records approval and publication together; there is no separate approval button. Persist `approved_by`, `approved_at`, `published_by` and `published_at` as distinct values, even when actor and time normally match. Before publication, the Owner can use `Preview as Public` to inspect the exact currently redacted public version; preview remains private and does not publish.
+- **D-10:** Every new machine photo starts at `Needs Review`. A human reviewer checks for manufacturer serials, chassis/VINs, engine numbers, registration numbers, QR codes, barcodes, customer labels, delivery information, personal information and any other sensitive identifiers. If sensitive information exists, blur or crop it and repeat the review before publication. If uncertain, escalate to the Owner. AI may highlight possible sensitive areas only; it never substitutes for human review or takes final responsibility.
+- **D-11:** Preserve permanent audit history for upload, redaction, approval, publication and modification. Record `uploaded_by`, `uploaded_at`, `redacted_by`, `redacted_at`, `approved_by`, `approved_at`, `published_by`, `published_at`, `last_modified_by` and `last_modified_at` where applicable. Never overwrite historical events; append immutable audit records and keep approval/publication as separate event types and current fields.
 
 ### the agent's Discretion
 - Select the simplest Payload/Next.js implementation that satisfies these boundaries, existing portability requirements and current approved dependency tuple.
 - Prefer manual upload of an already redacted derivative for this phase; do not introduce AI redaction or a new paid service.
-- Keep unknown artwork, upload-limit, retention, approver and document-format details as explicit TO CONFIRM items, with safe-deny behavior until resolved.
+- Keep unknown artwork, upload-limit, retention and document-format details as explicit TO CONFIRM items, with safe-deny behavior until resolved. The Owner permission and Publish/preview workflow are approved and are not pending decisions.
+- AI-assisted highlighting is optional and is not required for Phase 3; do not add an AI service or allow AI to clear the human review state.
 
 </decisions>
 
@@ -55,6 +62,8 @@ These are conservative planning defaults for the user's instruction to continue 
 - `src/collections/MachineMedia.ts` — current staff-only machine image uploads and generated-name hook.
 - `src/collections/Machines.ts` — machine identity, publication checks, featured image and gallery relationships.
 - `src/collections/Users.ts` — owner and website-administrator roles; do not expand authority without review.
+- `src/collections/Users.ts` and a permission helper — implement the approved named permission independently of role checks.
+- A document/photo audit-event model — preserve append-only lifecycle history across replacement and editing.
 - `src/payload.config.ts` — PostgreSQL, private GCS adapter, shared upload limit and explicit migrations.
 - `src/lib/machines/access.ts` — staff and public access helpers.
 - `src/lib/machines/media.ts` — current machine image filename helper.

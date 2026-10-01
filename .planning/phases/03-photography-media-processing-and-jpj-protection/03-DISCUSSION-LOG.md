@@ -25,3 +25,16 @@ The owner instructed the work to continue autonomously. The saved state containe
 Sol reviewed the current Payload media boundary. Key finding: making a record with an unwatermarked master publicly readable may expose that original alongside generated sizes. Keep masters staff-only and publish separate derivative records with server-side machine publication checks. Sol also recommended revision-bound document approval, no-store handling for private files, and direct URL/API/cache checks. Operational settings remain confirmation items.
 
 No owner decision was requested or represented as approved in this log.
+
+## Owner-approved policy recorded on 2026-10-01
+
+The owner explicitly approved and asked to implement the following Phase 3 policy. These decisions supersede the remaining TO CONFIRM wording about who approves public documents:
+
+- Permission name: `Approve Public Documents`; initially only the Owner role receives it. Permissions must be checked by permission value rather than hard-coded role, so later roles can receive the permission without database-schema/business-logic changes.
+- Administrators may upload, redact, save drafts and submit for Owner review, but cannot publish public documents.
+- A permitted Owner uses one `Publish` action, which records approval and publication together. There is no separate approval button. Keep `approved_by`, `approved_at`, `published_by` and `published_at` distinct. Provide Owner-only `Preview as Public` for the exact redacted version before publishing.
+- Every machine photo starts `Needs Review`. Human review covers serial/chassis/VIN/engine/registration identifiers, QR codes, barcodes, customer labels, delivery and personal information, and any other sensitive identifier. Sensitive areas must be blurred/cropped and reviewed again before publication; uncertainty goes to the Owner.
+- AI may highlight possible sensitive areas but never replaces human review or holds final responsibility.
+- Preserve the named upload/redaction/approval/publication/last-modified audit data and never overwrite history. Use immutable audit events.
+
+These are owner-approved policy decisions, not defaults. They authorize local implementation only; they do not authorize real JPJ documents, service provisioning, paid resources or public/production publication.
