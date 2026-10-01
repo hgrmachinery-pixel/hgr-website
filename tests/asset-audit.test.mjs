@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import test from "node:test";
+import { AssetAuditEvents } from "../src/collections/AssetAuditEvents.ts";
 
 async function readIfPresent(url) {
   try { await access(url); return await readFile(url, "utf8"); } catch { return ""; }
@@ -19,5 +20,15 @@ test("audit events are registered as create-only and server-stamped", async () =
   assert.match(helper, /actorID/);
   assert.match(helper, /occurredAt/);
   assert.match(helper, /req/);
+  assert.equal(AssetAuditEvents.access.create(), false);
+  assert.equal(AssetAuditEvents.access.update(), false);
+  assert.equal(AssetAuditEvents.access.delete(), false);
+  assert.equal(AssetAuditEvents.access.read({ req: { user: null } }), false);
+  assert.throws(() => AssetAuditEvents.hooks.beforeDelete[0](), /permanently retained/);
+  assert.throws(() => AssetAuditEvents.hooks.beforeChange[0]({
+    data: { actorID: "forged", occurredAt: "forged" }, operation: "create",
+    req: { user: { id: 7, collection: "users" }, context: {} },
+  }), /trusted server workflow/);
 });
+
 

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { CollectionConfig } from "payload";
 import { createLocalReq } from "payload";
+import { appendAssetAuditEvent } from "../lib/audit/assets.ts";
 
 import { isStaffUser } from "../lib/machines/access.ts";
 import { configuredDocumentMimeTypes, type MachineDocumentKind } from "../lib/machines/documents.ts";
@@ -161,31 +162,38 @@ export const MachineDocuments: CollectionConfig = {
       throw new Error("Document review, approval, publication and audit fields are server-managed.");
     }],
     afterChange: [async ({ doc, operation, req }) => {
-      if (operation !== "create" || doc.documentKind !== "redacted-copy") return doc;
-      const sourceID = relationID(doc.sourceDocument);
-      if (sourceID === undefined) throw new Error("A redacted copy must remain linked to its private original.");
-      const now = new Date().toISOString();
-      const source = await req.payload.findByID({ collection: "machine-documents", id: sourceID, depth: 0, overrideAccess: true, req });
-      const history = Array.isArray(source.auditHistory) ? source.auditHistory : [];
-      const localReq = await createLocalReq({
-        req,
-        user: req.user ?? undefined,
-        context: { ...req.context, machineDocumentRevisionLink: true },
-      }, req.payload);
-      await req.payload.update({
-        collection: "machine-documents",
-        id: sourceID,
-        data: {
-          latestRedactedRevision: doc.id,
-          redactedBy: req.user?.id,
-          redactedAt: now,
-          lastModifiedBy: req.user?.id,
-          lastModifiedAt: now,
-          auditHistory: [...history, { event: "redacted", actor: req.user?.id, at: now, revision: doc.id, digest: doc.contentDigest }],
-        },
-        overrideAccess: true,
-        req: localReq,
-      });
+      if (operation === "create") {
+        const timestamp = String(doc.uploadedAt ?? new Date().toISOString());
+        const digest = String(doc.contentDigest);
+        const revisionID = String(doc.revisionID);
+        await appendAssetAuditEvent({
+          req, entityType: "document", entityID: doc.id, revisionID, digest,
+          eventType: "uploaded", eventKey: `document:${doc.id}:uploaded:${revisionID}`,
+          audit: { uploaded_by: String(req.user?.id), uploaded_at: timestamp, last_modified_by: String(req.user?.id), last_modified_at: timestamp },
+        });
+        if (doc.documentKind === "redacted-copy") {
+          await appendAssetAuditEvent({
+            req, entityType: "document", entityID: doc.id, revisionID, digest,
+            eventType: "redacted", eventKey: `document:${doc.id}:redacted:${revisionID}`,
+            audit: { redacted_by: String(doc.redactedBy ?? req.user?.id), redacted_at: String(doc.redactedAt ?? timestamp) },
+          });
+          const sourceID = relationID(doc.sourceDocument);
+          if (sourceID === undefined) throw new Error("A redacted copy must remain linked to its private original.");
+          const now = new Date().toISOString();
+          const source = await req.payload.findByID({ collection: "machine-documents", id: sourceID, depth: 0, overrideAccess: true, req });
+          const history = Array.isArray(source.auditHistory) ? source.auditHistory : [];
+          const localReq = await createLocalReq({ req, user: req.user ?? undefined, context: { ...req.context, machineDocumentRevisionLink: true } }, req.payload);
+          await req.payload.update({
+            collection: "machine-documents", id: sourceID,
+            data: {
+              latestRedactedRevision: doc.id, redactedBy: req.user?.id, redactedAt: now,
+              lastModifiedBy: req.user?.id, lastModifiedAt: now,
+              auditHistory: [...history, { event: "redacted", actor: req.user?.id, at: now, revision: doc.id, digest: doc.contentDigest }],
+            },
+            overrideAccess: true, req: localReq,
+          });
+        }
+      }
       return doc;
     }],
     beforeDelete: [() => { throw new Error("Machine documents are retained; deletion is disabled."); }],

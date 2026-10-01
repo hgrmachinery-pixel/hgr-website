@@ -7,6 +7,7 @@ import { buildConfig } from "payload";
 import sharp from "sharp";
 
 import { FoundationFixture } from "./collections/FoundationFixture";
+import { AssetAuditEvents } from "./collections/AssetAuditEvents";
 import { Roles } from "./collections/Roles";
 import { MachineDocuments } from "./collections/MachineDocuments";
 import { Machines } from "./collections/Machines";
@@ -60,7 +61,7 @@ export default buildConfig({
   editor: lexicalEditor({}),
   serverURL: origin.origin,
   csrf: [origin.origin],
-  collections: [FoundationFixture, Roles, Users, Machines, MachineMedia, MachineDocuments, Pages],
+  collections: [FoundationFixture, Roles, Users, Machines, MachineMedia, MachineDocuments, AssetAuditEvents, Pages],
   globals: [SiteContact],
   email: noDeliveryEmailAdapter,
   admin: { user: "users" },
@@ -94,3 +95,7 @@ export default buildConfig({
     outputFile: path.resolve(configDirectory, "payload-types.ts"),
   },
 });
+
+
+
+

@@ -5,6 +5,7 @@ import { denyAccess, staffAccess } from "../lib/machines/access";
 import { publicMachineMediaAccess, generatedMachinePhotoFilename, initialPhotoReview, historyIsAppendOnly, isPhotoReviewComplete, PHOTO_REVIEW_CHECKLIST } from "../lib/machines/media.ts";
 import { photoContentDigest } from "../lib/machines/media-image.ts";
 import { isStaffUser } from "../lib/machines/access";
+import { appendAssetAuditEvent } from "../lib/audit/assets.ts";
 
 const staffFieldRead = ({ req }: { req: { user?: unknown } }) => isStaffUser(req.user);
 
@@ -167,6 +168,36 @@ export const MachineMedia: CollectionConfig = {
       return data;
     }],
     beforeDelete: [() => { throw new Error("Machine photo records are retained; deletion is disabled."); }],
+    afterChange: [async ({ doc, operation, req }) => {
+      if (!isStaffUser(req.user) || typeof doc.contentDigest !== "string") return doc;
+      const history = Array.isArray(doc.auditHistory) ? doc.auditHistory : [];
+      const latest = history.at(-1) as Record<string, unknown> | undefined;
+      const eventName = operation === "create" ? (doc.assetKind === "derivative" ? "redacted" : "uploaded") : String(latest?.event ?? "");
+      const eventType = eventName === "uploaded" ? "uploaded"
+        : eventName === "redacted" || eventName === "derivative-created" ? "redacted"
+          : eventName === "approved" ? "approved"
+            : eventName === "published" ? "published"
+              : ["metadata-updated", "sensitive-information-found", "owner-escalation", "review-invalidated"].includes(eventName) ? "modified" : undefined;
+      if (!eventType) return doc;
+      const revisionID = `${doc.photoIdentity ?? doc.id}:${doc.revision ?? 0}`;
+      const occurred = String(latest?.at ?? doc.uploadedAt ?? new Date().toISOString());
+      const eventKey = `photo:${doc.id}:${eventType}:${revisionID}:${occurred}`;
+      const actor = String(latest?.actor ?? latest?.reviewer ?? req.user.id);
+      await appendAssetAuditEvent({
+        req, entityType: "photo", entityID: doc.id, revisionID, digest: doc.contentDigest,
+        eventType, eventKey,
+        audit: eventType === "uploaded"
+          ? { uploaded_by: String(doc.uploadedBy ?? actor), uploaded_at: String(doc.uploadedAt ?? occurred) }
+          : eventType === "redacted"
+            ? { redacted_by: actor, redacted_at: occurred }
+            : eventType === "approved"
+              ? { approved_by: String(doc.approvedBy ?? actor), approved_at: String(doc.approvedAt ?? occurred) }
+              : eventType === "published"
+                ? { published_by: String(doc.publishedBy ?? actor), published_at: String(doc.publishedAt ?? occurred) }
+                : { last_modified_by: actor, last_modified_at: occurred },
+      });
+      return doc;
+    }],
   },
   upload: {
     disableLocalStorage: true,
