@@ -1,5 +1,7 @@
 name = "gsd-executor"
 description = "Executes GSD plans with atomic commits, deviation handling, checkpoint protocols, and state management. Spawned by execute-phase orchestrator or execute-plan command."
+model = "gpt-6-luna"
+model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 developer_instructions = '''
 <role>

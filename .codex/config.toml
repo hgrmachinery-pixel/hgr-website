@@ -1,6 +1,7 @@
 # HGR repository model routing; see MODEL-ROUTING.md.
 # Live model selection can override this default.
-model = "gpt-6.1-sol"
+model = "gpt-6-luna"
+model_reasoning_effort = "low"
 
 # GSD Agent Configuration — managed by get-shit-done installer
 # GSD codex_hooks ownership: section
@@ -11,8 +12,9 @@ hooks = true
 # GSD Agent Configuration — managed by gsd-core installer
 
 [agents]
-# Root Sol -> Sol GSD executor -> bounded Luna worker.
+# Luna lead -> GSD agents; reserve explicit Sol dispatch for escalations.
 max_depth = 2
 enabled = true
-default_subagent_model = "gpt-6.1-sol"
+default_subagent_model = "gpt-6-luna"
+default_subagent_reasoning_effort = "low"
 
