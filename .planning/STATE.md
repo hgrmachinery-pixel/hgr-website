@@ -4,17 +4,17 @@ milestone: V1
 milestone_name: versus deferred scope
 current_phase: 3
 current_phase_name: Photography, media processing and JPJ protection
-status: in_progress
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-10-01T17:16:00.030Z"
+status: local plan execution complete; PostgreSQL/GCS verification remains pending; do not begin Phase 4
+stopped_at: Completed local implementation of 03-04-PLAN.md; awaiting approved disposable PostgreSQL/GCS targets for Phase 3 live verification
+last_updated: "2026-10-01T17:45:49.990Z"
 last_activity: 2026-10-02
-last_activity_desc: Phase 3 Plan 03-02 implementation, synthetic verification and commits complete; local service verification remains pending
-state_head: 46889041732f728d1318ac91d53025b8bf480b61
+last_activity_desc: Phase 3 Plans 03-01 through 03-04 have local summaries; Plan 03-04 migration is unapplied, public delivery remains disabled, and exact approved disposable service targets are still unavailable.
+state_head: 5b5d65d191c8a16d6ab436b2c950cba6a95fc2e9
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 0
   total_plans: 11
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -24,18 +24,18 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** HGR can independently publish accurate used-excavator listings that lead customers to a direct enquiry and an arranged viewing.
-**Current focus:** Continue Phase 3 with the Owner Publish/Preview workflow; Phase 1 and Phase 3 service verification remain pending and do not authorize resource provisioning.
+**Current focus:** Phase 3 local implementation and plan summaries are complete; exact disposable PostgreSQL/GCS verification remains pending and does not authorize resource provisioning.
 
 ## Current Position
 
 Phase: 3 (Photography, media processing and JPJ protection) — IN PROGRESS
-Plan: 4 of 4 — Plans 03-01 and 03-02 summarized; Plans 03-03 and 03-04 remain
+Plan: 4 of 4 — all four plans summarized; Phase 3 live verification remains gated
 Total Plans in Phase: 4
-Status: in progress; local implementation continues, PostgreSQL/GCS verification remains gated
-Last Activity: 2026-10-02 — Plan 03-02 private document workflow and photo review guards implemented and verified
-Last Activity Description: Persisted permissions, private admin document preparation, revision-bound photo checks and audit protections committed; Owner Publish/Preview is next
+Status: local plan execution complete; PostgreSQL/GCS verification remains pending; do not begin Phase 4
+Last Activity: 2026-10-02 — Plan 03-04 migration/auth safeguards reviewed locally and committed; live checks remain gated
+Last Activity Description: Phase 3 Plans 03-01 through 03-04 have local summaries; Plan 03-04 migration is unapplied, public delivery remains disabled, and exact approved disposable service targets are still unavailable.
 
-Progress: 4 Phase 1, 3 Phase 2 and 2 Phase 3 plan summaries are recorded. Phase 1 and Phase 2 live checks remain incomplete. Phase 3 is in progress with two plans remaining; do not advance to Phase 4 automatically.
+Progress: 4 Phase 1, 3 Phase 2 and 4 Phase 3 plan summaries are recorded. Phase 1 and Phase 2 live checks remain incomplete. Phase 3 local work is complete; migration apply, database/GCS compatibility and public media delivery remain gated. Do not begin Phase 4 automatically.
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: 4 Phase 1, 3 Phase 2 and 2 Phase 3 plan summaries are recorded. Phase 
 | Phase 03 P01 | 1 session | 3 tasks | 17 files |
 | Phase 03 P02 | 1 session | 3 tasks | 24 files |
 | Phase 3 P3 | 25min | 2 tasks | 13 files |
+| Phase 3 P4 | 25min | 1 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - [Phase 03]: Photo approvals bind to the exact derivative and current serial-visibility policy revision; all policy changes invalidate machine photo reviews.
 - [Phase 3]: Asset event writes share the protected transition transaction; database trigger and live service verification remain in Plan 03-04.
 - [Phase 3]: Current Approve Public Documents permission gates one Publish action; authenticated Preview streams the exact latest redacted revision privately with no-store headers.
+- [Phase 3]: Roles and staff accounts use fresh persisted Owner authority independent of Approve Public Documents; transaction mutations serialize Owner bootstrap and retention.
+- [Phase 3]: Phase 3 migration rejects unknown legacy roles and existing photos that require invented identifiers, digests, reviews or actors; rollback refuses populated/nonrepresentable history under locks.
+- [Phase 3]: Keep the migration unapplied and public media delivery denied until exact approved disposable PostgreSQL/GCS targets pass live checks.
 
 ### Pending Todos
 
@@ -98,6 +102,7 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - Phase 2 has no available approved disposable PostgreSQL service; the reviewed migration was not applied, and live two-account Admin/account-race checks remain pending. Media upload/storage and password-reset delivery also need their later approved services.
 - `npm audit` reports 21 dependency findings (2 low, 18 moderate, 1 high), including a high-severity issue in Payload's separate `undici@7.29.0` dependency. Do not downgrade the aligned Payload packages. Track a scoped security review before deployment; no override was applied.
 - Full `node --test` remains blocked by the sandbox's `tsx` child-process `uv_os_get_passwd returned ENOMEM` issue in existing foundation config tests; Phase 2-focused and smoke tests pass.
+- Phase 3 live migration and Payload/GCS verification remain pending because no exact existing isolated disposable PostgreSQL or GCS-compatible targets are available and approved; migration unapplied, public delivery disabled.
 
 ## Deferred Items
 
@@ -105,6 +110,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-01T17:15:59.791Z
-Stopped at: Completed 03-03-PLAN.md
-Resume file: .planning/phases/03-photography-media-processing-and-jpj-protection/03-04-PLAN.md
+Last session: 2026-10-01T17:44:45.218Z
+Stopped at: Completed local implementation of 03-04-PLAN.md; awaiting approved disposable PostgreSQL/GCS targets for Phase 3 live verification
+Resume file: .planning/phases/03-photography-media-processing-and-jpj-protection/03-04-SERVICE-READINESS.md
