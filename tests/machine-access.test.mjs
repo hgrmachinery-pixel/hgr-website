@@ -158,3 +158,18 @@ test("phase 2 migration extends foundation users safely and adds the permanent I
   assert.ok(migration.indexOf('DROP CONSTRAINT "payload_locked_documents_rels_machines_fk"') < migration.indexOf('DROP TABLE "machines" CASCADE'));
   assert.match(registry, /20261001_080057_phase2_machines/);
 });
+
+test("Phase 3 permissions use persisted flexible roles rather than fixed role labels", async () => {
+  const [users, payloadConfig, access] = await Promise.all([
+    readFile(new URL("../src/collections/Users.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/payload.config.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/lib/machines/access.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.equal(isStaffUser({ id: 8, collection: "users", role: "custom-role" }), true);
+  assert.match(users, /relationTo:\s*["']roles["']/);
+  assert.match(users, /relationTo:\s*["']roles["']/);
+  assert.match(payloadConfig, /Roles/);
+  assert.match(access, /candidate\.collection === ["']users["']/);
+  assert.doesNotMatch(access, /candidate\.role ===/);
+});
