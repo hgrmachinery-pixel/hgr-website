@@ -222,8 +222,12 @@ export const Machines: CollectionConfig = {
         const photo = await req.payload.findByID({ collection: "machine-media", id: photoId, depth: 0, overrideAccess: true, req });
         if (photo.assetKind !== "derivative") continue;
         const history = Array.isArray(photo.auditHistory) ? photo.auditHistory : [];
-        const priorPublicationEvent = [...history].reverse().find((event) => event.event === "published" || event.event === "unpublished")?.event;
-        if (priorPublicationEvent === targetEvent) continue;
+        const priorPublicationEvent = [...history].reverse().find((value) => {
+          if (!value || typeof value !== "object") return false;
+          const event = (value as Record<string, unknown>).event;
+          return event === "published" || event === "unpublished";
+        }) as Record<string, unknown> | undefined;
+        if (priorPublicationEvent?.event === targetEvent) continue;
         const at = new Date().toISOString();
         const auditHistory = [...history, { event: targetEvent, actor: req.user?.id, at, machine: doc.id }];
         const localReq = await createLocalReq({ user: req.user ?? undefined, context: { machinePhotoPublication: true } }, req.payload);

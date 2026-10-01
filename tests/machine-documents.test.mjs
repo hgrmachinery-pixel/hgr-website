@@ -25,6 +25,7 @@ test("Payload registers machine documents only on private object storage", async
   assert.match(submitRoute, /action !== "submit"/);
   assert.match(submitControl, /Submit for Owner review/);
   assert.doesNotMatch(submitControl, /Publish/i);
+  assert.match(await readFile(new URL("../src/collections/MachineDocuments.ts", import.meta.url), "utf8"), /MachineDocumentActions#MachineDocumentActions/);
   assert.deepEqual(configuredDocumentMimeTypes(undefined), []);
   assert.deepEqual(configuredDocumentMimeTypes("application/pdf, image/jpeg, image/svg+xml"), ["application/pdf", "image/jpeg"]);
 });
@@ -118,6 +119,10 @@ test("Owner publishing is permission-gated and preview is exact-revision, privat
   assert.match(route, /action !== "preview"/);
   assert.match(route, /private, no-store/);
   assert.match(route, /range/);
+  assert.ok((route.match(/hasPermission\(permissionReq, APPROVE_PUBLIC_DOCUMENTS\)/g) ?? []).length >= 2);
+  assert.doesNotMatch(route.slice(route.indexOf('if (action === "preview")') > -1 ? route.indexOf('if (action === "preview")') : 0), /payload\.update\(/);
+  assert.match(route, /status: upstream\.status, headers: responseHeaders/);
+  assert.match(route, /Cache-Control.*private, no-store/);
   assert.match(actions, />Publish<\/button>/);
   assert.match(actions, /Preview as Public/);
   assert.match(documents, /machineDocumentPublish/);

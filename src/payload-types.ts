@@ -72,7 +72,8 @@ export interface Config {
     users: User;
     machines: Machine;
     'machine-media': MachineMedia;
-    'machine-documents': MachineDocuments;
+    'machine-documents': MachineDocument;
+    'asset-audit-events': AssetAuditEvent;
     pages: Page;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -82,11 +83,12 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     'foundation-fixtures': FoundationFixturesSelect<false> | FoundationFixturesSelect<true>;
-    'roles': RolesSelect<false> | RolesSelect<true>;
+    roles: RolesSelect<false> | RolesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     machines: MachinesSelect<false> | MachinesSelect<true>;
     'machine-media': MachineMediaSelect<false> | MachineMediaSelect<true>;
     'machine-documents': MachineDocumentsSelect<false> | MachineDocumentsSelect<true>;
+    'asset-audit-events': AssetAuditEventsSelect<false> | AssetAuditEventsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -164,6 +166,28 @@ export interface FoundationFixture {
   };
 }
 /**
+ * Staff roles and their named permissions.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles".
+ */
+export interface Role {
+  id: number;
+  name: string;
+  key: string;
+  /**
+   * Named capabilities granted to this role.
+   */
+  permissions?:
+    | {
+        name: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Protected HGR owner and website administrator accounts.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -171,7 +195,7 @@ export interface FoundationFixture {
  */
 export interface User {
   id: number;
-  role: (number | null) | Role;
+  role: number | Role;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -191,24 +215,6 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
-}
-/**
- * Staff roles and their named permissions.
- *
- * This interface was referenced by the definition "roles".
- */
-export interface Role {
-  id: number;
-  name: string;
-  key: string;
-  permissions?:
-    | {
-        id?: string | null;
-        name: string;
-      }[]
-    | null;
-  updatedAt: string;
-  createdAt: string;
 }
 /**
  * Manage one record for each physical machine.
@@ -249,7 +255,15 @@ export interface Machine {
   serialVisibilityRevision?: number | null;
   featuredImage?: (number | null) | MachineMedia;
   gallery?: (number | MachineMedia)[] | null;
-  currentPhotoRevisions?: { [k: string]: unknown } | null;
+  currentPhotoRevisions?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   archived?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -263,21 +277,65 @@ export interface Machine {
  */
 export interface MachineMedia {
   id: number;
-  machine: (number | null) | Machine;
+  machine: number | Machine;
   assetKind: 'master' | 'derivative';
   machineReference?: string | null;
   photoIdentity: string;
   photoSequence: number;
-  category: 'general-exterior' | 'side-view-1' | 'side-view-2' | 'front-view' | 'rear-view' | 'cabin-interior' | 'hour-meter' | 'chassis-serial-number' | 'engine' | 'undercarriage-tracks' | 'boom-arm-bucket' | 'other-details';
+  category:
+    | 'general-exterior'
+    | 'side-view-1'
+    | 'side-view-2'
+    | 'front-view'
+    | 'rear-view'
+    | 'cabin-interior'
+    | 'hour-meter'
+    | 'chassis-serial-number'
+    | 'engine'
+    | 'undercarriage-tracks'
+    | 'boom-arm-bucket'
+    | 'other-details';
   revision: number;
   sourceMaster?: (number | null) | MachineMedia;
   processingStatus: 'master' | 'processing' | 'ready' | 'failed';
   contentDigest: string;
   sourceDigest?: string | null;
   redactionDigest?: string | null;
-  review: { status: 'needs-review' | 'approved'; revision: number; digest?: string | null; serialPolicyRevision: number; reviewedBy?: (number | null) | User; reviewedAt?: string | null; checklist?: { [k: string]: unknown } | null };
-  reviewHistory?: { [k: string]: unknown }[] | null;
-  auditHistory?: { [k: string]: unknown }[] | null;
+  review: {
+    status: 'needs-review' | 'approved';
+    revision: number;
+    digest?: string | null;
+    serialPolicyRevision: number;
+    reviewedBy?: (number | null) | User;
+    reviewedAt?: string | null;
+    checklist?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  reviewHistory?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  auditHistory?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   uploadedBy?: (number | null) | User;
   uploadedAt?: string | null;
   redactedBy?: (number | null) | User;
@@ -302,22 +360,64 @@ export interface MachineMedia {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
-  sizes?: {};
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    large?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
 }
 /**
  * Private originals and separate redacted document revisions.
  *
- * This interface was referenced by the definition "machine-documents".
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "machine-documents".
  */
-export interface MachineDocuments {
+export interface MachineDocument {
   id: number;
-  machine: (number | null) | Machine;
+  machine: number | Machine;
   documentKind: 'original' | 'redacted-copy';
-  sourceDocument?: (number | null) | MachineDocuments;
-  latestRedactedRevision?: (number | null) | MachineDocuments;
+  sourceDocument?: (number | null) | MachineDocument;
+  latestRedactedRevision?: (number | null) | MachineDocument;
   revisionID: string;
   contentDigest: string;
-  workflowStatus: 'draft' | 'submitted';
+  workflowStatus: 'draft' | 'submitted' | 'published';
+  ownerReview?: {
+    revisionID?: string | null;
+    digest?: string | null;
+    reviewer?: string | null;
+    reviewedAt?: string | null;
+    humanAttested?: boolean | null;
+    checklist?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
   submittedBy?: (number | null) | User;
   submittedAt?: string | null;
   uploadedBy?: (number | null) | User;
@@ -330,7 +430,15 @@ export interface MachineDocuments {
   publishedAt?: string | null;
   lastModifiedBy?: (number | null) | User;
   lastModifiedAt?: string | null;
-  auditHistory?: { [k: string]: unknown }[] | null;
+  auditHistory?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -341,7 +449,35 @@ export interface MachineDocuments {
   filesize?: number | null;
   width?: number | null;
   height?: number | null;
-  sizes?: {};
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "asset-audit-events".
+ */
+export interface AssetAuditEvent {
+  id: number;
+  eventKey: string;
+  entityType: 'photo' | 'document';
+  entityID: string;
+  revisionID: string;
+  digest: string;
+  eventType: 'uploaded' | 'redacted' | 'modified' | 'submitted' | 'approved' | 'published' | 'unpublished';
+  actorID: string;
+  occurredAt: string;
+  uploaded_by?: string | null;
+  uploaded_at?: string | null;
+  redacted_by?: string | null;
+  redacted_at?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  published_by?: string | null;
+  published_at?: string | null;
+  last_modified_by?: string | null;
+  last_modified_at?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Manage page copy and contact information used on the website.
@@ -403,6 +539,10 @@ export interface PayloadLockedDocument {
         value: number | FoundationFixture;
       } | null)
     | ({
+        relationTo: 'roles';
+        value: number | Role;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
       } | null)
@@ -413,6 +553,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'machine-media';
         value: number | MachineMedia;
+      } | null)
+    | ({
+        relationTo: 'machine-documents';
+        value: number | MachineDocument;
+      } | null)
+    | ({
+        relationTo: 'asset-audit-events';
+        value: number | AssetAuditEvent;
       } | null)
     | ({
         relationTo: 'pages';
@@ -495,6 +643,22 @@ export interface FoundationFixturesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "roles_select".
+ */
+export interface RolesSelect<T extends boolean = true> {
+  name?: T;
+  key?: T;
+  permissions?:
+    | T
+    | {
+        name?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -516,14 +680,6 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
-}
-/** This interface was referenced by the definition "roles_select". */
-export interface RolesSelect<T extends boolean = true> {
-  name?: T;
-  key?: T;
-  permissions?: T | { id?: T; name?: T };
-  updatedAt?: T;
-  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -553,8 +709,8 @@ export interface MachinesSelect<T extends boolean = true> {
   serialVisibilityRevision?: T;
   featuredImage?: T;
   gallery?: T;
-  archived?: T;
   currentPhotoRevisions?: T;
+  archived?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -576,7 +732,17 @@ export interface MachineMediaSelect<T extends boolean = true> {
   contentDigest?: T;
   sourceDigest?: T;
   redactionDigest?: T;
-  review?: T;
+  review?:
+    | T
+    | {
+        status?: T;
+        revision?: T;
+        digest?: T;
+        serialPolicyRevision?: T;
+        reviewedBy?: T;
+        reviewedAt?: T;
+        checklist?: T;
+      };
   reviewHistory?: T;
   auditHistory?: T;
   uploadedBy?: T;
@@ -603,9 +769,45 @@ export interface MachineMediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
-  sizes?: T | {};
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        large?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
 }
-/** This interface was referenced by the definition "machine-documents_select". */
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "machine-documents_select".
+ */
 export interface MachineDocumentsSelect<T extends boolean = true> {
   machine?: T;
   documentKind?: T;
@@ -614,6 +816,16 @@ export interface MachineDocumentsSelect<T extends boolean = true> {
   revisionID?: T;
   contentDigest?: T;
   workflowStatus?: T;
+  ownerReview?:
+    | T
+    | {
+        revisionID?: T;
+        digest?: T;
+        reviewer?: T;
+        reviewedAt?: T;
+        humanAttested?: T;
+        checklist?: T;
+      };
   submittedBy?: T;
   submittedAt?: T;
   uploadedBy?: T;
@@ -637,7 +849,34 @@ export interface MachineDocumentsSelect<T extends boolean = true> {
   filesize?: T;
   width?: T;
   height?: T;
-  sizes?: T | {};
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "asset-audit-events_select".
+ */
+export interface AssetAuditEventsSelect<T extends boolean = true> {
+  eventKey?: T;
+  entityType?: T;
+  entityID?: T;
+  revisionID?: T;
+  digest?: T;
+  eventType?: T;
+  actorID?: T;
+  occurredAt?: T;
+  uploaded_by?: T;
+  uploaded_at?: T;
+  redacted_by?: T;
+  redacted_at?: T;
+  approved_by?: T;
+  approved_at?: T;
+  published_by?: T;
+  published_at?: T;
+  last_modified_by?: T;
+  last_modified_at?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -60,7 +60,8 @@ export async function appendAssetAuditEvent({
   trustedAuditRequests.add(localReq);
   return req.payload.create({
     collection: "asset-audit-events",
-    data: { eventKey, entityType, entityID: String(entityID), revisionID, digest, eventType, ...audit },
+    data: { eventKey, entityType, entityID: String(entityID), revisionID, digest, eventType, actorID: String(req.user.id), occurredAt: new Date().toISOString(), ...audit },
+    draft: false,
     overrideAccess: true,
     req: localReq,
   });

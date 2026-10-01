@@ -2,9 +2,10 @@ import { createHash } from "node:crypto";
 import type { CollectionConfig } from "payload";
 import { createLocalReq } from "payload";
 import { appendAssetAuditEvent } from "../lib/audit/assets.ts";
+import { hasPermission, APPROVE_PUBLIC_DOCUMENTS } from "../lib/auth/permissions.ts";
 
 import { isStaffUser } from "../lib/machines/access.ts";
-import { configuredDocumentMimeTypes, type MachineDocumentKind } from "../lib/machines/documents.ts";
+import { configuredDocumentMimeTypes, isTrustedDocumentPublicationRequest, type MachineDocumentKind } from "../lib/machines/documents.ts";
 
 function relationID(value: unknown): string | number | undefined {
   if (typeof value === "string" || typeof value === "number") return value;
@@ -33,7 +34,7 @@ export const MachineDocuments: CollectionConfig = {
     useAsTitle: "filename",
     defaultColumns: ["machine", "documentKind", "workflowStatus", "uploadedAt"],
     description: "Private originals and separate redacted document revisions.",
-    components: { edit: { beforeDocumentControls: ["@/components/payload/SubmitDocumentForReview#SubmitDocumentForReview"] } },
+    components: { edit: { beforeDocumentControls: ["@/components/payload/MachineDocumentActions#MachineDocumentActions"] } },
   },
   access: {
     create: ({ req }) => isStaffUser(req.user),
@@ -159,6 +160,24 @@ export const MachineDocuments: CollectionConfig = {
         return data;
       }
 
+      if (context.machineDocumentPublish === true) {
+        if (!isTrustedDocumentPublicationRequest(req)) throw new Error("Document publication must use the trusted Publish action.");
+        if (!await hasPermission(req, APPROVE_PUBLIC_DOCUMENTS)) throw new Error("The current account does not have Approve Public Documents.");
+        const allowed = new Set(["workflowStatus", "ownerReview", "approvedBy", "approvedAt", "publishedBy", "publishedAt", "lastModifiedBy", "lastModifiedAt"]);
+        const review = data.ownerReview as Record<string, unknown> | undefined;
+        const checklist = review?.checklist as Record<string, unknown> | undefined;
+        const reviewItems = ["manufacturerSerials", "chassisVIN", "engineNumbers", "registrationNumbers", "qrCodes", "barcodes", "customerLabels", "deliveryInformation", "personalInformation", "otherSensitiveIdentifiers"];
+        if (
+          originalDoc.documentKind !== "redacted-copy" || !["draft", "submitted"].includes(String(originalDoc.workflowStatus)) || data.workflowStatus !== "published" ||
+          keys.some((key) => !allowed.has(key)) || review?.revisionID !== originalDoc.revisionID || review?.digest !== originalDoc.contentDigest ||
+          review?.humanAttested !== true || String(review?.reviewer) !== String(req.user?.id) || typeof review?.reviewedAt !== "string" ||
+          String(data.approvedBy) !== String(req.user?.id) || String(data.publishedBy) !== String(req.user?.id) ||
+          data.approvedAt !== review.reviewedAt || data.publishedAt !== review.reviewedAt ||
+          !checklist || reviewItems.some((key) => !["clear", "redacted"].includes(String(checklist[key])))
+        ) throw new Error("Publish requires a complete Owner attestation for this exact redacted revision.");
+        return data;
+      }
+
       throw new Error("Document review, approval, publication and audit fields are server-managed.");
     }],
     afterChange: [async ({ doc, operation, req }) => {
@@ -194,6 +213,28 @@ export const MachineDocuments: CollectionConfig = {
           });
         }
       }
+      const context = req.context as Record<string, unknown>;
+      if (operation === "update" && context.machineDocumentSubmit === true) {
+        const now = String(doc.submittedAt ?? new Date().toISOString());
+        await appendAssetAuditEvent({
+          req, entityType: "document", entityID: doc.id, revisionID: String(doc.revisionID), digest: String(doc.contentDigest),
+          eventType: "submitted", eventKey: `document:${doc.id}:submitted:${doc.revisionID}`,
+          audit: { last_modified_by: String(doc.lastModifiedBy ?? req.user?.id), last_modified_at: String(doc.lastModifiedAt ?? now) },
+        });
+      }
+      if (operation === "update" && context.machineDocumentPublish === true) {
+        const actor = String(doc.publishedBy ?? req.user?.id);
+        const at = String(doc.publishedAt ?? new Date().toISOString());
+        for (const eventType of ["approved", "published"] as const) {
+          await appendAssetAuditEvent({
+            req, entityType: "document", entityID: doc.id, revisionID: String(doc.revisionID), digest: String(doc.contentDigest),
+            eventType, eventKey: `document:${doc.id}:${eventType}:${doc.revisionID}`,
+            audit: eventType === "approved"
+              ? { approved_by: String(doc.approvedBy ?? actor), approved_at: String(doc.approvedAt ?? at) }
+              : { published_by: actor, published_at: at, last_modified_by: String(doc.lastModifiedBy ?? actor), last_modified_at: String(doc.lastModifiedAt ?? at) },
+          });
+        }
+      }
       return doc;
     }],
     beforeDelete: [() => { throw new Error("Machine documents are retained; deletion is disabled."); }],
@@ -222,7 +263,13 @@ export const MachineDocuments: CollectionConfig = {
     { name: "workflowStatus", label: "Review status", type: "select", required: true, defaultValue: "draft", options: [
       { label: "Draft", value: "draft" },
       { label: "Submitted for Owner review", value: "submitted" },
+      { label: "Published", value: "published" },
     ], admin: { readOnly: true }, access: { update: () => false, read: staffFieldRead } },
+    { name: "ownerReview", type: "group", admin: { readOnly: true }, access: { update: () => false, read: staffFieldRead }, fields: [
+      { name: "revisionID", type: "text" }, { name: "digest", type: "text" },
+      { name: "reviewer", type: "text" }, { name: "reviewedAt", type: "date" },
+      { name: "humanAttested", type: "checkbox" }, { name: "checklist", type: "json" },
+    ] },
     { name: "submittedBy", type: "relationship", relationTo: "users", admin: { readOnly: true }, access: { update: () => false, read: staffFieldRead } },
     { name: "submittedAt", type: "date", admin: { readOnly: true }, access: { update: () => false, read: staffFieldRead } },
     { name: "uploadedBy", type: "relationship", relationTo: "users", admin: { readOnly: true }, access: { update: () => false, read: staffFieldRead } },

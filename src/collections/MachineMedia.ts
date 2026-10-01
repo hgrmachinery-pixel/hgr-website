@@ -171,30 +171,40 @@ export const MachineMedia: CollectionConfig = {
     afterChange: [async ({ doc, operation, req }) => {
       if (!isStaffUser(req.user) || typeof doc.contentDigest !== "string") return doc;
       const history = Array.isArray(doc.auditHistory) ? doc.auditHistory : [];
-      const latest = history.at(-1) as Record<string, unknown> | undefined;
-      const eventName = operation === "create" ? (doc.assetKind === "derivative" ? "redacted" : "uploaded") : String(latest?.event ?? "");
-      const eventType = eventName === "uploaded" ? "uploaded"
-        : eventName === "redacted" || eventName === "derivative-created" ? "redacted"
-          : eventName === "approved" ? "approved"
-            : eventName === "published" ? "published"
-              : ["metadata-updated", "sensitive-information-found", "owner-escalation", "review-invalidated"].includes(eventName) ? "modified" : undefined;
-      if (!eventType) return doc;
       const revisionID = `${doc.photoIdentity ?? doc.id}:${doc.revision ?? 0}`;
-      const occurred = String(latest?.at ?? doc.uploadedAt ?? new Date().toISOString());
-      const eventKey = `photo:${doc.id}:${eventType}:${revisionID}:${occurred}`;
+      if (operation === "create") {
+        const uploadedAt = String(doc.uploadedAt ?? new Date().toISOString());
+        const uploadedBy = String(doc.uploadedBy ?? req.user.id);
+        await appendAssetAuditEvent({
+          req, entityType: "photo", entityID: doc.id, revisionID, digest: doc.contentDigest,
+          eventType: "uploaded", eventKey: `photo:${doc.id}:uploaded:${revisionID}`,
+          audit: { uploaded_by: uploadedBy, uploaded_at: uploadedAt },
+        });
+        if (doc.redactedBy && doc.redactedAt) {
+          await appendAssetAuditEvent({
+            req, entityType: "photo", entityID: doc.id, revisionID, digest: doc.contentDigest,
+            eventType: "redacted", eventKey: `photo:${doc.id}:redacted:${revisionID}`,
+            audit: { redacted_by: String(doc.redactedBy), redacted_at: String(doc.redactedAt) },
+          });
+        }
+        return doc;
+      }
+      const latest = history.at(-1) as Record<string, unknown> | undefined;
+      const eventName = String(latest?.event ?? "");
+      const eventType = eventName === "approved" ? "approved"
+        : eventName === "published" ? "published"
+          : ["metadata-updated", "sensitive-information-found", "owner-escalation", "review-invalidated"].includes(eventName) ? "modified" : undefined;
+      if (!eventType) return doc;
+      const occurred = String(latest?.at ?? doc.lastModifiedAt ?? new Date().toISOString());
       const actor = String(latest?.actor ?? latest?.reviewer ?? req.user.id);
       await appendAssetAuditEvent({
         req, entityType: "photo", entityID: doc.id, revisionID, digest: doc.contentDigest,
-        eventType, eventKey,
-        audit: eventType === "uploaded"
-          ? { uploaded_by: String(doc.uploadedBy ?? actor), uploaded_at: String(doc.uploadedAt ?? occurred) }
-          : eventType === "redacted"
-            ? { redacted_by: actor, redacted_at: occurred }
-            : eventType === "approved"
-              ? { approved_by: String(doc.approvedBy ?? actor), approved_at: String(doc.approvedAt ?? occurred) }
-              : eventType === "published"
-                ? { published_by: String(doc.publishedBy ?? actor), published_at: String(doc.publishedAt ?? occurred) }
-                : { last_modified_by: actor, last_modified_at: occurred },
+        eventType, eventKey: `photo:${doc.id}:${eventType}:${revisionID}:${occurred}`,
+        audit: eventType === "approved"
+          ? { approved_by: String(doc.approvedBy ?? actor), approved_at: String(doc.approvedAt ?? occurred) }
+          : eventType === "published"
+            ? { published_by: String(doc.publishedBy ?? actor), published_at: String(doc.publishedAt ?? occurred) }
+            : { last_modified_by: actor, last_modified_at: occurred },
       });
       return doc;
     }],
