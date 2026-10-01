@@ -72,6 +72,7 @@ export interface Config {
     users: User;
     machines: Machine;
     'machine-media': MachineMedia;
+    'machine-documents': MachineDocuments;
     pages: Page;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -85,6 +86,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     machines: MachinesSelect<false> | MachinesSelect<true>;
     'machine-media': MachineMediaSelect<false> | MachineMediaSelect<true>;
+    'machine-documents': MachineDocumentsSelect<false> | MachineDocumentsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -244,6 +246,7 @@ export interface Machine {
   price?: number | null;
   serialNumber?: string | null;
   showSerialPublicly?: boolean | null;
+  serialVisibilityRevision?: number | null;
   featuredImage?: (number | null) | MachineMedia;
   gallery?: (number | MachineMedia)[] | null;
   currentPhotoRevisions?: { [k: string]: unknown } | null;
@@ -272,7 +275,7 @@ export interface MachineMedia {
   contentDigest: string;
   sourceDigest?: string | null;
   redactionDigest?: string | null;
-  review: { status: 'needs-review' | 'approved'; revision: number; digest?: string | null; reviewedBy?: (number | null) | User; reviewedAt?: string | null; checklist?: { [k: string]: unknown } | null };
+  review: { status: 'needs-review' | 'approved'; revision: number; digest?: string | null; serialPolicyRevision: number; reviewedBy?: (number | null) | User; reviewedAt?: string | null; checklist?: { [k: string]: unknown } | null };
   reviewHistory?: { [k: string]: unknown }[] | null;
   auditHistory?: { [k: string]: unknown }[] | null;
   uploadedBy?: (number | null) | User;
@@ -299,6 +302,45 @@ export interface MachineMedia {
   height?: number | null;
   focalX?: number | null;
   focalY?: number | null;
+  sizes?: {};
+}
+/**
+ * Private originals and separate redacted document revisions.
+ *
+ * This interface was referenced by the definition "machine-documents".
+ */
+export interface MachineDocuments {
+  id: number;
+  machine: (number | null) | Machine;
+  documentKind: 'original' | 'redacted-copy';
+  sourceDocument?: (number | null) | MachineDocuments;
+  latestRedactedRevision?: (number | null) | MachineDocuments;
+  revisionID: string;
+  contentDigest: string;
+  workflowStatus: 'draft' | 'submitted';
+  submittedBy?: (number | null) | User;
+  submittedAt?: string | null;
+  uploadedBy?: (number | null) | User;
+  uploadedAt?: string | null;
+  redactedBy?: (number | null) | User;
+  redactedAt?: string | null;
+  approvedBy?: (number | null) | User;
+  approvedAt?: string | null;
+  publishedBy?: (number | null) | User;
+  publishedAt?: string | null;
+  lastModifiedBy?: (number | null) | User;
+  lastModifiedAt?: string | null;
+  auditHistory?: { [k: string]: unknown }[] | null;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
   sizes?: {};
 }
 /**
@@ -508,6 +550,7 @@ export interface MachinesSelect<T extends boolean = true> {
   price?: T;
   serialNumber?: T;
   showSerialPublicly?: T;
+  serialVisibilityRevision?: T;
   featuredImage?: T;
   gallery?: T;
   archived?: T;
@@ -560,6 +603,40 @@ export interface MachineMediaSelect<T extends boolean = true> {
   height?: T;
   focalX?: T;
   focalY?: T;
+  sizes?: T | {};
+}
+/** This interface was referenced by the definition "machine-documents_select". */
+export interface MachineDocumentsSelect<T extends boolean = true> {
+  machine?: T;
+  documentKind?: T;
+  sourceDocument?: T;
+  latestRedactedRevision?: T;
+  revisionID?: T;
+  contentDigest?: T;
+  workflowStatus?: T;
+  submittedBy?: T;
+  submittedAt?: T;
+  uploadedBy?: T;
+  uploadedAt?: T;
+  redactedBy?: T;
+  redactedAt?: T;
+  approvedBy?: T;
+  approvedAt?: T;
+  publishedBy?: T;
+  publishedAt?: T;
+  lastModifiedBy?: T;
+  lastModifiedAt?: T;
+  auditHistory?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
   sizes?: T | {};
 }
 /**

@@ -8,6 +8,7 @@ import sharp from "sharp";
 
 import { FoundationFixture } from "./collections/FoundationFixture";
 import { Roles } from "./collections/Roles";
+import { MachineDocuments } from "./collections/MachineDocuments";
 import { Machines } from "./collections/Machines";
 import { MachineMedia } from "./collections/MachineMedia";
 import { Pages } from "./collections/Pages";
@@ -59,7 +60,7 @@ export default buildConfig({
   editor: lexicalEditor({}),
   serverURL: origin.origin,
   csrf: [origin.origin],
-  collections: [FoundationFixture, Roles, Users, Machines, MachineMedia, Pages],
+  collections: [FoundationFixture, Roles, Users, Machines, MachineMedia, MachineDocuments, Pages],
   globals: [SiteContact],
   email: noDeliveryEmailAdapter,
   admin: { user: "users" },
@@ -74,7 +75,7 @@ export default buildConfig({
   }),
   plugins: [
     gcsStorage({
-      collections: { "foundation-fixtures": true, "machine-media": true },
+      collections: { "foundation-fixtures": true, "machine-media": true, "machine-documents": true },
       bucket: requiredEnvironment("GCS_BUCKET"),
       // Objects remain private in GCS; every public derivative requires an app authorization check.
       acl: "Private",
