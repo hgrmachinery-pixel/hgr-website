@@ -15,6 +15,25 @@ The project owner is nontechnical.
 - If there is a clearly safer, simpler, or more maintainable approach than the requested implementation, explain it before proceeding.
 - Never make purchases, create paid resources, change DNS, modify production infrastructure, delete production data, or perform other irreversible actions without explicit approval.
 
+## Owner Interaction
+Batch owner interactions whenever practical.
+
+Do not interrupt execution for:
+- informational updates
+- completed routine checkpoints
+- successful implementation
+- ordinary verification
+
+Continue working until:
+- a genuine owner decision is required;
+- a production change is proposed;
+- a paid or potentially chargeable resource is required;
+- a destructive or irreversible action is proposed;
+- a material architectural uncertainty appears; or
+- a blocking error prevents further progress.
+
+Where multiple owner decisions exist within the same phase, present them together in one discussion whenever practical.
+
 # Approved Architecture
 The current approved architecture is:
 - Next.js frontend/application.
