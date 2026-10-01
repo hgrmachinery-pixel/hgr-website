@@ -6,6 +6,8 @@ import { buildConfig } from "payload";
 import sharp from "sharp";
 
 import { FoundationFixture } from "./collections/FoundationFixture";
+import { Machines } from "./collections/Machines";
+import { MachineMedia } from "./collections/MachineMedia";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,7 +51,7 @@ if (
 export default buildConfig({
   serverURL: origin.origin,
   csrf: [origin.origin],
-  collections: [FoundationFixture],
+  collections: [FoundationFixture, Machines, MachineMedia],
   secret,
   sharp,
   db: postgresAdapter({
@@ -61,7 +63,7 @@ export default buildConfig({
   }),
   plugins: [
     gcsStorage({
-      collections: { "foundation-fixtures": true },
+      collections: { "foundation-fixtures": true, "machine-media": true },
       bucket: requiredEnvironment("GCS_BUCKET"),
       // Objects remain private in GCS. Payload serves the public fake collection.
       acl: "Private",
