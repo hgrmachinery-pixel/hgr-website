@@ -4,7 +4,7 @@
 
 Deliver an English V1 used-excavator lead-generation website through eight dependent phases. First verify the approved architecture and the real Exabytes account. Then establish permanent physical-machine identity and the owner's Payload workflow, add structured photography and protected JPJ documents, and deliver the public inventory and machine pages. Complete direct enquiries and compact secondary pages, then accessibility/visual polish and inventory SEO. Finish measurement, privacy, security and recovery before owner acceptance and authorized launch readiness. Later business divisions and systems remain outside this V1 milestone.
 
-This roadmap plans future work; **none of the phases or plans has been executed**. It does not authorize paid resources, DNS changes, production deployment or publication. Exact plan files will be created during each phase's planning step. No date or week estimate is promised by the historical source roadmap.
+This roadmap plans V1 work. Phase 1 has three summaries for permitted source/configuration and documentation work; local end-to-end integration and actual host verification remain pending. No phase is complete. It does not authorize paid resources, DNS changes, production deployment or publication. Later plan files will be created during each phase's planning step. No date or week estimate is promised by the historical source roadmap.
 
 ## Phases
 
@@ -28,7 +28,7 @@ Phases execute in the listed order. Earlier phases establish security and privac
 **Goal:** A documented Next.js/Payload/PostgreSQL/external-storage foundation and an evidence-based answer on whether the existing Exabytes account can run a representative application workload.  
 **Depends on:** Approved planning and source material.  
 **Requirements:** PORT-01, PORT-02, PORT-03, PORT-04, PORT-05, PORT-06, PORT-07.  
-**Plans:** 2/4 plans executed.
+**Plans:** 3/4 plans executed.
 Plans:
 **Wave 1**
 - [x] 01-01-PLAN.md — Verify the package set and configure the portable foundation.
@@ -37,7 +37,7 @@ Plans:
 - [x] 01-02-PLAN.md — Prove the synthetic end-to-end PostgreSQL and external-storage path.
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 01-03-PLAN.md — Document local setup and portable redeployment.
+- [x] 01-03-PLAN.md — Document local setup and portable redeployment.
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 01-04-PLAN.md — Gather Exabytes evidence and report conditional host feasibility.
@@ -165,7 +165,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |---|---:|---|---|
-| 1. Portable foundation and Exabytes feasibility | 2/4 | In Progress|  |
+| 1. Portable foundation and Exabytes feasibility | 3/4 | In Progress|  |
 | 2. Machine model and Payload owner workflow | 0/TBD | Not started | — |
 | 3. Photography, media processing and JPJ protection | 0/TBD | Not started | — |
 | 4. Public used-excavator inventory | 0/TBD | Not started | — |

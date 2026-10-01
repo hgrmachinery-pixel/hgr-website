@@ -19,7 +19,7 @@ Each checkbox stays unchecked until the capability is built, verified and record
 - [ ] **PORT-04**: Developers can rebuild and redeploy the same application source on a compatible application host without rewriting or materially redesigning it.
 - [ ] **PORT-05**: Developers can run a representative Next.js/Payload startup, PostgreSQL connection, external-media operation and upload-processing smoke test against the actual existing Exabytes account before depending on it for production.
 - [ ] **PORT-06**: Maintainers can document the actual Exabytes test results and required host capabilities without substituting MariaDB or committing to a paid host change.
-- [ ] **PORT-07**: Source code and deployment instructions are kept in the GitHub-backed project with secrets excluded and an environment-variable-name example available.
+- [x] **PORT-07**: Source code and deployment instructions are kept in the GitHub-backed project with secrets excluded and an environment-variable-name example available.
 
 ### Physical-machine content model — Phase 2
 
@@ -197,7 +197,7 @@ Each V1 requirement is owned by exactly one phase. See the roadmap's phase detai
 | PORT-04 | Phase 1 | Pending |
 | PORT-05 | Phase 1 | Pending |
 | PORT-06 | Phase 1 | Pending |
-| PORT-07 | Phase 1 | Pending |
+| PORT-07 | Phase 1 | Complete |
 | MODL-01 | Phase 2 | Pending |
 | MODL-02 | Phase 2 | Pending |
 | MODL-03 | Phase 2 | Pending |
