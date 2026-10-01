@@ -13,6 +13,7 @@ import { Pages } from "./collections/Pages";
 import { Users } from "./collections/Users";
 import { SiteContact } from "./globals/SiteContact";
 import { noDeliveryEmailAdapter } from "./lib/email/noDeliveryAdapter";
+import { configuredImageLimits } from "./lib/machines/media.ts";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -84,7 +85,7 @@ export default buildConfig({
     }),
   ],
   upload: {
-    limits: { fileSize: 5 * 1024 * 1024 },
+    limits: { fileSize: configuredImageLimits().perFileBytes ?? 1 },
     abortOnLimit: true,
   },
   typescript: {
