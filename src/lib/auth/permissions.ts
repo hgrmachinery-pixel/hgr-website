@@ -55,3 +55,28 @@ export async function hasPermission(
     (entry as { name?: unknown }).name === permission,
   );
 }
+
+/** Resolve Owner account-management authority from the current persisted role. */
+export async function hasOwnerAuthority(req: PayloadRequest): Promise<boolean> {
+  const identity = req.user;
+  if (!isStaffUser(identity)) return false;
+
+  const user = await req.payload.findByID({
+    collection: "users",
+    id: identity.id,
+    depth: 0,
+    overrideAccess: true,
+    req,
+  });
+  const roleID = relationID((user as { role?: unknown }).role);
+  if (roleID === undefined) return false;
+
+  const role = await req.payload.findByID({
+    collection: "roles",
+    id: roleID,
+    depth: 0,
+    overrideAccess: true,
+    req,
+  });
+  return (role as { key?: unknown }).key === "owner";
+}

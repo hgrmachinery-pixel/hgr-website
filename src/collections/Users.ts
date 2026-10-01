@@ -1,7 +1,8 @@
 import type { CollectionConfig, PayloadRequest } from "payload";
+import { sql } from "@payloadcms/db-postgres";
 
 import { isStaffUser } from "../lib/machines/access.ts";
-import { APPROVE_PUBLIC_DOCUMENTS, hasPermission } from "../lib/auth/permissions.ts";
+import { hasOwnerAuthority } from "../lib/auth/permissions.ts";
 
 async function userCount(req: PayloadRequest): Promise<number> {
   const result = await req.payload.count({
@@ -36,7 +37,37 @@ async function ownerRoleID(req: PayloadRequest): Promise<string | number> {
 }
 
 async function canManageUsers(req: PayloadRequest): Promise<boolean> {
-  return hasPermission(req, APPROVE_PUBLIC_DOCUMENTS);
+  return hasOwnerAuthority(req);
+}
+
+async function lockOwnerRole(req: PayloadRequest): Promise<string | number> {
+  const transactionID = await req.transactionID;
+  const session = transactionID
+    ? req.payload.db.sessions?.[String(transactionID)]?.db
+    : undefined;
+  if (!transactionID || !session) {
+    throw new Error("First-owner account creation requires an active database transaction.");
+  }
+  const result = await req.payload.db.execute({
+    db: session as Parameters<typeof req.payload.db.execute>[0]["db"],
+    drizzle: req.payload.db.drizzle,
+    sql: sql`SELECT "id" FROM "roles" WHERE "key" = 'owner' FOR UPDATE`,
+  });
+  if (!result.rows[0]) {
+    throw new Error("The seeded Owner role is missing; staff registration is unavailable.");
+  }
+  const ownerID = (result.rows[0] as { id?: unknown }).id;
+  if (typeof ownerID !== "number" && typeof ownerID !== "string") {
+    throw new Error("The seeded Owner role has an invalid identity.");
+  }
+  return ownerID;
+}
+
+async function isFirstAccount(req: PayloadRequest): Promise<boolean> {
+  if (await userCount(req) !== 0) return false;
+  // This stable migration-created row serializes concurrent first-account attempts.
+  await lockOwnerRole(req);
+  return await userCount(req) === 0;
 }
 
 export const Users: CollectionConfig = {
@@ -59,10 +90,10 @@ export const Users: CollectionConfig = {
   disableDuplicate: true,
   access: {
     admin: ({ req }) => isStaffUser(req.user),
-    create: async ({ req }) => {
-      if (await userCount(req) === 0) return true;
-      return canManageUsers(req);
-    },
+    // Access checks are also used by Payload's permission probe. Keep them
+    // side-effect-free; the transaction lock and authoritative recount happen
+    // in beforeChange when a create is actually attempted.
+    create: async ({ req }) => (await userCount(req)) === 0 || canManageUsers(req),
     read: async ({ id, req }) => {
       const user = req.user;
       if (!isStaffUser(user)) return false;
@@ -83,15 +114,28 @@ export const Users: CollectionConfig = {
       if (operation === "update") {
         const previousRole = relationID(originalDoc?.role);
         const incomingRole = relationID(data.role);
-        if (incomingRole !== undefined && incomingRole !== previousRole) {
+        if (incomingRole !== undefined && String(incomingRole) !== String(previousRole)) {
           if (!await canManageUsers(req)) {
-            throw new Error("Only a user with Approve Public Documents may change staff roles.");
+            throw new Error("Only the current Owner may change staff roles.");
+          }
+          const ownerID = await lockOwnerRole(req);
+          const touchesOwner = String(previousRole) === String(ownerID) || String(incomingRole) === String(ownerID);
+          if (touchesOwner && String(previousRole) === String(ownerID) && String(incomingRole) !== String(ownerID)) {
+            const result = await req.payload.count({
+              collection: "users",
+              where: { role: { equals: ownerID } },
+              overrideAccess: true,
+              req,
+            });
+            if (result.totalDocs <= 1) {
+              throw new Error("The last Owner account cannot be demoted.");
+            }
           }
         }
         return data;
       }
 
-      if (await userCount(req) === 0) {
+      if (await isFirstAccount(req)) {
         // The first account is bound to the pre-seeded Owner role. Ignore any
         // client-supplied relationship so bootstrap cannot choose a weaker role.
         data.role = await ownerRoleID(req);
@@ -99,12 +143,40 @@ export const Users: CollectionConfig = {
       }
 
       if (!await canManageUsers(req)) {
-        throw new Error("Only a user with Approve Public Documents may create staff accounts.");
+        throw new Error("Only the current Owner may create staff accounts.");
       }
       if (relationID(data.role) === undefined) {
         throw new Error("Choose a staff role for the new account.");
       }
       return data;
+    }],
+    beforeDelete: [async ({ id, req }) => {
+      if (!await canManageUsers(req)) {
+        throw new Error("Only the current Owner may delete staff accounts.");
+      }
+      const ownerID = await ownerRoleID(req);
+      const target = await req.payload.findByID({
+        collection: "users",
+        id,
+        depth: 0,
+        overrideAccess: true,
+        req,
+      });
+      if (String(relationID(target.role)) === String(ownerID)) {
+        const lockedOwnerID = await lockOwnerRole(req);
+        if (String(lockedOwnerID) !== String(ownerID)) {
+          throw new Error("The Owner role changed while checking account deletion.");
+        }
+        const result = await req.payload.count({
+          collection: "users",
+          where: { role: { equals: ownerID } },
+          overrideAccess: true,
+          req,
+        });
+        if (result.totalDocs <= 1) {
+          throw new Error("The last Owner account cannot be deleted.");
+        }
+      }
     }],
   },
   fields: [
