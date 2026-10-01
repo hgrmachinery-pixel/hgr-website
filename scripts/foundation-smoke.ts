@@ -34,7 +34,9 @@ async function localFetch(url: string, init?: RequestInit) {
   );
   return fetch(target, {
     ...init,
-    redirect: "error",
+    // Manual responses allow the Admin check below to validate each redirect.
+    // Never follow a redirect automatically, including caller-supplied options.
+    redirect: init?.redirect === "manual" ? "manual" : "error",
     signal: AbortSignal.timeout(10000),
   });
 }
@@ -239,7 +241,7 @@ try {
   await startApp();
   await verifyPublic(card.url, processed);
   let adminURL = `${origin}/admin`;
-  let admin = await localFetch(adminURL);
+  let admin = await localFetch(adminURL, { redirect: "manual" });
   for (
     let count = 0;
     count < 3 && [301, 302, 303, 307, 308].includes(admin.status);
@@ -256,7 +258,7 @@ try {
       "Unexpected Admin redirect",
     );
     adminURL = target.href;
-    admin = await localFetch(adminURL);
+    admin = await localFetch(adminURL, { redirect: "manual" });
   }
   assert.equal(
     admin.status,
