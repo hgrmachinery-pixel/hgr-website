@@ -9,7 +9,7 @@
 
 ### Locked Decisions
 
-These are conservative planning defaults for the user's instruction to continue autonomously. They are not approval to provision external services or publish real documents. Operational facts that remain unknown are explicit plan checkpoints.
+These locked decisions are the approved scope for Phase 3. They do not authorize provisioning external services or using real private documents.
 
 ### Photo storage and public delivery
 - **D-01:** Keep unwatermarked source photos staff-only and create separate public derivative records. Public file delivery must check that the derivative belongs to the physical machine, is ready and approved for use, and is referenced by a Published, non-archived machine. Never make a master publicly readable merely to deliver its derivatives. This follows approved private-master/public-derivative requirements and Sol's Phase 3 privacy review.
@@ -19,13 +19,20 @@ These are conservative planning defaults for the user's instruction to continue 
 
 ### JPJ and serial privacy
 - **D-05:** Keep document originals, private previews and pending redacted copies staff-only. Store a redacted copy separately and do not expose it until a human reviewer has approved that specific file revision and explicit owner approval for public display is recorded. Replacing the copy invalidates approval. Keep document availability approval separate from file-display approval. A human review must consider visible content and embedded text/metadata; automated redaction alone is insufficient.
-- **D-06:** Do not grant approval authority to a role by assumption. Implement server-enforced approval state and an authorized human review action, with the approver role/person recorded as TO CONFIRM before real documents or services are used. Keep document display disabled by default.
+- **D-06:** Do not grant approval authority to a role by assumption. This constraint is resolved by D-08: the Owner role initially receives the explicit `Approve Public Documents` permission; do not hard-code publication to a role check. Keep public document display denied until the permission check, required review and publication action succeed.
 - **D-07:** Keep private serial values out of public projections unless independently enabled. Require human review of any image where a plate may be readable, across all photo categories. A photo replacement or serial-visibility change must invalidate affected review state.
+
+### Owner-approved public-document and photo-review policy
+- **D-08:** Use a permission named `Approve Public Documents`, initially assigned only to the Owner role. Store/check the named permission independently of role-specific publication logic so a future role can receive it without database-schema or business-logic changes. Administrators may upload documents, redact them, save drafts and submit them for Owner review; they cannot publish. Enforce this server-side for Payload Admin actions and direct API requests.
+- **D-09:** A user with `Approve Public Documents` publishes with one `Publish` action. That action records approval and publication together; there is no separate approval button. Persist `approved_by`, `approved_at`, `published_by` and `published_at` as distinct values, even when actor and time normally match. Before publication, the Owner can use `Preview as Public` to inspect the exact currently redacted public version; preview remains private and does not publish.
+- **D-10:** Every new machine photo starts at `Needs Review`. A human reviewer checks for manufacturer serials, chassis/VINs, engine numbers, registration numbers, QR codes, barcodes, customer labels, delivery information, personal information and any other sensitive identifiers. If sensitive information exists, blur or crop it and repeat the review before publication. If uncertain, escalate to the Owner. AI may highlight possible sensitive areas only; it never substitutes for human review or takes final responsibility.
+- **D-11:** Preserve permanent audit history for upload, redaction, approval, publication and modification. Record `uploaded_by`, `uploaded_at`, `redacted_by`, `redacted_at`, `approved_by`, `approved_at`, `published_by`, `published_at`, `last_modified_by` and `last_modified_at` where applicable. Never overwrite historical events; append immutable audit records and keep approval/publication as separate event types and current fields.
 
 ### the agent's Discretion
 - Select the simplest Payload/Next.js implementation that satisfies these boundaries, existing portability requirements and current approved dependency tuple.
 - Prefer manual upload of an already redacted derivative for this phase; do not introduce AI redaction or a new paid service.
-- Keep unknown artwork, upload-limit, retention, approver and document-format details as explicit TO CONFIRM items, with safe-deny behavior until resolved.
+- Keep unknown artwork, upload-limit, retention and document-format details as explicit TO CONFIRM items, with safe-deny behavior until resolved. The Owner permission and Publish/preview workflow are approved and are not pending decisions.
+- AI-assisted highlighting is optional and is not required for Phase 3; do not add an AI service or allow AI to clear the human review state.
 
 ### Deferred Ideas (OUT OF SCOPE)
 
@@ -37,7 +44,7 @@ None — discussion stayed within Phase 3 scope.
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| ADMN-06 | An administrator can publish and unpublish a unit after understandable minimum-field validation, including a suitable featured/general photo. | Require a ready, approved derivative related to the same machine; keep the minimum required categories narrow per D-02. |
+| ADMN-06 | An administrator can publish and unpublish a unit after understandable minimum-field validation, including a suitable featured/general photo. | Preserve machine eligibility checks, but gate publication of public document copies through the named permission and one server-enforced Publish action; an administrator without the permission cannot publish a public document. |
 | ADMN-09 | An administrator can perform normal inventory editing and photo upload from a phone with understandable progress, validation and recoverable errors. | A representative mobile upload workflow must track each file independently and recover from partial failure; batch throughput remains an environment-specific validation item. |
 | IMAG-01 | An administrator can add machine photographs under the 12 current structured categories: General / Exterior, Side View 1, Side View 2, Front View, Rear View, Cabin / Interior, Hour Meter, Chassis / Serial Number, Engine, Undercarriage / Tracks, Boom / Arm / Bucket and Other / Details. | Use a typed category field and a unified ordered gallery; category names quoted from `.planning/REQUIREMENTS.md:50-50`. |
 | IMAG-02 | An administrator can upload multiple images in a category, choose a featured image, reorder images and preview them without completing every category. | Per-photo records with stable IDs; gallery order and featured assignment belong to machine/photo relationship state, not object name. |
@@ -51,21 +58,30 @@ None — discussion stayed within Phase 3 scope.
 | JPJD-01 | Authorized staff can store a JPJ or ownership document original separately from public machine photos and documents. | Separate private upload collection/object prefix and document state from photo assets. |
 | JPJD-02 | Anonymous visitors and public API/media requests cannot fetch private document originals or their private derivatives. | Keep Payload access control enabled; verify direct static URL, REST API, app route, Next image optimizer, and cached/proxy paths. |
 | JPJD-03 | Authorized staff can create or upload a separate redacted public derivative without overwriting its private original. | Manual upload of a separate derivative is within scope; maintain a revision link/hash and distinct storage identity. |
-| JPJD-04 | A human reviewer must explicitly approve a redacted derivative before any public display; pending or rejected copies are not exposed. | Server-side authorization and current-revision approval state; replacement revokes approval. |
-| JPJD-05 | Staff can see and change a document's not-uploaded, uploaded, pending-review or approved state without code. | Provide a clear staff-facing workflow; document statuses are quoted verbatim from `.planning/REQUIREMENTS.md:66-66`. |
-| JPJD-06 | A public machine page can state document availability or display the redacted derivative only when the corresponding statement or copy is approved. | Separate availability approval from public-copy approval; expose only approved projection. |
-| JPJD-07 | Public photography and data exposure respect a private serial number, including review of readable chassis/serial plate images before publication. | Review all photo categories for readable serial plates; invalidate the applicable review on photo/serial visibility change. |
+| JPJD-04 | A human reviewer must explicitly approve a redacted derivative before any public display; pending or rejected copies are not exposed. | The named-permission holder uses one Publish action; server-side transition records approval and publication distinctly against the exact revision; replacement revokes eligibility. |
+| JPJD-05 | Staff can see and change a document's not-uploaded, uploaded, pending-review or approved state without code. | Administrators can upload, redact, draft and submit, but only `Approve Public Documents` authorizes Publish; permission checks are independent of role tests. |
+| JPJD-06 | A public machine page can state document availability or display the redacted derivative only when the corresponding statement or copy is approved. | Keep availability approval separate from file-display approval; only the Publish action exposes the approved revision. Owner preview remains private/no-store. |
+| JPJD-07 | Public photography and data exposure respect a private serial number, including review of readable chassis/serial plate images before publication. | Start each image at `Needs Review`; human checklist covers all categories, edits require re-review, uncertainty escalates to Owner; optional AI only highlights. |
+
+## Decision Acceptance Mapping (D-08–D-11)
+
+| Decision | Planning consequence |
+|----------|---------------------|
+| D-08 | Add a named permission capability and assign it initially only to Owner. Authorize by permission membership, not `role === "owner"`; enforce on Admin publish operation and REST/GraphQL/direct server mutation paths. Keep upload, redaction, draft and submission rights available to staff administrators. |
+| D-09 | Replace a separate approval control with one permission-gated Publish action. In the same successful transition, persist separate `approved_by`, `approved_at`, `published_by`, `published_at`; provide permission-gated Preview as Public for the exact redacted revision with private authorization and `Cache-Control: no-store`. |
+| D-10 | Initialize each new machine photo in `Needs Review`; store human review outcome/reviewer/time and checklist result per revision. Redaction/replacement resets to `Needs Review`; uncertainty escalates to Owner. AI highlighting may be omitted and can never change state or publish. |
+| D-11 | Append one immutable lifecycle event per upload, redaction, approval, publication and modification as applicable; event types remain separate even when one Publish action creates approval and publication events. Store the exact requested actor/time fields in current state where applicable and in historical events. Never accept audit actor/timestamps as client-authored values. |
 </phase_requirements>
 
 ## Summary
 
-Phase 3 should extend the current staff-only `machine-media` upload as the private photo master, while adding distinct public derivative records and distinct JPJ/ownership-document records. The existing `MachineMedia` collection grants reads only to staff (`src/collections/MachineMedia.ts:13-18`), and the existing machine model points featured and gallery relations at this collection (`src/collections/Machines.ts:262-272`). [VERIFIED: src/collections/MachineMedia.ts:13-18; src/collections/Machines.ts:262-272] Payload upload collections already provide multipart upload, media validation hooks, access rules, focal-point support when resizing is configured, generated image sizes, and static-file access checks. Those features are useful building blocks, but the locked master/derivative boundary requires separate records and public authorization that considers machine ownership, processing readiness, explicit approval, and the machine's published/non-archived state. [CITED: https://payloadcms.com/docs/upload/overview] [CITED: https://payloadcms.com/docs/upload/storage-adapters]
+Phase 3 should extend the current staff-only `machine-media` upload as the private photo master, while adding distinct public derivative records and distinct JPJ/ownership-document records. The existing `MachineMedia` collection grants reads only to staff (`src/collections/MachineMedia.ts:13-18`), and the existing machine model points featured and gallery relations at this collection (`src/collections/Machines.ts:262-272`). [VERIFIED: src/collections/MachineMedia.ts:13-18; src/collections/Machines.ts:262-272] Payload upload collections already provide multipart upload, media validation hooks, access rules, focal-point support when resizing is configured, generated image sizes, and static-file access checks. Those features are useful building blocks, but the locked master/derivative boundary requires separate records and public authorization that considers machine ownership, processing readiness, explicit review/publication eligibility, and the machine's published/non-archived state. [CITED: https://payloadcms.com/docs/upload/overview] [CITED: https://payloadcms.com/docs/upload/storage-adapters]
 
 Use the already-installed stack: Payload and its GCS adapter 3.90.2, Next.js 16.3.7, Sharp 0.35.5, with the existing PostgreSQL-backed schema and environment-supplied storage. Exact installed versions are in `package.json:17-33` (quoted: `"@payloadcms/storage-gcs": "3.90.2"`, `"next": "16.3.7"`, `"payload": "3.90.2"`, `"sharp": "0.35.5"`). Do not add a media service, redaction service, or package for this phase. The project's Node runtime is currently `">=22.23.3 <23 || >=24 <25"` (`package.json:6-8`); actual Exabytes upload/Sharp runtime compatibility and cloud integration remain unverified. [VERIFIED: package.json:6-8,17-33]
 
 For large phone uploads, the key design issue is end-to-end request limits, not just image compression. The current Payload-wide per-file cap is 5 MiB and aborts over-limit uploads (`src/payload.config.ts:86-89`, quote: `limits: { fileSize: 5 * 1024 * 1024 }, abortOnLimit: true`). Payload also has request-wide multipart, count, and timeout limits; the complete batch must fit those limits if sent in one request. Prefer per-file requests with bounded concurrency and persisted per-file success/failure, or prove a different chunk strategy, instead of one all-or-nothing 10–30-file request. Do not freeze upload caps until synthetic phone-sized batch checks and later approved service tests establish them. [CITED: https://payloadcms.com/docs/upload/overview] [VERIFIED: src/payload.config.ts:86-89]
 
-**Primary recommendation:** Use separate private master, public photo derivative, private document original, and pending/approved redacted-copy records. Keep GCS objects private and Payload access control active; serve a public derivative only after one server-side authorization decision confirms all D-01 and D-05 conditions. Generate/re-generate derivatives from immutable masters with Sharp and central watermark settings. Have staff upload a separately redacted copy manually, then record human review and owner display approval against that exact revision. Keep all external service and business decisions as explicit checkpoints; proceed locally with synthetic data only.
+**Primary recommendation:** Use separate private master, public photo derivative, private document original, and pending/approved redacted-copy records. Keep GCS objects private and Payload access control active; serve a public derivative only after server-side authorization confirms D-01 and D-05/D-08 conditions. Implement `Approve Public Documents` as a permission capability independent of the current role field. Administrators may upload, redact, draft and submit; one Publish action, authorized by the permission at both Admin and API/server boundaries, records distinct approval and publication actor/time fields for the exact revision. Give the Owner a private, authenticated, no-store `Preview as Public` view of that exact revision. Keep photo review human-led, revision-bound and `Needs Review` by default, with optional AI limited to advisory highlighting. Append separate immutable audit events for lifecycle transitions; actor and times are server stamped. Use Sharp and central watermark settings; keep service, artwork, limit and retention checkpoints explicit and use synthetic data only.
 
 ## Architectural Responsibility Map
 
@@ -76,7 +92,9 @@ For large phone uploads, the key design issue is end-to-end request limits, not 
 | Public responsive derivative delivery | API / Backend | CDN / Static | Each request must authorize the derivative relationship before bytes are delivered; public caching applies only to approved derivatives. |
 | Watermark policy | API / Backend | Database / Storage | Central settings and deterministic server generation produce consistent derivatives. |
 | JPJ original and pending redaction protection | API / Backend | Database / Storage | Authorization, document revision, review and approval are server-owned, with private bytes stored separately. |
-| Human approval and serial-image review | Browser / Client | API / Backend | Staff see and record explicit decisions; server enforces approval and invalidation rules. |
+| Permission-based publication and audit stamping | API / Backend | Browser / Client | Named permission checks and transition/audit writes must be enforced on every server/API path; UI only presents the authorized action. |
+| Private `Preview as Public` | API / Backend | Browser / Client | Authenticated server-rendered/streamed preview shows one exact redacted revision without changing publication state or entering shared caches. |
+| Human approval and serial-image review | Browser / Client | API / Backend | Reviewer sees the exact revision and checklist; server enforces review state, re-review and invalidation rules. |
 | Portable media configuration | API / Backend | Database / Storage | Bucket/project/endpoint/credentials remain environment configuration, separate from application host. |
 
 ## Project Constraints (from AGENTS.md)
@@ -84,6 +102,7 @@ For large phone uploads, the key design issue is end-to-end request limits, not 
 - Use Next.js, Payload CMS, PostgreSQL and external object storage; GCS is planned. Keep the app, DB and storage decoupled and portable; don't use Exabytes MariaDB or couple to Exabytes features. [VERIFIED: AGENTS.md; .planning/PROJECT.md]
 - Do not provision storage/database services, spend money, use production infrastructure, publish documents, expose private information or use real JPJ documents without explicit approval. Use synthetic data until approved disposable services exist. [VERIFIED: AGENTS.md; .planning/phases/03-photography-media-processing-and-jpj-protection/03-CONTEXT.md]
 - Routine business-owner media and inventory tasks must be possible in Payload without code or developer tools; use TypeScript, mobile-first responsive design, accessibility and simple maintainable patterns. [VERIFIED: AGENTS.md]
+- Follow `MODEL-ROUTING.md`: Luna handles routine settled implementation; escalate privacy/security architecture, authentication/authorization, consequential schema choices and important security review to GPT-6.1 Sol. Model routing or Sol review does not grant owner approval or permission to provision services. [VERIFIED: MODEL-ROUTING.md]
 - Keep secrets in environment configuration and out of Git. Validate upload content and user input; apply least privilege and do not expose internal machine data. [VERIFIED: AGENTS.md]
 - Preserve stable physical-machine identity; sold status is separate from publication state. A suitable general/featured photo is required for publication, while other photo categories are optional. [VERIFIED: AGENTS.md; .planning/phases/03-photography-media-processing-and-jpj-protection/03-CONTEXT.md]
 - Preserve masters; generate public responsive sizes; do not serve full originals as normal visitor assets. Use machine identity/category for generated names, with factual alt text separate. [VERIFIED: AGENTS.md; .planning/phases/03-photography-media-processing-and-jpj-protection/03-CONTEXT.md]
@@ -202,6 +221,8 @@ Generate file names from HGR machine identity + category slug + a stable per-pho
 
 **When to use:** Every new master, reprocessing run, or centrally changed watermark setting. Keep failed processing records recoverable; don't make partially-written files eligible for the public projection.
 
+Add a review record keyed to derivative revision. Use the exact initial value `Needs Review` from D-10. Review UI should make the full human checklist explicit and record reviewer/time; only a human can clear it after inspecting the bytes that will be public. After a blur/crop or replacement, create a new derivative revision and reset review. AI-based highlighting is optional and out of Phase 3's dependency scope; if later added, output remains hints for the human and cannot transition the state. [CITED: `03-CONTEXT.md` D-10, copied verbatim above]
+
 Payload's built-in focal-point selector requires image sizes or resize options. Configure suitable public size outputs first; Payload's crop affects the resized outputs, while the private master remains the regeneration source. [CITED: https://payloadcms.com/docs/upload/overview]
 
 ### Pattern 4: Per-file upload queue for phone batches
@@ -212,11 +233,29 @@ Payload's built-in focal-point selector requires image sizes or resize options. 
 
 ### Pattern 5: Revision-bound document review
 
-**What:** Keep the private original in a staff-only upload collection. Staff upload a separate redacted derivative into a distinct private pending collection. The server stores a content revision/checksum, approver identity, approval timestamp, and owner-display approval independently from document availability. Replacing bytes changes the revision and clears both approval flags. Public projection includes only the approved copy; pending/rejected state returns no file URL.
+**What:** Keep the private original in a staff-only upload collection. Staff upload a separate redacted derivative into a distinct private pending collection. A human review records whether the exact redacted revision passes; the `Approve Public Documents` permission holder then uses the single `Publish` action, which records both `approved_by`/`approved_at` and `published_by`/`published_at` as distinct values. Do not add a separate approval button. Replacing bytes changes the revision and clears review and publication eligibility. Document availability approval remains distinct from file-display publication. Public projection includes only the currently published copy; pending/rejected state returns no file URL.
 
-**When to use:** JPJ/ownership cards and any sensitive document. Preview endpoints must authenticate staff and use Payload reads with access checks; don't expose public download links, temporary object URLs in logs, or signed URLs to the browser for private files. A GCS signed URL is a bearer credential that works for anyone holding it until expiration, so if ever chosen for a private staff preview it must be short-lived and issued only after application authorization. [CITED: https://cloud.google.com/storage/docs/access-control/signed-urls]
+**When to use:** JPJ/ownership cards and any sensitive document. The Owner's `Preview as Public` must show the exact current redacted revision through an authenticated private path, without setting public status, emitting a public URL or entering shared caches. Apply `Cache-Control: no-store` to the preview document and byte response; keep it out of the public Next image optimizer and CDN. Private endpoints must authenticate staff and use access-respecting reads; don't expose public download links, temporary object URLs in logs, or signed URLs to the browser. A GCS signed URL is a bearer credential that works for anyone holding it until expiration, so don't use it for this preview unless Sol approves a specific short-lived pattern. [CITED: https://cloud.google.com/storage/docs/access-control/signed-urls] [CITED: https://nextjs.org/docs/app/guides/cdn-caching]
 
-### Pattern 6: Cloud portability and GCS access model
+### Pattern 6: Permission-gated single Publish action
+
+**What:** Model `Approve Public Documents` as a named capability stored independently on the user (for example, a persisted permission-name array), initially granted only to the Owner account. Implement `hasPermission(user, permission)` as the single policy helper; publication checks the permission value and does not branch on a role literal. Future assignment to another role/user then changes permission data rather than the schema or publication logic. Keep the existing role field as a separate staff/account classification. The current `Users.ts` role type is exactly `type StaffRole = "owner" | "website-administrator";` and its role options are exactly `{ label: "Owner", value: "owner" }` and `{ label: "Website Administrator", value: "website-administrator" }`. [VERIFIED: `src/collections/Users.ts:5-5,92-99`] Payload documents that Access Control is evaluated before operations and also drives Admin affordances using the same rules as APIs. Collection and field access rules can hide or deny editing, while collection `beforeChange` receives the request/data/original document for transition validation. [CITED: https://payloadcms.com/docs/access-control/overview] [CITED: https://payloadcms.com/docs/access-control/collections] [CITED: https://payloadcms.com/docs/hooks/collections]
+
+Use the edit view's custom `PublishButton` component to present the one clear permission-holder action. Installed `payload@3.90.2` source says verbatim `PublishButton?: PayloadComponent<PublishButtonServerProps, PublishButtonClientProps>;` at `node_modules/payload/dist/collections/config/types.d.ts:287`; its adjacent source comments state `Replaces the "Publish" button` and `+ drafts must be enabled` at lines 284-286. This UI customization is not the security boundary. [VERIFIED: `node_modules/payload/dist/collections/config/types.d.ts:284-287`] Enforce permission again in server-side `beforeChange` for a transition to published, and in any custom handler/action. Deny administrators' direct REST, GraphQL and Admin-server mutations that attempt publication. Preserve their separate ability to create/edit drafts and submit for review. Never trust hidden buttons or client-provided actor/time fields. [CITED: https://payloadcms.com/docs/custom-components/edit-view]
+
+On the successful Publish transition, take the actor from authenticated `req.user`, create separate approval and publication event types, and stamp the distinct current fields from server time. Keep those values distinct even if the same user/time is recorded for both. A failed authorization, review, revision match, validation or audit write must not leave public eligibility enabled. Payload hooks run server-side and can reject operations; use transaction/request propagation where the database adapter supports it, then have Sol review atomic-failure behavior before relying on it for sensitive publication. [CITED: https://payloadcms.com/docs/hooks/overview] [CITED: https://payloadcms.com/docs/hooks/collections] [CITED: https://payloadcms.com/docs/local-api/overview]
+
+### Pattern 7: Revision-bound human photo review
+
+**What:** Every new photo revision begins in the literal state `Needs Review`. A staff human records checklist results for manufacturer serial, chassis/VIN, engine number, registration number, QR code, barcode, customer label, delivery information, personal information, and other sensitive identifiers. If an identifier appears, blur/crop in a new derivative and repeat the full human review; uncertain cases go to the Owner. The saved review references the image revision/checksum, reviewer identity and timestamp. A replacement or redaction creates a new revision and resets the state to `Needs Review`; approval of an older revision cannot clear it. AI highlighting is optional and advisory only: it may pre-mark possible regions for the reviewer but cannot pass the checklist, change state, record approval or publish. [CITED: `03-CONTEXT.md` D-10, copied verbatim above]
+
+### Pattern 8: Append-only audit events
+
+**What:** Keep current convenience fields on the document and append a separate audit row for each lifecycle event. Include event type, entity and exact revision identifiers, authenticated actor ID, server-generated event time, and the applicable requested actor/time fields: `uploaded_by`, `uploaded_at`, `redacted_by`, `redacted_at`, `approved_by`, `approved_at`, `published_by`, `published_at`, `last_modified_by`, `last_modified_at`. Approval and publication must be separate event rows even when created from the single Publish action. Treat event records as create-only: no normal-user create, no update, no delete; use a narrow server workflow to append them and do not accept event identity/time from request data. Payload's Local API defaults to `overrideAccess: true`, so internal writes must explicitly understand this bypass and not be treated as user-authenticated proof. Pass the same Payload `req` into transactional calls where available, but confirm transaction semantics/failure handling on the configured database before claiming atomicity. [CITED: https://payloadcms.com/docs/local-api/access-control] [CITED: https://payloadcms.com/docs/local-api/overview]
+
+**Safe implementation boundary:** Within the application and Payload API, a create-only audit collection, update/delete access denial, and trusted server hooks can enforce append-only behavior for ordinary application users without a new package/service. They cannot alone prove tamper-proof permanence against database owners, migrations, or privileged server code. Strong immutability/tamper evidence (for example, DB-level trigger/role restrictions or external archive) is not approved in this phase and needs Sol review before it is promised or provisioned. Owner confirmation is not required for the approved audit fields/events; the security enforcement level remains a Sol-review item.
+
+### Pattern 9: Cloud portability and GCS access model
 
 **What:** Use env-supplied project/bucket/endpoint/credentials and a storage abstraction; keep separate logical object prefixes or buckets for private originals and public derivatives. A host move may require rebuilding, not a source rewrite. Never hard-code account IDs, secrets, domains or host paths. [VERIFIED: `src/payload.config.ts:19-24,27-37,73-84`]
 
@@ -319,6 +358,67 @@ return streamPublicDerivative(asset.objectKey, asset.cachePolicy);
 
 This demonstrates the gate only. Concrete Payload local API calls should keep `overrideAccess` off unless the code itself performs the complete same authorization check; return 404 for unauthorized private objects and avoid caching those denial/body responses at shared layers. `[ASSUMED]` for helper names and status/cache settings.
 
+### Permission-gated document publication outline
+
+```typescript
+const APPROVE_PUBLIC_DOCUMENTS = "Approve Public Documents" as const;
+
+function hasPermission(user: StaffUser | null | undefined, permission: string): boolean {
+  return user?.permissions?.includes(permission) === true;
+}
+
+// In a shared server-side publication check / collection transition hook:
+if (isPublishingThisRedactedRevision(data, originalDoc)) {
+  if (!hasPermission(req.user, APPROVE_PUBLIC_DOCUMENTS)) {
+    throw new ForbiddenError();
+  }
+  if (!humanReviewPassedForExactRevision(data.revision)) {
+    throw new ForbiddenError();
+  }
+  // Derive identity and time from req.user and server clock, never request data.
+  data.approved_by = req.user.id;
+  data.approved_at = now;
+  data.published_by = req.user.id;
+  data.published_at = now;
+}
+```
+
+This is a control-flow sketch, not copy-ready code: user/API types, database field names, audit transaction calls, and Payload error construction must follow installed Payload 3.90.2 types. The permission string and audit fields are literal D-08/D-09 decisions quoted above. Keep the permission assignment data-driven on the user, not a condition such as `user.role === "owner"`; the role is only how the initial Owner account is identified when seeding the permission. Use one custom Payload Publish button as the visible action, but have the server-side transition check deny direct API publication too. [CITED: https://payloadcms.com/docs/access-control/overview] [CITED: https://payloadcms.com/docs/hooks/collections] [VERIFIED: `node_modules/payload/dist/collections/config/types.d.ts:284-287`]
+
+### Private exact-revision preview outline
+
+```typescript
+return new Response(redactedRevisionBytes, {
+  headers: {
+    "Content-Type": revision.contentType,
+    "Cache-Control": "private, no-store",
+    "X-Content-Type-Options": "nosniff",
+  },
+});
+```
+
+The route must first require the named permission, load the selected currently redacted revision with access checks, ensure the revision is the exact one shown in the editor, and avoid writing publish/approval state. Apply equivalent no-store behavior to any HTML wrapper and proxy response. This sketch is `[ASSUMED]` as an implementation pattern and needs Sol review of Next/Payload route caching and deployment proxies before live documents are used. [CITED: https://nextjs.org/docs/app/guides/cdn-caching]
+
+### Audit-event outline
+
+```typescript
+await req.payload.create({
+  collection: "media-audit-events",
+  data: {
+    eventType: trustedEventType,
+    entityId: entity.id,
+    revision: entity.revision,
+    actor: req.user.id,
+    occurredAt: new Date().toISOString(),
+    // Include the applicable D-11 actor/time fields on this event.
+  },
+  req,
+  overrideAccess: true, // Internal append path only; never caller-controlled.
+});
+```
+
+This example intentionally marks the privileged Local API call: Payload's Local API can bypass access checks with `overrideAccess`, so only a narrow server-owned append function may invoke it, and it must ignore client-supplied actors/timestamps. Pass the same `req` to share the adapter transaction where supported. Verify how errors and transaction rollback behave with the configured Postgres adapter before claiming the business write and audit row are atomic. App-level immutability is enforceable without an external service; database-owner-resistant permanence is not established by this pattern and remains a Sol review item. `[ASSUMED]` for collection/helper names and event schema. [CITED: https://payloadcms.com/docs/local-api/access-control] [CITED: https://payloadcms.com/docs/local-api/overview]
+
 ## Environment Availability
 
 | Dependency | Required By | Available | Version | Fallback |
@@ -349,14 +449,17 @@ This demonstrates the gate only. Concrete Payload local API calls should keep `o
 
 | Req ID | Behavior | Test Type | Automated Command | File Exists? |
 |--------|----------|-----------|-------------------|-------------|
-| ADMN-06 | Cannot publish without a suitable, same-machine ready derivative; optional categories stay optional | unit + Payload configuration | `node --test tests/machine-model.test.mjs tests/machine-media.test.mjs` | Existing machine model coverage; media assertions are Wave 0/new. |
+| ADMN-06 | Cannot publish a machine without a suitable same-machine ready derivative; public document publishing separately requires the named permission | unit + Payload configuration | focused machine eligibility and publication-access tests | Existing machine model coverage; permission/media assertions are new. |
 | ADMN-09 | Phone batch reports per-file status/retry and tolerates partial failure | browser/manual + route unit | focused upload-queue tests; mobile browser acceptance | ❌ Wave 0; verify real phone states later. |
 | IMAG-01/02/03/07 | 12 categories, ordered gallery, featured selection, factual alt and focal fields | schema/unit/admin manual | focused media schema and ordering tests | ❌ Wave 0. |
 | IMAG-04/05/08 | Master untouched; derived variants oriented/resized/formatted/watermarked | Sharp synthetic unit | focused Sharp tests with synthetic fixture | Existing foundation Sharp tests cover baseline only; focused transform cases are new. |
 | IMAG-06 | Generated filenames deterministic from identity/category/stable sequence | unit | focused `media.ts` test | Existing helper needs extension tests. |
 | IMAG-09 | 10–30-file batch succeeds or isolates retryable errors | integration against approved disposable storage + browser | synthetic batch smoke | ❌ Wave 0/live service blocked pending approval/availability. |
-| JPJD-01/02/03/04/05/06 | Private original/copy access, separate revisions, deny pending, approval-bound public projection | access/config + API integration | focused docs/access tests; direct URL/API/optimizer/cache matrix | ❌ Wave 0; live object path pending. |
-| JPJD-07 | Hidden serial absent and serial plate images reviewed; changes invalidate affected review | projection/state tests + manual review workflow | focused serial-photo review tests | Existing serial projection coverage in machine tests; media review/invalidation cases are new. |
+| JPJD-01/02/03 | Private original/copy access; separate revisions; deny pending at direct API/file/optimizer/cache paths | access/config + API integration | focused docs/access tests; direct URL/API/optimizer/cache matrix | ❌ Wave 0; live object path pending. |
+| JPJD-04/05 | One `Publish` action checks `Approve Public Documents`, records distinct approval/publication actors and times, and is denied to administrator direct REST/GraphQL/Admin API attempts; no separate approval action | permission unit + Payload hook/API integration | permission assignment/membership tests and direct mutation denial tests | ❌ Wave 0/new; service-backed file path pending. |
+| JPJD-06 | Availability approval is separate; current public copy projection changes only after authorized Publish; `Preview as Public` is exact revision, private and no-store | projection/route integration + cache-header check | preview authorization/revision/cache tests; public availability tests | ❌ Wave 0/new. |
+| JPJD-07 | Hidden serial absent; each new photo is `Needs Review`; checklist, redaction/re-review and Owner escalation are human-led; changes invalidate review | projection/state tests + human workflow review | focused serial-photo review tests and checklist acceptance | Existing serial projection coverage in machine tests; media review/invalidation cases are new. |
+| D-11 | Upload/redaction/approval/publication/modification append separate immutable history rows and stamp requested actor/time fields from server identity/time | state transition + access tests; database transaction/immutability review | append-only event and audit-field tests; adversarial client actor/time input | ❌ Wave 0/new. Absolute database-level permanence needs Sol review. |
 
 ### Sampling Rate
 
@@ -367,7 +470,8 @@ This demonstrates the gate only. Concrete Payload local API calls should keep `o
 ### Wave 0 Gaps
 
 - [ ] Add pure media schema/identity/order/derivative eligibility tests.
-- [ ] Add private document access and revision-bound approval tests.
+- [ ] Add private document access, permission-gated single Publish, revision-bound preview/no-store and audit-event tests.
+- [ ] Add photo `Needs Review` checklist, redaction/re-review, Owner escalation and advisory-only AI-state invariance coverage (AI integration is not required).
 - [ ] Add Sharp synthetic orientation/watermark/size/metadata checks.
 - [ ] Add synthetic per-file upload queue tests, including one rejected file among successful uploads.
 - [ ] Document live GCS/PostgreSQL/phone verification as pending unless approved disposable services and representative devices exist.
@@ -403,6 +507,15 @@ Project config sets ASVS Level 1 (verbatim: `"security_enforcement": true`, `"se
 | Original EXIF/location/embedded identifiers retained in public output | Information disclosure | Inspect metadata, strip where appropriate, human review actual output, retain originals privately. |
 | Readable serial plate in any gallery category | Information disclosure | Require serial-photo review across all categories; invalidate on replacement or visibility policy change. |
 | GCS `makePrivate()` vs uniform access ACL policy mismatch | DoS / misconfiguration | Confirm bucket mode and adapter ACL behavior before service creation; no bucket writes during planning. |
+| Publish permission only enforced by a hidden button/role label | Elevation of privilege | Check named permission in shared server-side helper, transition hook and custom server action/route; test direct REST, GraphQL and Admin API mutations. Keep UI visibility as usability only. |
+| Caller forges audit actor/time or changes old event | Repudiation / tampering | Stamp actor from authenticated request and time on server; expose no event update/delete; keep event writes in narrow trusted code and review Local API `overrideAccess` usage. |
+| Private preview is made public/cached or shows a stale revision | Information disclosure | Require `Approve Public Documents` on the server, bind request to exact current redacted revision, set `Cache-Control: no-store` on HTML and byte responses, avoid public optimizer/CDN routes, and do not alter publication state. |
+| AI highlighting clears or weakens mandatory human photo review | Information disclosure | Treat AI output as optional reviewer hints only; only an authenticated human checklist action can record review, and redaction/replacement resets state. |
+
+### Implementable in this phase vs. Sol review
+
+- **Safe to plan/implement locally with synthetic fixtures:** a stored named-permission value on the user independent of role; initial grant only to the Owner; permission helper reuse across access functions and publication hook; admin draft/upload/redaction/submission; a single Publish UI action with server-side permission checks; distinct approval/publication fields and event types; exact-revision private Preview as Public with no-store; photo `Needs Review` and human checklist/re-review/escalation; optional AI exclusion; application-level append-only event records with immutable history semantics. No new package or service is needed for these parts.
+- **Requires Sol security review before claiming production-safe or deploying:** whether Payload's exact Admin publish request path is fully caught by collection hooks/access and how the custom button submits; all REST/GraphQL/Admin API bypass cases; immutable audit atomicity when an audit write fails, `overrideAccess` and trusted code boundaries; whether application-level update/delete denial is sufficient or DB privileges/triggers/tamper-evident storage are needed to satisfy “permanent”; revision binding and cache behavior for the preview/file response; future permission-assignment UX and guardrails; existing GCS object ACL/uniform-access compatibility. Service provisioning remains separately owner-approved.
 
 ## Operational Decisions Requiring Owner Confirmation
 
@@ -411,7 +524,7 @@ Keep these as later human checkpoints; they do not prevent host-independent loca
 1. Which approved HGR logo/artwork, domain text, watermark default mode, and placement/size/opacity/margin should production use? Owner must supply/approve artwork; no artwork was generated.
 2. Representative original dimensions/byte sizes, maximum per-file and total batch/request size, bounded upload concurrency, and eventual hosting limits. Existing 5 MiB cap is a current implementation value, not owner-approved target.
 3. Original and derivative retention, deletion/archive policy, derivative regeneration triggers after category/watermark/format changes, and whether originals are retained indefinitely.
-4. Which person/role may review redacted documents; who records explicit owner approval for public display; what happens when approver is absent; who can revoke an already-published copy.
+4. Which person will own checklist review and escalation coverage when the Owner is absent, and what is the operational revocation/withdrawal procedure for an already-published copy? The named permission and single Publish control are approved; these operational procedures are not yet specified.
 5. Document types accepted, redaction workflow/formats, and the exact fields/metadata that HGR requires a human to inspect. No real originals are to be used before approval.
 6. Whether and under what procedure serial-plate images can be publicly shown; who completes image review, what evidence is kept, and whether a machine-specific exception can ever be granted.
 7. Which public image formats/sizes/quality targets are acceptable for original quality vs. page speed; no public performance target or upload size is locked yet.
@@ -425,6 +538,8 @@ Keep these as later human checkpoints; they do not prevent host-independent loca
 3. **Can the representative 10–30 original batch be processed within actual host memory/request/timeout limits?** Unknown without approved services and real owner originals. Use synthetic representative byte sizes locally; later test the actual selected target. Do not claim Exabytes suitability.
 4. **Can GCS use uniform bucket-level access with the locked adapter configuration?** Current adapter explicitly calls GCS object ACL APIs when configured with `acl`; Google's UBLA disables those APIs. Have Sol review the simplest compatible least-privilege setting before any approved GCS bucket setup.
 5. **Does Payload's stock upload UI meet ADMN-09 on target phones?** Official docs confirm upload customization exists, but not a verified phone batch progress/retry guarantee for this specific package/runtime. Build a minimal custom queue only if synthetic/mobile checks show the stock UI cannot meet the locked requirement.
+6. **What exact User permission-field representation and assignment screen should implement D-08?** A persisted permission-name array on the User document is the simplest data-driven fit: grant `Approve Public Documents` to the Owner account only, and have all policy code check permission membership. This preserves future grants without a role-specific policy branch, but the Admin UX for safely assigning it to a future role/user must be reviewed by Sol; do not make the ability to add future assignees a blocker for the approved initial Owner assignment.
+7. **Can the audit promise be enforced at the needed permanence level using Payload application controls alone?** A create-only collection and immutable event workflow can block ordinary app/API updates and deletes. Payload Local API defaults to access override; database owner/privileged code can still alter records. Sol must decide whether append-only at the application boundary meets Phase 3 or if DB-level constraints/tamper evidence are required, before describing it as tamper-proof or operationally permanent.
 
 ## Sources
 
@@ -433,6 +548,13 @@ Keep these as later human checkpoints; they do not prevent host-independent loca
 - Payload Uploads documentation — upload fields, size constraints, image sizes, focal points and handlers: https://payloadcms.com/docs/upload/overview
 - Payload Storage Adapters — access-controlled static delivery and GCS adapter configuration: https://payloadcms.com/docs/upload/storage-adapters
 - Payload Collection Access Control — collection/document/API authorization model: https://payloadcms.com/docs/access-control/collections
+- Payload Access Control overview — same access functions inform Admin affordances and secure API operations: https://payloadcms.com/docs/access-control/overview
+- Payload Collection Hooks — `beforeChange`/`afterChange` lifecycle and request context: https://payloadcms.com/docs/hooks/collections
+- Payload Hook overview — server-side hook behavior and rejecting operations: https://payloadcms.com/docs/hooks/overview
+- Payload Edit View custom components — custom Publish button integration: https://payloadcms.com/docs/custom-components/edit-view
+- Payload Local API overview — `overrideAccess` defaults, request propagation and transaction guidance: https://payloadcms.com/docs/local-api/overview
+- Payload Local API access control — use authenticated user and `overrideAccess: false` when a Local API operation must respect access: https://payloadcms.com/docs/local-api/access-control
+- Payload Field Access — field-level read/create/update restrictions: https://payloadcms.com/docs/fields/overview
 - Sharp image operations — EXIF auto-orientation and rotate/resize behavior: https://sharp.pixelplumbing.com/api-operation/
 - Sharp compositing — overlays/watermarks: https://sharp.pixelplumbing.com/api-composite/
 - Sharp output — format conversion and metadata: https://sharp.pixelplumbing.com/api-output/
@@ -450,6 +572,7 @@ Keep these as later human checkpoints; they do not prevent host-independent loca
 - OWASP ASVS v5.0.0 V6 Authentication: https://github.com/OWASP/ASVS/blob/master/5.0/en/0x15-V6-Authentication.md
 - OWASP ASVS v5.0.0 V7 Session Management: https://github.com/OWASP/ASVS/blob/master/5.0/en/0x16-V7-Session-Management.md
 - Installed package source — `node_modules/@payloadcms/storage-gcs/dist/uploadFile.js`, `adapter.js`, `getFile.js`; checked in this workspace to confirm how private ACL and static handling work.
+- Installed Payload 3.90.2 source declarations — `node_modules/payload/dist/collections/config/types.d.ts:284-287,534-544` confirm custom Publish button and collection hook config; `node_modules/payload/dist/fields/config/types.d.ts:86-110,305-308` confirm `FieldAccess` and field create/read/update access shape. Read this session.
 
 ### Secondary (MEDIUM confidence)
 
@@ -468,6 +591,9 @@ Keep these as later human checkpoints; they do not prevent host-independent loca
 | A3 | Example output dimensions, quality, overlay placement and format should be chosen only after representative machine photos are reviewed. | Code Examples | Poor choices could degrade inspection usefulness or produce oversized pages. |
 | A4 | Public denial should return 404 with non-cacheable response headers for private/pending assets. | Code Examples | A different status/cache policy may be preferred after security review; any denial must still prevent shared-cache leakage. |
 | A5 | Pixel/image validation via Sharp metadata is sufficient for the intended allowed raster set, with independent limits and human content review. | Common Pitfalls | Parser edge cases or file-content confusion may require added scanning/control; assess before deployment. |
+| A6 | A persisted permission-name array on the User document is the simplest data-driven implementation of D-08 and can be assigned in Payload Admin with appropriate Owner-only field access. | Pattern 6 / Open Questions | Another data shape may better fit the generated Payload schema or least-privilege assignment workflow; keep checks capability-based regardless. |
+| A7 | A private Next.js handler with `Cache-Control: private, no-store` on both preview markup and file bytes is sufficient across the eventual proxy/CDN path. | Private exact-revision preview | A deployment layer may override caching or require additional private routing; Sol must verify before using real files. |
+| A8 | One shared Payload request can make a business document update and separate audit event atomic when passed to Local API operations. | Pattern 8 / Code Examples | Adapter/transaction boundaries or hook timing may create partial records; verify against configured PostgreSQL before relying on atomicity. |
 
 ## Metadata
 

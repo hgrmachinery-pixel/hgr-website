@@ -5,16 +5,16 @@ milestone_name: versus deferred scope
 current_phase: 3
 current_phase_name: Photography, media processing and JPJ protection
 status: in_progress
-stopped_at: Completed 03-02-PLAN.md; Plan 03-03 is next
-last_updated: "2026-10-01T16:50:07.862Z"
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-10-01T17:16:00.030Z"
 last_activity: 2026-10-02
 last_activity_desc: Phase 3 Plan 03-02 implementation, synthetic verification and commits complete; local service verification remains pending
-state_head: 484778b102e54708fdbadd2465d106aecdaee287
+state_head: 46889041732f728d1318ac91d53025b8bf480b61
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 ## Current Position
 
 Phase: 3 (Photography, media processing and JPJ protection) — IN PROGRESS
-Plan: 3 of 4 — Plans 03-01 and 03-02 summarized; Plans 03-03 and 03-04 remain
+Plan: 4 of 4 — Plans 03-01 and 03-02 summarized; Plans 03-03 and 03-04 remain
 Total Plans in Phase: 4
 Status: in progress; local implementation continues, PostgreSQL/GCS verification remains gated
 Last Activity: 2026-10-02 — Plan 03-02 private document workflow and photo review guards implemented and verified
@@ -55,6 +55,7 @@ Progress: 4 Phase 1, 3 Phase 2 and 2 Phase 3 plan summaries are recorded. Phase 
 | Phase 02 P03 | 1 session | 3 tasks | 10 files |
 | Phase 03 P01 | 1 session | 3 tasks | 17 files |
 | Phase 03 P02 | 1 session | 3 tasks | 24 files |
+| Phase 3 P3 | 25min | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - [Phase 02]: Short-lived preview tokens are machine-bound, but preview reads still require an authenticated staff session.
 - [Phase 03]: Approve Public Documents is a persisted named permission; Owner initially receives it and Administrators do not.
 - [Phase 03]: Photo approvals bind to the exact derivative and current serial-visibility policy revision; all policy changes invalidate machine photo reviews.
+- [Phase 3]: Asset event writes share the protected transition transaction; database trigger and live service verification remain in Plan 03-04.
+- [Phase 3]: Current Approve Public Documents permission gates one Publish action; authenticated Preview streams the exact latest redacted revision privately with no-store headers.
 
 ### Pending Todos
 
@@ -102,6 +105,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-01T16:50:03.987Z
-Stopped at: Completed 03-02-PLAN.md; Plan 03-03 is next
-Resume file: .planning/phases/03-photography-media-processing-and-jpj-protection/03-03-PLAN.md
+Last session: 2026-10-01T17:15:59.791Z
+Stopped at: Completed 03-03-PLAN.md
+Resume file: .planning/phases/03-photography-media-processing-and-jpj-protection/03-04-PLAN.md

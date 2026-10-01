@@ -1,8 +1,8 @@
 # Phase 3: Photography, media processing and JPJ protection - Pattern Map
 
-**Mapped:** 2026-10-01  
-**Files analyzed:** 10 likely file groups  
-**Analogs found:** 9 / 10 (new upload workflow has partial analogs only)
+**Mapped:** 2026-10-01
+**Files analyzed:** 15 likely file groups
+**Analogs found:** 13 / 15 (Roles and append-only audit persistence have partial analogs)
 
 ## File Classification
 
@@ -12,15 +12,19 @@
 | `src/collections/MachineImageDerivatives.ts` (proposed) | model / upload collection | file-I/O, CRUD | `src/collections/MachineMedia.ts` | role-match; public readiness gates are new |
 | `src/collections/MachineDocuments.ts` (proposed) | model / upload collection | file-I/O, CRUD | `src/collections/MachineMedia.ts`, `src/collections/Users.ts` | role-match; document approval is new |
 | `src/collections/Machines.ts` | model / collection | CRUD, request-response | same file | exact extension point |
+| `src/collections/Roles.ts` (proposed) and `src/collections/Users.ts` | model / permission config | CRUD, request-response | `src/collections/Users.ts` | partial; roles collection is new |
 | `src/lib/machines/access.ts` | utility / policy | request-response | same file | exact extension point |
+| `src/lib/machines/permissions.ts` (proposed) | utility / policy | request-response | `src/lib/machines/access.ts` | role-match; current role permission resolution is new |
 | `src/lib/machines/media.ts` (or focused media modules) | utility / transform | transform, file-I/O | same file | role-match; derivative pipeline is new |
 | `src/lib/machines/publicProjection.ts` | utility / transform | transform | same file | exact extension point |
 | `src/app/api/media/[...path]/route.ts` (only if Payload access cannot express full checks) | route | request-response, file-I/O | `src/app/api/preview/route.ts` | role-match; media delivery is new |
+| Payload Admin collection edit-view Publish/Preview controls (proposed component files) | component / action | request-response | installed Payload `PublishButton` contract; `src/app/api/preview/route.ts` | framework hook exists; project workflow is new |
+| `src/collections/AssetAuditEvents.ts` (proposed) | model / audit log | event-driven, CRUD | `src/collections/Users.ts` (server-stamped hook); migration SQL | partial; append-only log is new |
 | `src/payload.config.ts` | config | request-response, file-I/O | same file | exact extension point |
 | `src/migrations/<generated phase 3 migration>.ts`, `src/migrations/index.ts` | migration / registry | batch, schema transform | `src/migrations/20261001_080057_phase2_machines.ts`, `src/migrations/index.ts` | role-match |
 | `tests/machine-media.test.mjs`, `tests/machine-documents.test.mjs`, `tests/machine-access.test.mjs` | test | transform, request-response, file-I/O | `tests/machine-model.test.mjs`, `tests/machine-access.test.mjs` | role-match |
 
-These are likely planning paths inferred from CONTEXT/RESEARCH; the planner should settle exact names. Do not create a separate service, provision storage/database, or use real JPJ/ownership files in local validation.
+These are likely planning paths inferred from CONTEXT/RESEARCH; the planner should settle exact names. Do not create a separate service, provision storage/database, or use real JPJ/ownership files in local validation. Preserve D-01 through D-11 as approved decisions.
 
 ## Pattern Assignments
 
@@ -204,38 +208,97 @@ Use Payload-generated schema changes, review the migration and rollback scope, t
 
 Tests import pure helpers directly and use `node:test`/`node:assert/strict`; configuration tests load the real Payload config in a spawned Node process with synthetic env values. Follow that shape for category/name/processing state, approval invalidation, publication eligibility, and projection tests. Exercise anonymous and staff collection access plus direct media/API/route paths for private originals, pending copies, changed revisions, unpublished/archived machines, and same-machine ownership. Test config declarations without requiring live services. Existing access tests are unit/config boundary tests; no real GCS or database integration is currently available.
 
+### `src/collections/Roles.ts`, `src/collections/Users.ts`, and permission resolver
+
+**Analogs:**
+
+- `src/collections/Users.ts:5-5,34-57,58-88,90-103` for current staff role typing, access rules, role immutability, and admin fields.
+- `src/lib/machines/access.ts:9-17` for a small centralized policy predicate.
+- `src/collections/Machines.ts:27-44` for a trusted server helper using the Payload request and database transaction context.
+
+Move role-specific authority into a persisted `Roles` collection with a generic permission-name list. Keep the account classification and permissions distinct: `Users.role` becomes a relationship to a Role record, and the initial Owner role record contains `Approve Public Documents`; Administrator does not. All authorization checks ask whether a named permission exists, never compare a role name. Resolve the current authenticated user and related role/permissions from the database for each sensitive publish/preview action; do not trust a potentially stale serialized `req.user` relation or a client-supplied role/permission. Scope that lookup to the authenticated user ID and use a single `hasPermission` helper. Seed/migration behavior must preserve the current first-owner bootstrap and assign no approval permission to Administrator. Keep role/permission editing owner-restricted; do not let an Administrator grant itself capabilities.
+
+The existing `Users` rules provide only a fixed role field and should be extended rather than copied as the authorization model. The schema change follows the generated migration and registry patterns below. No existing project collection provides a scalable role-permission relation, so the data shape is a new model; the `Users` collection is only a structural analog.
+
+### Permission-gated Admin actions and server publication transition
+
+**Analog:**
+
+- Installed Payload 3.90.2 `node_modules/payload/dist/collections/config/types.d.ts:284-287` (dependency source, not a tracked project analog): `PublishButton` replaces the Publish button and requires drafts.
+- `src/collections/Machines.ts:136-155` for server-side `beforeChange` transition checks.
+- `src/app/api/preview/route.ts:1-45` and `src/lib/machines/preview.ts:42-101` for authenticated, server-validated preview behavior.
+
+Render one custom Publish action for a user with the `Approve Public Documents` permission; Administrators can continue upload, redact, save draft, and submit for Owner review. The custom button is only an affordance: enforce current DB-resolved permission and exact-revision human review again in the server-side publication transition and any custom handler. Deny direct REST, GraphQL, and Admin API attempts without permission. One successful Publish transition writes distinct `approved_by`/`approved_at` and `published_by`/`published_at` values and separate audit event types; derive user and timestamps server-side. A failure in authorization, validation, revision matching, or audit persistence must not make the item public. The installed declaration is under ignored `node_modules`; cite it as Payload implementation evidence, never as a tracked project source analog.
+
+### Revision-bound private “Preview as Public”
+
+**Analog:** `src/lib/machines/preview.ts:42-101` and `src/app/api/preview/route.ts:1-45`.
+
+The existing preview helper authenticates a staff session, validates an expiring signed token, loads the selected machine with `overrideAccess: false`, rejects invalid/archived records, and returns private no-store responses. Reuse those concrete guard/response conventions for the redacted document preview, but do not use a public or bearer URL for sensitive bytes. Require the named permission, load the exact current redacted revision with access checks, and render/stream those bytes without changing publish or approval state. Both preview HTML and bytes must carry `Cache-Control: private, no-store` and `X-Content-Type-Options: nosniff`; do not route them through Next image optimization/CDN or expose GCS signed URLs. The existing machine preview is not itself a document-byte preview, so the content streaming and exact revision checks remain new and require security review before real documents.
+
+### `src/collections/AssetAuditEvents.ts` (proposed, immutable lifecycle log)
+
+**Analogs:** `src/collections/Users.ts:58-88` for server-authoritative hook assignment and immutable role protection; `src/collections/Machines.ts:27-44` for reuse of Payload request transaction context; `src/migrations/20261001_080057_phase2_machines.ts` for SQL migration execution/rollback structure.
+
+Append one event per upload, redaction, approval, publication, and modification, with target entity and exact revision, event type, authenticated actor ID, server time, and applicable D-11 fields. Use create-only semantics: deny normal API create/read as appropriate, always deny update/delete, and expose no editable actor/time fields. A narrow trusted append helper may use Payload Local API with `overrideAccess: true`; it must derive actor from `req.user`, ignore client-supplied audit data, and pass the same `req` to preserve request transaction context. Payload 3.90.2 `PayloadRequest.transactionID` is declared in `node_modules/payload/dist/types/index.d.ts:63-64`; the established project code reads that transaction and database session at `src/collections/Machines.ts:27-44`. This supports transaction reuse patterns but is not proof of rollback semantics; validate configured PostgreSQL failure atomicity before claiming it.
+
+The approved request now explicitly calls for an immutable event ledger. Add a PostgreSQL trigger through the reviewed generated migration to reject `UPDATE` and `DELETE` on the event table (in addition to Payload access denial). The tracked phase-2 migration is the concrete SQL/rollback pattern, but no existing table trigger is an analog. Add both trigger creation and its scoped down-migration carefully; do not run the migration against an unapproved/non-disposable database. Database-owner/tamper-resistant immutability is still a separate security review boundary; a trigger blocks ordinary SQL mutation paths but a privileged database owner can disable it.
+
+**Trigger SQL shape** (new; follow the SQL template string and `db.execute` in `src/migrations/20261001_080057_phase2_machines.ts`):
+
+```sql
+CREATE FUNCTION prevent_asset_audit_event_mutation() RETURNS trigger AS $$
+BEGIN
+  RAISE EXCEPTION 'asset audit events are append-only';
+END;
+$$ LANGUAGE plpgsql;
+CREATE TRIGGER asset_audit_events_immutable
+  BEFORE UPDATE OR DELETE ON asset_audit_events
+  FOR EACH ROW EXECUTE FUNCTION prevent_asset_audit_event_mutation();
+```
+
+This is a pattern sketch; align exact quoted table/function names with the generated schema and ensure the down migration drops the trigger and function in dependency order.
+
+### Complete photo “Needs Review” workflow
+
+**Analogs:** `src/collections/MachineMedia.ts:19-47` for upload hooks and metadata; `src/collections/Machines.ts:136-155` for server-side transition validation; `src/lib/machines/publicProjection.ts:32-84` for explicit public eligibility.
+
+Every new photo revision starts exactly at `Needs Review`. Persist review outcome, checklist answers, reviewer identity/time, and the precise derivative revision or content digest reviewed. The human checklist covers manufacturer serials, chassis/VINs, engine numbers, registration numbers, QR codes, barcodes, customer labels, delivery information, personal information, and other sensitive identifiers. If anything appears, blur/crop into a new derivative revision and repeat the review; never modify the private master. A new/replaced/redacted revision resets the status to `Needs Review`; prior approval cannot carry forward. Uncertainty is escalated to Owner. AI may only suggest highlight regions; it cannot answer checklist fields, clear review, approve or publish. Only the human review step can move the exact revision beyond review, and D-07 requires serial-visibility changes to invalidate affected review state. There is no existing photo review UI/model, so these are workflow additions rather than copied code.
+
 ## Shared Patterns
 
 ### Access and privacy
-**Sources:** `src/lib/machines/access.ts:9-25,34-42`; `src/collections/MachineMedia.ts:13-18`  
+**Sources:** `src/lib/machines/access.ts:9-25,34-42`; `src/collections/MachineMedia.ts:13-18`
 **Apply to:** all three media/document collections, projection and any file handler.
 
-Keep Payload access checks enabled, explicitly staff-gate masters and sensitive documents, and enforce public eligibility on the derivative itself. D-01 through D-07 remain controlling: private master versus separate derivative; all 12 categories with only suitable featured/general required; configurable watermark on derivatives; configurable limits and recoverable batches; revision-bound human and owner approval; no inferred approval authority; private serial and readable-plate review invalidation.
+Keep Payload access checks enabled, explicitly staff-gate masters and sensitive documents, and enforce public eligibility on the derivative itself. D-01 through D-11 remain controlling: private master versus separate derivative; all 12 categories with only suitable featured/general required; configurable watermark on derivatives; configurable limits and recoverable batches; revision-bound human review and document approval; generic named permission on persisted Roles; one Publish action and private exact-revision preview; private serial and readable-plate review invalidation; server-stamped separate audit events with append-only DB trigger.
 
 ### Machine relation and publication state
-**Sources:** `src/collections/Machines.ts:83-155,262-273`; `src/lib/machines/publicProjection.ts:32-84`  
+**Sources:** `src/collections/Machines.ts:83-155,262-273`; `src/lib/machines/publicProjection.ts:32-84`
 **Apply to:** featured/gallery relations, derivative authorization, public data and publication validation.
 
 Require same physical-machine relation and derivative readiness/approval, plus Published and non-archived parent, at the server boundary. `_status`, archive, and business stock status are separate. Public output is an allow-list.
 
 ### Portable storage and schema
-**Sources:** `src/payload.config.ts:20-47,49-61,73-89`; `src/migrations/index.ts:1-9`  
+**Sources:** `src/payload.config.ts:20-47,49-61,73-89`; `src/migrations/index.ts:1-9`
 **Apply to:** storage collection registration and every schema change.
 
-Use environment configuration and private GCS, explicit reviewed migrations, and no schema push. No service setup, real documents, or production changes are within this mapping task.
+Use environment configuration and private GCS, explicit reviewed migrations, and no schema push. The Phase 3 migration also creates the Roles/audit schema and append-only event trigger; do not run it against an unapproved database. No service setup, real documents, or production changes are within this mapping task.
 
 ## No Analog Found
 
 | File / capability | Role | Data Flow | Reason |
 |---|---|---|---|
+| Generic persisted `Roles` collection and assignment workflow | model / config | CRUD | Existing `Users` only has a fixed role select; no generic role-permission collection exists. |
 | Separate image derivative collection and processing pipeline | model / utility | file-I/O, transform | Existing media is only a staff-only master; no distinct derivative pipeline exists. |
 | Private JPJ document collection and revision-bound review | model / workflow | file-I/O, CRUD | No sensitive-document model, review state, or human approval flow exists. |
+| Immutable asset audit event model / DB trigger | model / migration | event-driven, batch | No audit-event table or immutable-table trigger exists; follow collection and SQL migration structure only. |
 | Per-file mobile upload progress/retry UI | component / utility | streaming, file-I/O | No custom upload interface or partial-batch retry exists. Use Payload admin patterns, then validate against current version. |
 | Fully checked public media streaming route | route | request-response, file-I/O | Preview route is not a file streaming/security analog; route may be unnecessary if Payload can enforce every check. |
 
 ## Metadata
 
-**Analog search scope:** `src/collections/`, `src/lib/machines/`, `src/app/api/`, `src/payload.config.ts`, `src/migrations/`, `tests/`, Phase 2 pattern map.  
-**Tracked paths verified:** every source analog named above is git-tracked.  
+**Analog search scope:** `src/collections/`, `src/lib/machines/`, `src/app/api/`, `src/payload.config.ts`, `src/migrations/`, `tests/`, Phase 2 pattern map.
+**Tracked paths verified:** every source analog named above is git-tracked.
 **Pattern extraction date:** 2026-10-01
 

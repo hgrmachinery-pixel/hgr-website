@@ -11,12 +11,12 @@
     {
       "number": "2",
       "name": "Machine model and Payload owner workflow",
-      "status": "complete"
+      "status": "pending"
     },
     {
       "number": "3",
       "name": "Photography, media processing and JPJ protection",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "number": "4",
@@ -46,8 +46,8 @@
   ],
   "next": {
     "command": "/gsd:progress --next",
-    "label": "Phase 2 implementation complete; Phase 3 not started",
-    "reason": "Stop before Phase 3; live PostgreSQL/media integration and dependency security review remain pending."
+    "label": "Advance to the next step",
+    "reason": "Phase 3 of 8 · 4% · executing"
   },
-  "updated_at": "2026-10-01T08:13:47Z"
+  "updated_at": "2026-10-01T17:15:44.940Z"
 }
