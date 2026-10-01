@@ -226,6 +226,7 @@ export interface Machine {
   showSerialPublicly?: boolean | null;
   featuredImage?: (number | null) | MachineMedia;
   gallery?: (number | MachineMedia)[] | null;
+  currentPhotoRevisions?: { [k: string]: unknown } | null;
   archived?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -239,8 +240,33 @@ export interface Machine {
  */
 export interface MachineMedia {
   id: number;
-  machine?: (number | null) | Machine;
+  machine: (number | null) | Machine;
+  assetKind: 'master' | 'derivative';
+  machineReference?: string | null;
+  photoIdentity: string;
+  photoSequence: number;
+  category: 'general-exterior' | 'side-view-1' | 'side-view-2' | 'front-view' | 'rear-view' | 'cabin-interior' | 'hour-meter' | 'chassis-serial-number' | 'engine' | 'undercarriage-tracks' | 'boom-arm-bucket' | 'other-details';
+  revision: number;
+  sourceMaster?: (number | null) | MachineMedia;
+  processingStatus: 'master' | 'processing' | 'ready' | 'failed';
+  contentDigest: string;
+  sourceDigest?: string | null;
+  redactionDigest?: string | null;
+  review: { status: 'needs-review' | 'approved'; revision: number; digest?: string | null; reviewedBy?: (number | null) | User; reviewedAt?: string | null; checklist?: { [k: string]: unknown } | null };
+  reviewHistory?: { [k: string]: unknown }[] | null;
+  auditHistory?: { [k: string]: unknown }[] | null;
+  uploadedBy?: (number | null) | User;
+  uploadedAt?: string | null;
+  redactedBy?: (number | null) | User;
+  redactedAt?: string | null;
+  approvedBy?: (number | null) | User;
+  approvedAt?: string | null;
+  publishedBy?: (number | null) | User;
+  publishedAt?: string | null;
+  lastModifiedBy?: (number | null) | User;
+  lastModifiedAt?: string | null;
   altText?: string | null;
+  order?: number | null;
   _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -457,6 +483,7 @@ export interface MachinesSelect<T extends boolean = true> {
   featuredImage?: T;
   gallery?: T;
   archived?: T;
+  currentPhotoRevisions?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -467,7 +494,32 @@ export interface MachinesSelect<T extends boolean = true> {
  */
 export interface MachineMediaSelect<T extends boolean = true> {
   machine?: T;
+  assetKind?: T;
+  machineReference?: T;
+  photoIdentity?: T;
+  photoSequence?: T;
+  category?: T;
+  revision?: T;
+  sourceMaster?: T;
+  processingStatus?: T;
+  contentDigest?: T;
+  sourceDigest?: T;
+  redactionDigest?: T;
+  review?: T;
+  reviewHistory?: T;
+  auditHistory?: T;
+  uploadedBy?: T;
+  uploadedAt?: T;
+  redactedBy?: T;
+  redactedAt?: T;
+  approvedBy?: T;
+  approvedAt?: T;
+  publishedBy?: T;
+  publishedAt?: T;
+  lastModifiedBy?: T;
+  lastModifiedAt?: T;
   altText?: T;
+  order?: T;
   _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;

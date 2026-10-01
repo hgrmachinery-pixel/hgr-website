@@ -1,5 +1,6 @@
 import { sql } from "@payloadcms/db-postgres";
 import type { CollectionConfig, PayloadRequest } from "payload";
+import { createLocalReq } from "payload";
 
 import {
   appendHistoricalSlug,
@@ -17,12 +18,26 @@ import {
   staffAccess as isStaff,
 } from "../lib/machines/access";
 import { machinePreviewURL } from "../lib/machines/preview";
+import { isPublicMachineDerivative } from "../lib/machines/media.ts";
 
 type MachineIdentity = {
   hgrId?: string;
   slug?: string;
   previousSlugs?: string[];
 };
+
+function relationIds(value: unknown): Array<string | number> {
+  const entries = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value];
+  return entries.map((entry) => {
+    if (typeof entry === "string" || typeof entry === "number") return entry;
+    if (entry && typeof entry === "object") {
+      const item = entry as { id?: unknown; value?: unknown };
+      const id = item.id ?? item.value;
+      if (typeof id === "string" || typeof id === "number") return id;
+    }
+    return undefined;
+  }).filter((id): id is string | number => id !== undefined);
+}
 
 async function readLatestIdentity(
   req: PayloadRequest,
@@ -72,6 +87,7 @@ export const Machines: CollectionConfig = {
     description: "Manage one record for each physical machine.",
     listSearchableFields: ["hgrId", "brand", "model"],
     enableRichTextRelationship: false,
+    components: { edit: { beforeDocumentControls: ["@/components/payload/MachinePhotoUploader#MachinePhotoUploader"] } },
     preview: (doc) => {
       const baseURL = process.env.SERVER_URL;
       const secret = process.env.PREVIEW_SECRET;
@@ -133,17 +149,44 @@ export const Machines: CollectionConfig = {
 
       return data;
     }],
-    beforeChange: [async ({ data, operation, originalDoc }) => {
+    beforeChange: [async ({ data, operation, originalDoc, req }) => {
+      const context = req.context as Record<string, unknown>;
       if (operation === "update" && originalDoc) {
         const identity = originalDoc as MachineIdentity;
         if (data.hgrId !== identity.hgrId) {
           throw new Error("A machine reference cannot be changed");
+        }
+        if (data.currentPhotoRevisions !== undefined && context.machinePhotoProcessing !== true) {
+          throw new Error("Current photo revisions can only be updated by the protected photo processor");
         }
       }
 
       if (data._status === "published") {
         const publishingData = { ...(originalDoc ?? {}), ...data };
         const errors = machinePublicationErrors(publishingData);
+        const ids = (value: unknown): Array<string | number> => {
+          const entries = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value];
+          return entries.map((entry) => {
+            if (typeof entry === "string" || typeof entry === "number") return entry;
+            if (entry && typeof entry === "object") {
+              const candidate = entry as { id?: unknown; value?: unknown };
+              const id = candidate.id ?? candidate.value;
+              if (typeof id === "string" || typeof id === "number") return id;
+            }
+            return undefined;
+          }).filter((id): id is string | number => id !== undefined);
+        };
+        const selected = [...new Set([...ids(publishingData.gallery), ...ids(publishingData.featuredImage)])];
+        const photos = await Promise.all(selected.map((id) => req.payload.findByID({ collection: "machine-media", id, depth: 0, overrideAccess: true, req })));
+        const photoById = new Map(photos.map((photo) => [String(photo.id), photo]));
+        const invalid = selected.some((id) => {
+          const photo = photoById.get(String(id));
+          return !photo || !isPublicMachineDerivative(photo as unknown as Record<string, any>, { ...publishingData, id: originalDoc?.id ?? photo.machine });
+        });
+        const featuredId = ids(publishingData.featuredImage)[0];
+        const featured = featuredId === undefined ? undefined : photoById.get(String(featuredId));
+        if (invalid) errors.push("Every public gallery image must be the current approved derivative");
+        if (!featured || (featured as unknown as { category?: string }).category !== "general-exterior") errors.push("Featured Image must be an approved General / Exterior derivative");
         if (errors.length > 0) {
           throw new Error(
             `Complete these fields before publishing: ${errors.join(", ")}.`,
@@ -152,6 +195,44 @@ export const Machines: CollectionConfig = {
       }
 
       return data;
+    }],
+    afterChange: [async ({ doc, previousDoc, req }) => {
+      const nowPublic = doc._status === "published" && doc.archived !== true;
+      const wasPublic = previousDoc?._status === "published" && previousDoc.archived !== true;
+      const currentPhotoIds = new Set([...relationIds(doc.gallery), ...relationIds(doc.featuredImage)].map(String));
+      const previousPhotoIds = new Set([...relationIds(previousDoc?.gallery), ...relationIds(previousDoc?.featuredImage)].map(String));
+      const publicationIds = nowPublic
+        ? [...currentPhotoIds].filter((id) => !wasPublic || !previousPhotoIds.has(id))
+        : [];
+      const unpublicationIds = wasPublic
+        ? [...previousPhotoIds].filter((id) => !nowPublic || !currentPhotoIds.has(id))
+        : [];
+      for (const [photoId, targetEvent] of [
+        ...publicationIds.map((id) => [id, "published"] as const),
+        ...unpublicationIds.map((id) => [id, "unpublished"] as const),
+      ]) {
+        const photo = await req.payload.findByID({ collection: "machine-media", id: photoId, depth: 0, overrideAccess: true, req });
+        if (photo.assetKind !== "derivative") continue;
+        const history = Array.isArray(photo.auditHistory) ? photo.auditHistory : [];
+        const priorPublicationEvent = [...history].reverse().find((event) => event.event === "published" || event.event === "unpublished")?.event;
+        if (priorPublicationEvent === targetEvent) continue;
+        const at = new Date().toISOString();
+        const auditHistory = [...history, { event: targetEvent, actor: req.user?.id, at, machine: doc.id }];
+        const localReq = await createLocalReq({ user: req.user ?? undefined, context: { machinePhotoPublication: true } }, req.payload);
+        await req.payload.update({
+          collection: "machine-media",
+          id: photo.id,
+          data: {
+            auditHistory,
+            ...(targetEvent === "published" ? { publishedBy: req.user?.id, publishedAt: at } : {}),
+            lastModifiedBy: req.user?.id,
+            lastModifiedAt: at,
+          },
+          overrideAccess: true,
+          req: localReq,
+        });
+      }
+      return doc;
     }],
   },
   fields: [
@@ -270,6 +351,13 @@ export const Machines: CollectionConfig = {
       type: "relationship",
       relationTo: "machine-media",
       hasMany: true,
+    },
+    {
+      name: "currentPhotoRevisions",
+      type: "json",
+      defaultValue: {},
+      admin: { hidden: true, readOnly: true },
+      access: { read: ({ req }) => Boolean(req.user), update: () => false },
     },
     {
       name: "archived",
