@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 2
+open_count: 3
 waived_count: 0
 fixed_count: 1
-total_count: 3
-last_updated: 2026-10-01T00:03:29.640Z
+total_count: 4
+last_updated: 2026-10-01T16:50:40.394Z
 ---
 
 # Broken Windows Ledger
@@ -18,6 +18,7 @@ last_updated: 2026-10-01T00:03:29.640Z
 | 1 | 01 | deviation | tests/foundation-config.test.mjs |  | Additional runtime configuration tests blocked by Windows Application Control rejecting the approved Sharp native module; integration remains pending. | fixed |  | 2026-09-30T15:57:38.503Z | 2026-10-01T00:03:29.640Z |
 | 2 | 01 | unrun-verify | scripts/smoke-foundation.mjs |  | End-to-end PostgreSQL/object-storage/public/Admin/restart smoke pending: disposable loopback PostgreSQL and compatible GCS endpoint are unavailable. | open |  | 2026-10-01T00:01:23.573Z |  |
 | 3 | 01 | unrun-verify | src/migrations/20260930_235704_foundation.ts |  | Generated foundation migration has not been applied: no confirmed disposable loopback PostgreSQL service. | open |  | 2026-10-01T00:01:24.304Z |  |
+| 4 | 03 | deviation | src/collections/MachineMedia.ts |  | Review and audit histories now preserve prior events and serialize policy-aware photo review; validated synthetically because no database service is available. | open |  | 2026-10-01T16:50:40.394Z |  |
 
 ````json
 [
@@ -57,6 +58,19 @@ last_updated: 2026-10-01T00:03:29.640Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-10-01T00:01:24.304Z",
+    "resolved_at": null,
+    "milestone": null
+  },
+  {
+    "id": 4,
+    "kind": "deviation",
+    "phase": "03",
+    "file": "src/collections/MachineMedia.ts",
+    "line": null,
+    "description": "Review and audit histories now preserve prior events and serialize policy-aware photo review; validated synthetically because no database service is available.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-10-01T16:50:40.394Z",
     "resolved_at": null,
     "milestone": null
   }
