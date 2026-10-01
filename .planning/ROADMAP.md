@@ -55,16 +55,18 @@ Plans:
 **Goal:** Establish permanent physical-unit identity and an understandable no-code administration base before building polished public pages.  
 **Depends on:** Phase 1 foundation; local modelling can proceed while an external host decision is pending.  
 **Requirements:** MODL-01, MODL-02, MODL-03, MODL-04, MODL-05, MODL-06, MODL-07, MODL-08, ADMN-01, ADMN-02, ADMN-03, ADMN-04, ADMN-05, ADMN-10.  
-**Plans:** 3 plans
+**Plans:** 3/3 implementation plans summarized; live database/Admin verification remains pending.
 Plans:
 **Wave 1**
-- [ ] 02-01-PLAN.md — Establish permanent physical-machine identity and stable routes.
+- [x] 02-01-PLAN.md — Establish permanent physical-machine identity and stable routes.
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 02-02-PLAN.md — Model structured machine facts and enforce publication/privacy rules.
+- [x] 02-02-PLAN.md — Model structured machine facts and enforce publication/privacy rules.
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 02-03-PLAN.md — Configure protected staff workflow, draft preview, and migration gate.
+- [x] 02-03-PLAN.md — Configure protected staff workflow, draft preview, and migration gate.
+
+**Implementation status:** Complete for local code and verification. The migration and two-account Admin flow still need an approved disposable PostgreSQL service; no service is available or provisioned. See `02-VERIFICATION.md` and the plan summaries. Phase 3 has not started.
 
 **Success criteria:**
 
