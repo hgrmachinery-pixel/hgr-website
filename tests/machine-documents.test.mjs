@@ -103,3 +103,23 @@ test("normal Local API updates cannot forge document review, approval, publicati
   }), /server-managed/);
   assert.throws(() => MachineDocuments.hooks.beforeDelete[0](), /deletion is disabled/);
 });
+test("Owner publishing is permission-gated and preview is exact-revision, private, and read-only", async () => {
+  const [workflow, route, actions, documents] = await Promise.all([
+    readFile(new URL("../src/lib/machines/documents.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/api/machine-documents/[action]/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/payload/MachineDocumentActions.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/collections/MachineDocuments.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(workflow, /export async function publishMachineDocument/);
+  assert.match(workflow, /hasPermission\(req, APPROVE_PUBLIC_DOCUMENTS\)/);
+  assert.match(workflow, /FOR UPDATE/);
+  assert.match(workflow, /commitTransaction\(req\)/);
+  assert.match(route, /action !== "publish"/);
+  assert.match(route, /action !== "preview"/);
+  assert.match(route, /private, no-store/);
+  assert.match(route, /range/);
+  assert.match(actions, />Publish<\/button>/);
+  assert.match(actions, /Preview as Public/);
+  assert.match(documents, /machineDocumentPublish/);
+  assert.match(documents, /humanAttested/);
+});
