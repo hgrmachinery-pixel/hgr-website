@@ -77,6 +77,27 @@ export function initialPhotoReview(revision = 1) {
   return { status: "needs-review" as const, revision };
 }
 
+export function serialVisibilityPolicyChanged(
+  previousMachine: { showSerialPublicly?: unknown },
+  currentMachine: { showSerialPublicly?: unknown },
+): boolean {
+  return previousMachine.showSerialPublicly !== currentMachine.showSerialPublicly;
+}
+
+function stableJSON(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableJSON).join(",")}]`;
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableJSON(record[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
+
+export function historyIsAppendOnly(previous: unknown, next: unknown, appended = 1): boolean {
+  if (!Array.isArray(previous) || !Array.isArray(next) || !Number.isSafeInteger(appended) || appended < 0 || next.length !== previous.length + appended) return false;
+  return previous.every((entry, index) => stableJSON(entry) === stableJSON(next[index]));
+}
+
 export function isPhotoReviewComplete(checklist: unknown): checklist is PhotoReviewChecklist {
   if (!checklist || typeof checklist !== "object") return false;
   const answers = checklist as Record<string, unknown>;
@@ -116,6 +137,7 @@ export function isPublicMachineDerivative(derivative: Record<string, any>, machi
       revision > 0 &&
       review.status === "approved" &&
       Number(review.revision) === revision &&
+      Number(review.serialPolicyRevision) === Number(machine.serialVisibilityRevision ?? 1) &&
       typeof derivative.contentDigest === "string" &&
       derivative.contentDigest.length > 0 &&
       review.digest === derivative.contentDigest &&

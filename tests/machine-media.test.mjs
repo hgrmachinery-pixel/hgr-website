@@ -65,6 +65,18 @@ test("serial visibility changes revoke all existing machine photo reviews", asyn
   assert.equal(media.isPhotoReviewComplete(Object.fromEntries(media.PHOTO_REVIEW_CHECKLIST.map((key) => [key, key === "manufacturerSerialNumbers" ? "found" : "clear"]))), false);
 });
 
+test("photo review and audit histories preserve prior events", async () => {
+  const collection = await readFile(new URL("../src/collections/MachineMedia.ts", import.meta.url), "utf8");
+  const review = await readFile(new URL("../src/lib/machines/media-review.ts", import.meta.url), "utf8");
+  assert.match(collection, /historyIsAppendOnly/);
+  assert.match(collection, /beforeDelete:\s*\[\(\)\s*=>\s*\{\s*throw/);
+  assert.match(review, /initTransaction/);
+  assert.match(review, /FOR UPDATE/);
+  const previous = [{ event: "uploaded", actor: 4, at: "2026-10-01T00:00:00.000Z" }];
+  assert.equal(media.historyIsAppendOnly(previous, [...previous, { event: "approved" }]), true);
+  assert.equal(media.historyIsAppendOnly(previous, [{ event: "forged" }, { event: "approved" }]), false);
+});
+
 test("public machine media fails closed unless an exact reviewed derivative is selected", () => {
   const checklist = Object.fromEntries([
     "manufacturerSerialNumbers", "chassisVinNumbers", "engineNumbers", "registrationNumbers", "qrCodes",
@@ -73,10 +85,11 @@ test("public machine media fails closed unless an exact reviewed derivative is s
   const derivative = {
     id: 92, assetKind: "derivative", machine: 28, photoIdentity: "photo-uuid-1", processingStatus: "ready", revision: 1,
     contentDigest: "sha256:abc",
-    review: { status: "approved", revision: 1, digest: "sha256:abc", reviewedBy: 4, reviewedAt: "2026-10-01T10:00:00.000Z", checklist },
+    review: { status: "approved", revision: 1, digest: "sha256:abc", serialPolicyRevision: 1, reviewedBy: 4, reviewedAt: "2026-10-01T10:00:00.000Z", checklist },
   };
-  const machine = { id: 28, _status: "published", archived: false, featuredImage: 92, gallery: [92], currentPhotoRevisions: { "photo-uuid-1": 1 } };
+  const machine = { id: 28, _status: "published", archived: false, serialVisibilityRevision: 1, featuredImage: 92, gallery: [92], currentPhotoRevisions: { "photo-uuid-1": 1 } };
   assert.equal(media.isPublicMachineDerivative(derivative, machine), true);
+  assert.equal(media.isPublicMachineDerivative(derivative, { ...machine, serialVisibilityRevision: 2 }), false);
   assert.equal(media.isPublicMachineDerivative({ ...derivative, assetKind: "master" }, machine), false);
   assert.equal(media.isPublicMachineDerivative({ ...derivative, machine: 29 }, machine), false);
   assert.equal(media.isPublicMachineDerivative({ ...derivative, revision: 2 }, machine), false);
@@ -96,9 +109,9 @@ test("public static access resolves a unique current derivative and denies maste
   const derivative = {
     id: 92, filename: "hgr-000028-engine-000017-public-r1.webp", assetKind: "derivative", machine: 28,
     photoIdentity: "photo-uuid-1", processingStatus: "ready", revision: 1, contentDigest: "sha256:abc",
-    review: { status: "approved", revision: 1, digest: "sha256:abc", reviewedBy: 4, reviewedAt: "2026-10-01T10:00:00.000Z", checklist },
+    review: { status: "approved", revision: 1, digest: "sha256:abc", serialPolicyRevision: 1, reviewedBy: 4, reviewedAt: "2026-10-01T10:00:00.000Z", checklist },
   };
-  const machine = { id: 28, _status: "published", archived: false, featuredImage: 92, gallery: [92], currentPhotoRevisions: { "photo-uuid-1": 1 } };
+  const machine = { id: 28, _status: "published", archived: false, serialVisibilityRevision: 1, featuredImage: 92, gallery: [92], currentPhotoRevisions: { "photo-uuid-1": 1 } };
   const req = { payload: {
     find: async () => ({ docs: [derivative] }),
     findByID: async ({ collection }) => collection === "machines" ? machine : derivative,

@@ -2,7 +2,7 @@ import type { CollectionConfig } from "payload";
 import { sql } from "@payloadcms/db-postgres";
 
 import { denyAccess, staffAccess } from "../lib/machines/access";
-import { publicMachineMediaAccess, generatedMachinePhotoFilename, initialPhotoReview } from "../lib/machines/media.ts";
+import { publicMachineMediaAccess, generatedMachinePhotoFilename, initialPhotoReview, historyIsAppendOnly, isPhotoReviewComplete, PHOTO_REVIEW_CHECKLIST } from "../lib/machines/media.ts";
 import { photoContentDigest } from "../lib/machines/media-image.ts";
 import { isStaffUser } from "../lib/machines/access";
 
@@ -52,7 +52,7 @@ export const MachineMedia: CollectionConfig = {
       args.data = input;
       return args;
     }],
-    beforeChange: [({ data, operation, originalDoc, req }) => {
+    beforeChange: [async ({ data, operation, originalDoc, req }) => {
       const context = req.context as Record<string, unknown>;
       if (operation === "create") {
         if (data.assetKind === "derivative" && context.machinePhotoProcessing !== true) {
@@ -70,6 +70,30 @@ export const MachineMedia: CollectionConfig = {
       }
 
       if (!originalDoc) throw new Error("Machine photo records are immutable outside the review workflow");
+      const transactionID = await req.transactionID;
+      const session = transactionID ? req.payload.db.sessions?.[String(transactionID)]?.db : undefined;
+      if (!transactionID || !session) throw new Error("Photo updates require an active Payload transaction");
+      const machineValue = originalDoc.machine as unknown;
+      const machineID = typeof machineValue === "number" || typeof machineValue === "string"
+        ? machineValue
+        : machineValue && typeof machineValue === "object" && (typeof (machineValue as { id?: unknown }).id === "number" || typeof (machineValue as { id?: unknown }).id === "string")
+          ? (machineValue as { id: string | number }).id
+          : undefined;
+      if (machineID === undefined) throw new Error("The current machine photo has no machine identity");
+      const machineResult = await req.payload.db.execute({
+        db: session as Parameters<typeof req.payload.db.execute>[0]["db"],
+        drizzle: req.payload.db.drizzle,
+        sql: sql`SELECT "serial_visibility_revision" AS "serialVisibilityRevision" FROM "machines" WHERE "id" = ${machineID} FOR UPDATE`,
+      });
+      const machine = machineResult.rows[0] as { serialVisibilityRevision?: number } | undefined;
+      if (!machine) throw new Error("The current machine policy could not be locked");
+      const latestResult = await req.payload.db.execute({
+        db: session as Parameters<typeof req.payload.db.execute>[0]["db"],
+        drizzle: req.payload.db.drizzle,
+        sql: sql`SELECT "review_history" AS "reviewHistory", "audit_history" AS "auditHistory" FROM "machine_media" WHERE "id" = ${originalDoc.id} FOR UPDATE`,
+      });
+      const latest = latestResult.rows[0] as { reviewHistory?: unknown; auditHistory?: unknown } | undefined;
+      if (!latest) throw new Error("The current machine photo revision could not be locked");
       if (context.machinePhotoReview !== true && context.machinePhotoPublication !== true) {
         const keys = Object.keys(data);
         const allowedMetadata = new Set(["altText", "focalX", "focalY", "order"]);
@@ -78,24 +102,71 @@ export const MachineMedia: CollectionConfig = {
         }
         if (typeof data.altText === "string" && data.altText.length > 250) throw new Error("Alternative text must be 250 characters or fewer");
         const now = new Date().toISOString();
-        const history = Array.isArray(originalDoc.auditHistory) ? originalDoc.auditHistory : [];
+        const history = Array.isArray(latest.auditHistory) ? latest.auditHistory : [];
+        if (!historyIsAppendOnly(history, originalDoc.auditHistory ?? history, 0)) throw new Error("Photo audit history changed; reload the photo and retry");
         data.auditHistory = [...history, { event: "metadata-updated", actor: req.user?.id, at: now, fields: keys }];
         data.lastModifiedBy = req.user?.id;
         data.lastModifiedAt = now;
         return data;
       }
-      const previousHistory = Array.isArray(originalDoc.reviewHistory) ? originalDoc.reviewHistory : [];
+      const transition = context.machinePhotoReview === true || context.machinePhotoPublication === true;
+      if (!transition) throw new Error("Machine photo records can only change through metadata or review workflows");
+      const allowed = context.machinePhotoReview === true
+        ? new Set(["review", "reviewHistory", "auditHistory", "approvedBy", "approvedAt", "lastModifiedBy", "lastModifiedAt"])
+        : new Set(["auditHistory", "publishedBy", "publishedAt", "lastModifiedBy", "lastModifiedAt"]);
+      if (Object.keys(data).some((key) => !allowed.has(key))) throw new Error("Photo review transitions contain unsupported fields");
+      const previousHistory = Array.isArray(latest.reviewHistory) ? latest.reviewHistory : [];
       const nextHistory = Array.isArray(data.reviewHistory) ? data.reviewHistory : previousHistory;
-      if (context.machinePhotoReview === true && nextHistory.length !== previousHistory.length + 1) throw new Error("Photo review history is append-only");
+      if (context.machinePhotoReview === true && !historyIsAppendOnly(previousHistory, nextHistory)) throw new Error("Photo review history is append-only");
       const combined = { ...originalDoc, ...data };
       if (combined.contentDigest !== originalDoc.contentDigest || combined.photoIdentity !== originalDoc.photoIdentity || combined.revision !== originalDoc.revision) {
         throw new Error("Photo identity, revision and content digest cannot be changed");
       }
-      const priorAudit = Array.isArray(originalDoc.auditHistory) ? originalDoc.auditHistory : [];
+      const priorAudit = Array.isArray(latest.auditHistory) ? latest.auditHistory : [];
       const nextAudit = Array.isArray(data.auditHistory) ? data.auditHistory : priorAudit;
-      if (nextAudit.length !== priorAudit.length + 1) throw new Error("Photo audit history is append-only");
+      if (!historyIsAppendOnly(priorAudit, nextAudit)) throw new Error("Photo audit history is append-only");
+      const event = nextAudit[nextAudit.length - 1] as Record<string, unknown> | undefined;
+      const allowedEvents = context.machinePhotoReview === true
+        ? new Set(["approved", "sensitive-information-found", "owner-escalation", "review-invalidated"])
+        : new Set(["published", "unpublished"]);
+      if (!event || !allowedEvents.has(String(event.event)) || String(event.actor) !== String(req.user?.id) || typeof event.at !== "string") {
+        throw new Error("Photo transitions require a server-authored audit event");
+      }
+      if (context.machinePhotoReview === true && data.review && Number((data.review as Record<string, unknown>).serialPolicyRevision) !== Number(machine.serialVisibilityRevision ?? 1)) {
+        throw new Error("The machine serial policy changed during review; inspect the photo again");
+      }
+      if (context.machinePhotoReview === true) {
+        const latestReview = nextHistory[nextHistory.length - 1] as Record<string, unknown> | undefined;
+        if (!latestReview || latestReview.event !== event.event || String(latestReview.actor ?? latestReview.reviewer) !== String(req.user?.id)) {
+          throw new Error("Photo review history must match its server-authored audit event");
+        }
+        if (event.event === "review-invalidated") {
+          if ((data.review as Record<string, unknown>)?.status !== "needs-review" || latestReview.reason !== "serial-visibility-policy-changed") {
+            throw new Error("Policy invalidation can only return a photo to Needs Review");
+          }
+        } else {
+          const checklist = (data.review as Record<string, unknown>)?.checklist as Record<string, unknown> | undefined;
+          const complete = Boolean(checklist && PHOTO_REVIEW_CHECKLIST.every((key) => ["clear", "found", "uncertain"].includes(String(checklist[key]))));
+          if (!complete || String(event.digest) !== String(originalDoc.contentDigest) || Number(event.revision) !== Number(originalDoc.revision)) {
+            throw new Error("Photo review must record every checklist answer for the current revision and digest");
+          }
+          const uncertain = PHOTO_REVIEW_CHECKLIST.some((key) => checklist?.[key] === "uncertain");
+          const found = PHOTO_REVIEW_CHECKLIST.some((key) => checklist?.[key] === "found");
+          const status = (data.review as Record<string, unknown>)?.status;
+          if (event.event === "approved" && (uncertain || found || status !== "approved" || String(data.approvedBy) !== String(req.user?.id) || data.approvedAt !== event.at)) {
+            throw new Error("Only a complete clear human review can approve a photo");
+          }
+          if (event.event === "owner-escalation" && (!uncertain || status !== "needs-review" || data.approvedBy !== undefined || data.approvedAt !== undefined)) {
+            throw new Error("Uncertain photos must remain unapproved for Owner escalation");
+          }
+          if (event.event === "sensitive-information-found" && (!found || uncertain || status !== "needs-review" || data.approvedBy !== undefined || data.approvedAt !== undefined)) {
+            throw new Error("Photos with sensitive information must remain unapproved for redaction");
+          }
+        }
+      }
       return data;
     }],
+    beforeDelete: [() => { throw new Error("Machine photo records are retained; deletion is disabled."); }],
   },
   upload: {
     disableLocalStorage: true,
@@ -143,6 +214,7 @@ export const MachineMedia: CollectionConfig = {
       name: "review", type: "group", access: { read: staffFieldRead }, fields: [
         { name: "status", type: "select", required: true, defaultValue: "needs-review", options: [{ label: "Needs Review", value: "needs-review" }, { label: "Approved", value: "approved" }] },
         { name: "revision", type: "number", required: true }, { name: "digest", type: "text" },
+        { name: "serialPolicyRevision", type: "number", required: true, defaultValue: 1 },
         { name: "reviewedBy", type: "relationship", relationTo: "users" }, { name: "reviewedAt", type: "date" },
         { name: "checklist", type: "json" },
       ],

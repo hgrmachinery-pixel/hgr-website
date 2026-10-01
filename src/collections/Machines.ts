@@ -18,12 +18,14 @@ import {
   staffAccess as isStaff,
 } from "../lib/machines/access";
 import { machinePreviewURL } from "../lib/machines/preview";
-import { isPublicMachineDerivative } from "../lib/machines/media.ts";
+import { isPublicMachineDerivative, serialVisibilityPolicyChanged } from "../lib/machines/media.ts";
 
 type MachineIdentity = {
   hgrId?: string;
   slug?: string;
   previousSlugs?: string[];
+  showSerialPublicly?: boolean | null;
+  serialVisibilityRevision?: number | null;
 };
 
 function relationIds(value: unknown): Array<string | number> {
@@ -53,7 +55,7 @@ async function readLatestIdentity(
   const result = await req.payload.db.execute({
     db: transaction,
     drizzle: req.payload.db.drizzle,
-    sql: sql`SELECT "hgr_id" AS "hgrId", "slug", "previous_slugs" AS "previousSlugs" FROM "machines" WHERE "id" = ${id} FOR UPDATE`,
+    sql: sql`SELECT "hgr_id" AS "hgrId", "slug", "previous_slugs" AS "previousSlugs", "show_serial_publicly" AS "showSerialPublicly", "serial_visibility_revision" AS "serialVisibilityRevision" FROM "machines" WHERE "id" = ${id} FOR UPDATE`,
   });
   const row = result.rows[0] as MachineIdentity | undefined;
   return row;
@@ -122,9 +124,15 @@ export const Machines: CollectionConfig = {
           data.hgrId,
         );
         data.previousSlugs = [];
+        data.serialVisibilityRevision = 1;
       } else if (originalDoc) {
         const persisted = await readLatestIdentity(req, originalDoc.id);
         const identity = { ...(originalDoc as MachineIdentity), ...persisted };
+        const currentSerialVisibility = identity.showSerialPublicly === true;
+        const nextSerialVisibility = data.showSerialPublicly === undefined
+          ? currentSerialVisibility
+          : data.showSerialPublicly === true;
+        data.serialVisibilityRevision = Number(identity.serialVisibilityRevision ?? 1) + (currentSerialVisibility === nextSerialVisibility ? 0 : 1);
         data.hgrId = identity.hgrId;
 
         const requestedSlug =
@@ -231,6 +239,55 @@ export const Machines: CollectionConfig = {
           overrideAccess: true,
           req: localReq,
         });
+      }
+
+      if (previousDoc && serialVisibilityPolicyChanged(previousDoc, doc)) {
+        let page = 1;
+        let hasNextPage = true;
+        while (hasNextPage) {
+          const derivatives = await req.payload.find({
+            collection: "machine-media",
+            where: { and: [{ machine: { equals: doc.id } }, { assetKind: { equals: "derivative" } }] },
+            depth: 0,
+            limit: 100,
+            page,
+            overrideAccess: true,
+            req,
+          });
+          for (const derivative of derivatives.docs) {
+            const at = new Date().toISOString();
+            const historyEntry = {
+              event: "review-invalidated",
+              actor: req.user?.id,
+              at,
+              digest: derivative.contentDigest,
+              revision: derivative.revision,
+              reason: "serial-visibility-policy-changed",
+            };
+            const priorReviews = Array.isArray(derivative.reviewHistory) ? derivative.reviewHistory : [];
+            const priorAudit = Array.isArray(derivative.auditHistory) ? derivative.auditHistory : [];
+            const localReq = await createLocalReq({
+              req,
+              user: req.user ?? undefined,
+              context: { ...req.context, machinePhotoReview: true },
+            }, req.payload);
+            await req.payload.update({
+              collection: "machine-media",
+              id: derivative.id,
+              data: {
+                review: { status: "needs-review", revision: derivative.revision, digest: derivative.contentDigest, serialPolicyRevision: doc.serialVisibilityRevision ?? 1 },
+                reviewHistory: [...priorReviews, historyEntry],
+                auditHistory: [...priorAudit, historyEntry],
+                lastModifiedBy: req.user?.id,
+                lastModifiedAt: at,
+              },
+              overrideAccess: true,
+              req: localReq,
+            });
+          }
+          hasNextPage = derivatives.hasNextPage;
+          page += 1;
+        }
       }
       return doc;
     }],
@@ -339,6 +396,7 @@ export const Machines: CollectionConfig = {
       defaultValue: false,
       access: { read: ({ req }) => Boolean(req.user) },
     },
+    { name: "serialVisibilityRevision", type: "number", defaultValue: 1, admin: { hidden: true, readOnly: true }, access: { read: ({ req }) => Boolean(req.user), update: () => false } },
     {
       name: "featuredImage",
       label: "Featured Image",

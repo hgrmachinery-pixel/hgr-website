@@ -121,6 +121,9 @@ export async function processMachinePhoto({
       name: baseName.replace(/\.webp$/i, `-public-r${revision}.webp`),
       size: processed.length,
     };
+    const machineId = relationId(master.machine);
+    if (machineId === undefined) return { status: 422, error: "The master photo has no machine relationship" };
+    const machine = await payload.findByID({ collection: "machines", id: Number(machineId), depth: 0, overrideAccess: true });
     const localReq = await createLocalReq({ user: auth.user, context: { machinePhotoProcessing: true } }, payload);
     const derivative = await payload.create({
       collection: "machine-media",
@@ -133,7 +136,7 @@ export async function processMachinePhoto({
         revision,
         sourceMaster: masterId,
         processingStatus: "ready",
-        review: { status: "needs-review", revision, digest: `sha256:${derivativeDigest}` },
+        review: { status: "needs-review", revision, digest: `sha256:${derivativeDigest}`, serialPolicyRevision: machine.serialVisibilityRevision ?? 1 },
         contentDigest: `sha256:${derivativeDigest}`,
         sourceDigest: master.contentDigest,
         redactionDigest,
@@ -149,9 +152,6 @@ export async function processMachinePhoto({
       overrideAccess: true,
       req: localReq,
     });
-    const machineId = relationId(master.machine);
-    if (machineId === undefined) return { status: 422, error: "The master photo has no machine relationship" };
-    const machine = await payload.findByID({ collection: "machines", id: Number(machineId), depth: 0, overrideAccess: true });
     const currentPhotoRevisions = machine.currentPhotoRevisions && typeof machine.currentPhotoRevisions === "object"
       ? machine.currentPhotoRevisions as Record<string, number>
       : {};
