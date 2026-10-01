@@ -8,6 +8,8 @@ import sharp from "sharp";
 import { FoundationFixture } from "./collections/FoundationFixture";
 import { Machines } from "./collections/Machines";
 import { MachineMedia } from "./collections/MachineMedia";
+import { Pages } from "./collections/Pages";
+import { SiteContact } from "./globals/SiteContact";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,7 +53,8 @@ if (
 export default buildConfig({
   serverURL: origin.origin,
   csrf: [origin.origin],
-  collections: [FoundationFixture, Machines, MachineMedia],
+  collections: [FoundationFixture, Machines, MachineMedia, Pages],
+  globals: [SiteContact],
   secret,
   sharp,
   db: postgresAdapter({

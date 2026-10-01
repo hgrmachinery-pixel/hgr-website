@@ -1,6 +1,7 @@
-import type { Access, CollectionConfig } from "payload";
+import type { CollectionConfig } from "payload";
 
-const staffOnly: Access = ({ req }) => Boolean(req.user);
+import { denyAccess, staffAccess } from "../lib/machines/access";
+import { generatedMachineImageName } from "../lib/machines/media";
 
 export const MachineMedia: CollectionConfig = {
   slug: "machine-media",
@@ -10,10 +11,17 @@ export const MachineMedia: CollectionConfig = {
     description: "Machine photographs only. Sensitive documents do not belong here.",
   },
   access: {
-    create: staffOnly,
-    read: staffOnly,
-    update: staffOnly,
-    delete: () => false,
+    create: staffAccess,
+    read: staffAccess,
+    update: staffAccess,
+    delete: denyAccess,
+  },
+  hooks: {
+    beforeOperation: [({ operation, req }) => {
+      if (operation === "create" && req.file) {
+        req.file.name = generatedMachineImageName(req.file.mimetype);
+      }
+    }],
   },
   upload: {
     disableLocalStorage: true,

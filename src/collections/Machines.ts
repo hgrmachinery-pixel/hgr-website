@@ -1,28 +1,27 @@
 import { sql } from "@payloadcms/db-postgres";
-import type { Access, CollectionConfig, PayloadRequest } from "payload";
+import type { CollectionConfig, PayloadRequest } from "payload";
 
 import {
   appendHistoricalSlug,
   createMachineSlug,
   formatMachineId,
   hasMachineIdSuffix,
+  machinePublicationErrors,
+  validateMachinePrice,
 } from "../lib/machines/identity";
+import {
+  denyAccess as deny,
+  publishedMachineRead,
+  publicPriceRead,
+  publicSerialRead,
+  staffAccess as isStaff,
+} from "../lib/machines/access";
 
 type MachineIdentity = {
   hgrId?: string;
   slug?: string;
   previousSlugs?: string[];
 };
-
-const isStaff: Access = ({ req }) => Boolean(req.user);
-const deny: Access = () => false;
-const publicMachineRead: Access = ({ req }) =>
-  req.user
-    ? true
-    : {
-        _status: { equals: "published" },
-        archived: { not_equals: true },
-      };
 
 async function readLatestIdentity(
   req: PayloadRequest,
@@ -76,7 +75,7 @@ export const Machines: CollectionConfig = {
   disableDuplicate: true,
   access: {
     create: isStaff,
-    read: publicMachineRead,
+    read: publishedMachineRead,
     update: isStaff,
     delete: deny,
     readVersions: isStaff,
@@ -135,37 +134,11 @@ export const Machines: CollectionConfig = {
       }
 
       if (data._status === "published") {
-        const gallery = Array.isArray(data.gallery) ? data.gallery : [];
-        const galleryIds = new Set(
-          gallery
-            .map((item: unknown) =>
-              typeof item === "number" || typeof item === "string"
-                ? String(item)
-                : item && typeof item === "object" && "id" in item
-                  ? String((item as { id: unknown }).id)
-                  : null,
-            )
-            .filter((id: string | null): id is string => Boolean(id)),
-        );
-        const featured = data.featuredImage;
-        const featuredId =
-          typeof featured === "number" || typeof featured === "string"
-            ? String(featured)
-            : featured && typeof featured === "object" && "id" in featured
-              ? String((featured as { id: unknown }).id)
-              : null;
-
-        if (
-          !data.hgrId ||
-          !data.category ||
-          !data.brand ||
-          !data.model ||
-          !data.stockStatus ||
-          !featuredId ||
-          !galleryIds.has(featuredId)
-        ) {
+        const publishingData = { ...(originalDoc ?? {}), ...data };
+        const errors = machinePublicationErrors(publishingData);
+        if (errors.length > 0) {
           throw new Error(
-            "Add the machine category, brand, model, stock status, and a featured image in the gallery before publishing.",
+            `Complete these fields before publishing: ${errors.join(", ")}.`,
           );
         }
       }
@@ -180,7 +153,6 @@ export const Machines: CollectionConfig = {
       type: "text",
       required: true,
       unique: true,
-      index: true,
       admin: { readOnly: true, position: "sidebar" },
     },
     {
@@ -188,7 +160,6 @@ export const Machines: CollectionConfig = {
       type: "text",
       required: true,
       unique: true,
-      index: true,
       admin: { readOnly: true, hidden: true },
     },
     {
@@ -246,8 +217,9 @@ export const Machines: CollectionConfig = {
       name: "priceMode",
       label: "Price Display",
       type: "select",
-      defaultValue: "contact",
+      defaultValue: "unset",
       options: [
+        { label: "Not entered", value: "unset" },
         { label: "Contact for Price", value: "contact" },
         { label: "Show Price", value: "public" },
       ],
@@ -258,19 +230,17 @@ export const Machines: CollectionConfig = {
       min: 0,
       admin: { condition: (_, siblingData) => siblingData?.priceMode === "public" },
       access: {
-        read: ({ req, doc }) => Boolean(req.user) || doc?.priceMode === "public",
+        read: publicPriceRead,
       },
       validate: (value: unknown, { siblingData }: { siblingData?: { priceMode?: string } }) =>
-        siblingData?.priceMode === "public" && (typeof value !== "number" || value < 0)
-          ? "Enter a price or select Contact for Price."
-          : true,
+        validateMachinePrice(value, siblingData?.priceMode),
     },
     {
       name: "serialNumber",
       label: "Machine Serial Number",
       type: "text",
       access: {
-        read: ({ req, doc }) => Boolean(req.user) || doc?.showSerialPublicly === true,
+        read: publicSerialRead,
       },
     },
     {
