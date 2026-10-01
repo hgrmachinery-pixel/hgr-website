@@ -2,7 +2,7 @@
 phase: "02"
 slug: "machine-model-and-payload-owner-workflow"
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: "2026-10-01"
 ---
@@ -38,10 +38,14 @@ created: "2026-10-01"
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 02-01-01 | 01 | 1 | MODL-01, MODL-02, ADMN-10 | T-02-01 | Unique IDs are immutable, never reused, included in stable URLs; routine delete/duplicate cannot reuse identity | unit + disposable PostgreSQL integration | `node --test tests/machine-model.test.mjs` | ❌ Wave 0 | ⬜ pending |
-| 02-01-02 | 01 | 1 | MODL-03, MODL-04, MODL-05, MODL-07 | T-02-04 | Draft/archive visibility is independent of stock status; unknown facts are omitted; hidden price is not zero | unit | `node --test tests/machine-model.test.mjs` | ❌ Wave 0 | ⬜ pending |
-| 02-02-01 | 02 | 2 | MODL-06, ADMN-01, ADMN-02 | T-02-02, T-02-03 | Private serials and staff accounts are not exposed; only protected reset flow is enabled | access/auth integration with a disposable database; reset email delivery deferred | `node --test tests/machine-access.test.mjs` | ❌ Wave 0 | ⬜ pending |
-| 02-02-02 | 02 | 2 | MODL-08, ADMN-03, ADMN-04, ADMN-05 | T-02-01, T-02-03 | Anonymous reads exclude drafts/archives; authorized staff can find and preview drafts; normal content uses Payload | API/access tests plus manual Admin check when a database is available | `node --test tests/machine-access.test.mjs` | ❌ Wave 0 | ⬜ pending |
+| 02-01-T1 | 01 | 1 | MODL-01, MODL-02, ADMN-10 | T-02-01 | Unique IDs are immutable, never reused, included in stable URLs; routine delete/duplicate cannot reuse identity | unit; live database constraint/concurrency proof is conditional | `node --test tests/machine-model.test.mjs` | ❌ Wave 0 | ⬜ pending |
+| 02-01-T2 | 01 | 1 | MODL-01, MODL-02, ADMN-10 | T-02-01 | Assigned identity and historical URLs cannot move to another physical machine | unit | `node --test tests/machine-model.test.mjs` | ❌ Wave 0 | ⬜ pending |
+| 02-02-T1 | 02 | 2 | MODL-03, MODL-04, MODL-05, MODL-06, MODL-07, MODL-08 | T-02-02, T-02-03, T-02-04 | Independent lifecycle, correct optional facts/privacy, and staff-managed structured Pages/SiteContact with published-only anonymous reads | configuration/unit | `node --test tests/machine-model.test.mjs` | ❌ Wave 0 | ⬜ pending |
+| 02-02-T2 | 02 | 2 | MODL-01, MODL-03, MODL-06 | T-02-02, T-02-03 | Publishing minimums reference a real gallery image; featured image can be reused from gallery | unit; live upload check is conditional on object storage | `node --test tests/machine-model.test.mjs` | ❌ Wave 0 | ⬜ pending |
+| 02-02-T3 | 02 | 2 | MODL-03, MODL-05, MODL-06, MODL-07 | T-02-02, T-02-03 | Anonymous projection excludes drafts/archive, hidden price, and private serial; unknown facts remain omitted | unit | `node --test tests/machine-model.test.mjs` | ❌ Wave 0 | ⬜ pending |
+| 02-03-T1 | 03 | 3 | ADMN-01, ADMN-02, ADMN-03 | T-02-04 | One-time first-user bootstrap closes; owner alone creates the separate admin; no public registration; recovery and searchable Admin configuration are verified | local configuration/access tests; live Admin and delivery remain conditional | `node --test tests/machine-access.test.mjs` | ❌ Wave 0 | ⬜ pending |
+| 02-03-T2 | 03 | 3 | ADMN-04, ADMN-05 | T-02-04 | Anonymous/malformed preview is denied; authorized staff preview enables Draft Mode and redirects; public reads remain published-only | mocked route/API access test | `node --test tests/machine-access.test.mjs` | ❌ Wave 0 | ⬜ pending |
+| 02-03-T3 | 03 | 3 | MODL-01, MODL-08, ADMN-01, ADMN-10 | T-02-05 | Migration includes machine/media/pages/contact schema; local tests, typecheck and build run with or without database; live migration only targets an approved disposable database | local validation; disposable PostgreSQL migration is conditional | `node --test tests/machine-access.test.mjs && node --test && npm run typecheck && npm run build` | ❌ Wave 0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -49,8 +53,8 @@ created: "2026-10-01"
 
 ## Wave 0 Requirements
 
-- [ ] `tests/machine-model.test.mjs` — identity formatting, immutable ID/URL rules, publication/stock combinations, publishing minimum, price modes, and omission of unknown facts.
-- [ ] `tests/machine-access.test.mjs` — protected machine/draft/archive/serial reads, staff-only changes, protected preview, and recovery behavior with a stubbed reset-email delivery.
+- [ ] `tests/machine-model.test.mjs` — identity formatting, immutable ID/URL rules, publication/stock combinations, publishing minimums, price/serial privacy, omitted unknown facts, and Pages/SiteContact registration and access rules.
+- [ ] `tests/machine-access.test.mjs` — one-time owner bootstrap, owner-only second-account creation, disabled public registration, protected machine/draft/archive reads, staff-only changes, protected preview, recovery behavior with stubbed email delivery, and database-independent Admin configuration assertions.
 - [ ] Live PostgreSQL, media-storage, and Admin/API integration can run only against already available disposable services. Currently pending; do not provision resources or apply schema migrations to production.
 
 ---
@@ -66,11 +70,11 @@ created: "2026-10-01"
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] All tasks have `<automated>` verify and sibling `<fails_when>` directions
 - [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
+- [x] Wave 0 coverage is mapped for all Phase 2 plan tasks
 - [ ] No watch-mode flags
 - [ ] Feedback latency < 30s (estimate)
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** planning contract complete; validation remains pending execution.

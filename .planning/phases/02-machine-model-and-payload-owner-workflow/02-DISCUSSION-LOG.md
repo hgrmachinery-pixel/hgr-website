@@ -7,6 +7,8 @@
 **Phase:** 2-machine-model-and-payload-owner-workflow
 **Areas discussed:** Internal machine ID, public URLs, existing WordPress pages, publish minimum, account recovery, public ID display, publication and stock lifecycle
 
+**Research follow-up resolutions (2026-10-01):** The project owner authorized use of existing project direction for four implementation details without creating new business policy. Phase 2 uses an extensible category model with Excavator as its only current value; both protected staff identities have the same staff/admin capability; media remains a minimal featured/gallery reference pending Phase 3 structured photography; Registration Date is an optional date-only value and unknown dates stay blank. Each is a reversible implementation choice. These resolutions are recorded in `02-RESEARCH.md` and reflected in the plans.
+
 ---
 
 ## Internal machine ID
