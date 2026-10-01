@@ -55,6 +55,16 @@ test("each D-10 checklist must be explicitly clear before human approval", () =>
   assert.deepEqual(media.initialPhotoReview(2), { status: "needs-review", revision: 2 });
 });
 
+test("serial visibility changes revoke all existing machine photo reviews", async () => {
+  const machines = await readFile(new URL("../src/collections/Machines.ts", import.meta.url), "utf8");
+  const mediaSource = await readFile(new URL("../src/lib/machines/media.ts", import.meta.url), "utf8");
+  assert.match(machines, /serialVisibilityPolicyChanged/);
+  assert.match(machines, /serial-visibility-policy-changed/);
+  assert.match(mediaSource, /export function serialVisibilityPolicyChanged/);
+  assert.equal(media.isPhotoReviewComplete(Object.fromEntries(media.PHOTO_REVIEW_CHECKLIST.map((key) => [key, "clear"]))), true);
+  assert.equal(media.isPhotoReviewComplete(Object.fromEntries(media.PHOTO_REVIEW_CHECKLIST.map((key) => [key, key === "manufacturerSerialNumbers" ? "found" : "clear"]))), false);
+});
+
 test("public machine media fails closed unless an exact reviewed derivative is selected", () => {
   const checklist = Object.fromEntries([
     "manufacturerSerialNumbers", "chassisVinNumbers", "engineNumbers", "registrationNumbers", "qrCodes",
