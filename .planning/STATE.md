@@ -5,16 +5,16 @@ milestone_name: versus deferred scope
 current_phase: 1
 current_phase_name: Portable foundation and Exabytes feasibility
 status: in_progress
-stopped_at: Plan 01-04 Task 1 committed d3962cc; Task 2 owner evidence/exact test approval blocking-human
-last_updated: "2026-10-01T00:14:34.116Z"
+stopped_at: Plan 01-04 report closed with host/local integration pending because required existing PostgreSQL/object-storage services are unavailable
+last_updated: "2026-10-01T05:48:05.000Z"
 last_activity: 2026-10-01
-last_activity_desc: Plan 01-04 Task 1 committed; owner evidence/exact test approval checkpoint pending; integration and host proof pending
-state_head: d3962ccda607807a750a12b7692c128b0cdf144e
+last_activity_desc: Official dependency requirements confirm Node 22.23.3 is supported; project engine and deployment guidance updated. Approved remote test and local integration remain pending due absent database/storage services.
+state_head: 9a6f645
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -29,17 +29,17 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 ## Current Position
 
 Phase: 1 (Portable foundation and Exabytes feasibility) — FOUNDATION CONFIGURED
-Plan: 4 of 4 — Task 1 of 3 complete; Task 2 blocking-human checkpoint pending
+Plan: 4 of 4 — Plan 01-04 reporting tasks complete; local integration and actual host workload remain pending
 Total Plans in Phase: 4
 Status: in_progress
-Last Activity: 2026-10-01 — Plan 01-04 Task 1 evidence checklist/protocol committed as d3962cc
-Last Activity Description: Documentation whitespace, local link and checklist review passed; Task 2 owner checkpoint pending; database migration, storage/restart smoke and actual host tests remain pending
+Last Activity: 2026-10-01 — Plan 01-04 owner evidence recorded and conditional host findings summarized
+Last Activity Description: Official dependency requirements confirm Node 22.23.3 support; package metadata/docs updated. Exact synthetic test is approved but cannot run because no PostgreSQL or object-storage test services exist; no second host exists. No services provisioned.
 
-Progress: 3 of 4 Phase 1 summaries recorded; PORT-07 complete, no phase or integration requirement completed. SDK withheld a milestone percentage because later phases are not fully planned.
+Progress: 4 of 4 Phase 1 plan summaries recorded; Phase 1 remains incomplete. PORT-07 complete; PORT-01 through PORT-06 have not all been verified. No phase is complete. SDK withheld a milestone percentage because later phases are not fully planned.
 
 ## Performance Metrics
 
-- Plans with completed permitted work: 3
+- Plans with completed permitted work: 4
 - Execution: Foundation and public/Payload routes compile; 11 configuration/safety tests pass. Migration application and live database/storage/public/Admin/restart verification remain pending.
 
 **Per-Plan Metrics:**
@@ -49,6 +49,7 @@ Progress: 3 of 4 Phase 1 summaries recorded; PORT-07 complete, no phase or integ
 | Phase 01 P01 | 13min | 3 tasks | 10 files |
 | Phase 01 P02 | 18min | 2 tasks | 21 files |
 | Phase 01 P03 | 6min | 2 tasks | 2 files |
+| Phase 01 P04 | 14min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -65,7 +66,7 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 
 ### Pending Todos
 
-- Plan 01-01 package checkpoint was explicitly approved. Plan 01-02 permitted implementation and generated artifacts plus Plan 01-03 setup/redeployment docs are committed. Plan 01-04 Task 1 is committed as d3962cc; resume only at its Task 2 blocking-human checkpoint using 01-04-CHECKPOINT.md. No owner account evidence, exact remote-test approval or second-host availability response has been provided; Task 3 has not started. PORT-04/05/06 and Phase 1 remain incomplete. Phase 2 is not authorized.
+- Plan 01-01 package checkpoint was explicitly approved. Plan 01-02 implementation and Plan 01-03 setup/redeployment documents are complete. Plan 01-04 report is complete and summarized. Owner reports Exabytes Business Hosting eBiz 12 Plus with Node 22.23.3, npm, production mode, `/httpdocs` app root, configurable startup file, custom environment variables and File Manager. Official Next.js/Payload/Sharp requirements and audited lockfile engines accept Node 22.23.3; project engines now allow `>=22.23.3 <23 || >=24 <25`. Node 22 build/runtime and Exabytes platform/Sharp binary compatibility remain untested. Owner approved the exact synthetic test but confirms no Exabytes PostgreSQL or object-storage services exist; do not provision resources. No isolated app slot is confirmed. `npm run smoke:foundation` exited at its disposable-local-service guard; local PostgreSQL/GCS services are unavailable, so integration remains pending. Owner confirms no second host. PORT-04/05/06 and Phase 1 remain incomplete. Phase 2 is not authorized.
 - Exact installed tuple: next 16.3.7; react/react-dom 19.3.0; payload/@payloadcms/next/@payloadcms/db-postgres/@payloadcms/storage-gcs 3.90.2; sharp 0.35.5; typescript 5.9.3; @types/node 24.19.0; @types/react/@types/react-dom 19.3.0; graphql 16.14.2 (required Payload peer).
 - Review and full metadata retained outside application source in the local temporary directory: `C:/Users/thamk/AppData/Local/Temp/hgr-phase-1-package-review-2026-09-30.md` and companion `hgr-phase-1-package-metadata-2026-09-30.json`. Re-query exact metadata if those temporary files are no longer available.
 - Clean npm ci and TypeScript checks passed. All 376 deduplicated installed Windows instances use approved name/version pairs. See docs/development/dependency-review.md. The resumed approved local runtime passed the production build and all three foundation configuration/access/Sharp tests plus eight smoke-boundary tests. Historical native-policy failures did not recur; no OS policy was changed.
@@ -76,7 +77,7 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - No unresolved owner business decision blocks the start of local development.
 - The package checkpoint is cleared; no additional direct packages were installed.
 - Docker is absent from PATH; no disposable local PostgreSQL/GCS-compatible endpoints have been demonstrated. Later integration verification remains pending until services are available.
-- The actual Exabytes account's application/runtime and upload capability has not been tested. Phase 1 must test it before host-dependent deployment planning.
+- Actual Exabytes workload has not been tested. The exact synthetic test is approved but cannot proceed without existing isolated PostgreSQL and object-storage services; provisioning is not authorized. Do not use the reported `/httpdocs` production-mode root without confirmed isolation. Node 22.23.3 meets documented package runtime minimums, but actual Node 22 build/start and target platform remain unverified.
 - No PostgreSQL/storage/email service or production access has been confirmed or provisioned by these planning files.
 - Plan 01-02 integration prerequisite: confirmed disposable loopback PostgreSQL and compatible GCS endpoints are unavailable. Generated migration remains unapplied. Restricted-sandbox Node userInfo is unavailable; official generators and build succeeded with approved local escalation.
 
@@ -87,5 +88,5 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 ## Session Continuity
 
 Last session: 2026-10-01T00:14:34.085Z
-Stopped at: Plan 01-04 Task 1 committed d3962cc; Task 2 owner evidence/exact test approval blocking-human
+Stopped at: Plan 01-04 complete; local integration and approved Exabytes synthetic test remain pending because required services are unavailable
 Resume file: .planning/phases/01-portable-foundation-and-exabytes-feasibility/01-04-CHECKPOINT.md
