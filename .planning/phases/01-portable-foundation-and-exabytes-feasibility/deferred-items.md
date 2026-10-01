@@ -15,3 +15,9 @@ No OS policy, file trust settings, or security controls were changed. Do not byp
 Disposable PostgreSQL and a compatible external-object endpoint also remain prerequisites for Plan 01-02; Docker was absent from PATH at planning time. No service or infrastructure was provisioned in Plan 01-01.
 
 Production build and responsive/Admin/browser verification belong to Plan 01-02, which adds the application routes. There are no UI routes to inspect in Plan 01-01. Mail variable names document future configuration only; no mail adapter or delivery test exists yet. PORT integration requirements, actual Exabytes tests, and a second-host deployment remain pending.
+
+## Resumed Plan 01-02 result — 2026-10-01
+
+The previous Sharp restriction above is historical: in the resumed approved local runtime, the official Payload import-map/migration generators and production build succeeded. All three existing foundation environment/access/Sharp-processing tests passed (200 seconds), along with eight smoke-boundary tests and TypeScript. No OS security policy was changed. The restricted sandbox still blocks `os.userInfo`; official generation/testing used approved local escalation.
+
+The generated initial migration is retained but has not been applied. Both guarded `smoke:foundation` and `migrate:local` report disposable loopback PostgreSQL unavailable. Docker/psql are absent from PATH and no compatible GCS endpoint is demonstrated. Full upload processing through external storage, database persistence, running public/Admin behavior, responsive checks and restart/cleanup verification remain pending. PORT-01/PORT-03 are not complete. Host-independent Phase 1 documentation may continue under existing owner authorization; Phase 2 is not authorized.
