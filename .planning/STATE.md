@@ -2,19 +2,19 @@
 gsd_state_version: "1.0"
 milestone: V1
 milestone_name: versus deferred scope
-current_phase: 2
-current_phase_name: Machine model and Payload owner workflow
+current_phase: 3
+current_phase_name: Photography, media processing and JPJ protection
 status: in_progress
-stopped_at: Phase 2 local implementation complete; Phase 3 not started
-last_updated: "2026-10-01T08:13:47Z"
-last_activity: 2026-10-01
-last_activity_desc: Phase 2 implementation committed; external integration and dependency review remain pending
-state_head: a1dcc2cc84ae7a95e757daf6e1412af8e0446cf0
+stopped_at: Completed 03-02-PLAN.md; Plan 03-03 is next
+last_updated: "2026-10-01T16:50:07.862Z"
+last_activity: 2026-10-02
+last_activity_desc: Phase 3 Plan 03-02 implementation, synthetic verification and commits complete; local service verification remains pending
+state_head: 484778b102e54708fdbadd2465d106aecdaee287
 progress:
   total_phases: 8
   completed_phases: 1
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 11
+  completed_plans: 9
 ---
 
 # Project State
@@ -24,23 +24,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** HGR can independently publish accurate used-excavator listings that lead customers to a direct enquiry and an arranged viewing.
-**Current focus:** Phase 2 local planning and implementation are authorized; Phase 1 external infrastructure verification remains pending and does not block independent local work.
+**Current focus:** Continue Phase 3 with the Owner Publish/Preview workflow; Phase 1 and Phase 3 service verification remain pending and do not authorize resource provisioning.
 
 ## Current Position
 
-Phase: 2 (Machine model and Payload owner workflow) — LOCAL IMPLEMENTATION COMPLETE
-Plan: 3 of 3 — all Phase 2 plans summarized; live integration remains pending
-Total Plans in Phase: 3
-Status: complete (local implementation); Phase 3 not started
-Last Activity: 2026-10-01 — Phase 2 implementation, local checks, and migration review complete
-Last Activity Description: Local Phase 2 code complete; PostgreSQL/Admin and media integration deferred
+Phase: 3 (Photography, media processing and JPJ protection) — IN PROGRESS
+Plan: 3 of 4 — Plans 03-01 and 03-02 summarized; Plans 03-03 and 03-04 remain
+Total Plans in Phase: 4
+Status: in progress; local implementation continues, PostgreSQL/GCS verification remains gated
+Last Activity: 2026-10-02 — Plan 03-02 private document workflow and photo review guards implemented and verified
+Last Activity Description: Persisted permissions, private admin document preparation, revision-bound photo checks and audit protections committed; Owner Publish/Preview is next
 
-Progress: 4 Phase 1 plans and 3 Phase 2 plans are summarized. Phase 1 remains incomplete; its external database/storage and actual-host checks are still pending. Phase 2 local implementation is complete, while live database-backed account and migration checks remain pending. Phase 3 has not started.
+Progress: 4 Phase 1, 3 Phase 2 and 2 Phase 3 plan summaries are recorded. Phase 1 and Phase 2 live checks remain incomplete. Phase 3 is in progress with two plans remaining; do not advance to Phase 4 automatically.
 
 ## Performance Metrics
 
-- Plans with completed permitted work: 7
-- Execution: Phase 2 focused/smoke tests (26) pass; typecheck and production build pass. Full test suite is limited by three sandbox `tsx` child-process failures (`uv_os_get_passwd returned ENOMEM`). Migration application and live database/storage/Admin/recovery checks remain pending.
+- Plans with completed permitted work: 9
+- Execution: Phase 3 Plan 03-02 focused authorization/document/photo tests (31) pass; typecheck, synthetic Webpack production build and diff check pass. Database/GCS and migration checks remain pending; the full historical suite still has sandbox `tsx` child-process failures (`uv_os_get_passwd returned ENOMEM`).
 
 **Per-Plan Metrics:**
 
@@ -53,6 +53,8 @@ Progress: 4 Phase 1 plans and 3 Phase 2 plans are summarized. Phase 1 remains in
 | Phase 02 P01 | 1 session | 2 tasks | 5 files |
 | Phase 02 P02 | 1 session | 3 tasks | 8 files |
 | Phase 02 P03 | 1 session | 3 tasks | 10 files |
+| Phase 03 P01 | 1 session | 3 tasks | 17 files |
+| Phase 03 P02 | 1 session | 3 tasks | 24 files |
 
 ## Accumulated Context
 
@@ -70,6 +72,8 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - [Phase 02]: Official Payload Lexical `@payloadcms/richtext-lexical@3.90.2` is approved and aligned with the installed Payload packages.
 - [Phase 02]: A unique server-assigned staff role limits setup to one owner and one website administrator; both use Payload auth.
 - [Phase 02]: Short-lived preview tokens are machine-bound, but preview reads still require an authenticated staff session.
+- [Phase 03]: Approve Public Documents is a persisted named permission; Owner initially receives it and Administrators do not.
+- [Phase 03]: Photo approvals bind to the exact derivative and current serial-visibility policy revision; all policy changes invalidate machine photo reviews.
 
 ### Pending Todos
 
@@ -98,6 +102,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-01T16:15:00.000Z
-Stopped at: Phase 2 local implementation complete; Phase 3 not started
-Resume file: .planning/phases/02-machine-model-and-payload-owner-workflow/02-CONTEXT.md
+Last session: 2026-10-01T16:50:03.987Z
+Stopped at: Completed 03-02-PLAN.md; Plan 03-03 is next
+Resume file: .planning/phases/03-photography-media-processing-and-jpj-protection/03-03-PLAN.md

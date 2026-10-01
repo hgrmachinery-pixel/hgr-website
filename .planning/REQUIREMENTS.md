@@ -59,13 +59,13 @@ Each checkbox stays unchecked until the capability is built, verified and record
 
 ### Sensitive machine documentation — Phase 3
 
-- [ ] **JPJD-01**: Authorized staff can store a JPJ or ownership document original separately from public machine photos and documents.
-- [ ] **JPJD-02**: Anonymous visitors and public API/media requests cannot fetch private document originals or their private derivatives.
-- [ ] **JPJD-03**: Authorized staff can create or upload a separate redacted public derivative without overwriting its private original.
+- [x] **JPJD-01**: Authorized staff can store a JPJ or ownership document original separately from public machine photos and documents.
+- [x] **JPJD-02**: Anonymous visitors and public API/media requests cannot fetch private document originals or their private derivatives.
+- [x] **JPJD-03**: Authorized staff can create or upload a separate redacted public derivative without overwriting its private original.
 - [ ] **JPJD-04**: A human reviewer must explicitly approve a redacted derivative before any public display; pending or rejected copies are not exposed.
 - [ ] **JPJD-05**: Staff can see and change a document's not-uploaded, uploaded, pending-review or approved state without code.
 - [ ] **JPJD-06**: A public machine page can state document availability or display the redacted derivative only when the corresponding statement or copy is approved.
-- [ ] **JPJD-07**: Public photography and data exposure respect a private serial number, including review of readable chassis/serial plate images before publication.
+- [x] **JPJD-07**: Public photography and data exposure respect a private serial number, including review of readable chassis/serial plate images before publication.
 
 ### Public inventory listing — Phase 4
 
@@ -225,13 +225,13 @@ Each V1 requirement is owned by exactly one phase. See the roadmap's phase detai
 | IMAG-07 | Phase 3 | Pending |
 | IMAG-08 | Phase 3 | Pending |
 | IMAG-09 | Phase 3 | Pending |
-| JPJD-01 | Phase 3 | Pending |
-| JPJD-02 | Phase 3 | Pending |
-| JPJD-03 | Phase 3 | Pending |
+| JPJD-01 | Phase 3 | Complete |
+| JPJD-02 | Phase 3 | Complete |
+| JPJD-03 | Phase 3 | Complete |
 | JPJD-04 | Phase 3 | Pending |
 | JPJD-05 | Phase 3 | Pending |
 | JPJD-06 | Phase 3 | Pending |
-| JPJD-07 | Phase 3 | Pending |
+| JPJD-07 | Phase 3 | Complete |
 | LIST-01 | Phase 4 | Pending |
 | LIST-02 | Phase 4 | Pending |
 | LIST-03 | Phase 4 | Pending |

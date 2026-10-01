@@ -81,15 +81,27 @@ Plans:
 **Goal:** Give owners a workable category-based upload process and secure document flow, with originals protected and public derivatives optimized.  
 **Depends on:** Phase 2 machine identity/content model and Phase 1 media feasibility.  
 **Requirements:** ADMN-06, ADMN-09, IMAG-01, IMAG-02, IMAG-03, IMAG-04, IMAG-05, IMAG-06, IMAG-07, IMAG-08, IMAG-09, JPJD-01, JPJD-02, JPJD-03, JPJD-04, JPJD-05, JPJD-06, JPJD-07.  
-**Plans:** TBD during `$gsd-plan-phase 3`.
+**Plans:** 2/4 plans executed in 4 dependency-ordered waves
+
+**Wave 1**
+- [x] 03-01-PLAN.md — Private photo masters, responsive derivatives and recoverable mobile uploads
+
+**Wave 2** *(blocked on Wave 1)*
+- [x] 03-02-PLAN.md — Flexible persisted roles, private JPJ workflow and full photo review
+
+**Wave 3** *(blocked on Wave 2)*
+- [ ] 03-03-PLAN.md — Append-only asset history, one Publish/Preview workflow
+
+**Wave 4** *(blocked on Wave 3)*
+- [ ] 03-04-PLAN.md — Reviewed unapplied migration and gated service readiness
 
 **Success criteria:**
 
 1. An owner can upload a representative machine batch into the required categories, select/reorder/preview a featured image and publish without completing every category or resizing originals by hand.
 2. Responsive public derivatives and configurable watermark modes are generated while unwatermarked masters remain usable for regeneration.
-3. Anonymous access to original JPJ/ownership files fails; a separate redacted copy appears publicly only after explicit human approval.
+3. Anonymous access to original JPJ/ownership files fails; a separate redacted copy appears publicly only after current human review and the permission-gated Publish action records approval and publication.
 
-**TO CONFIRM in this phase:** approved watermark artwork/defaults, representative photo size and upload limits, focal-point support, retention/regeneration strategy, document approver and serial-plate photo review procedure. GCS is planned; its bucket/access setup and charges require their own operational authorization.
+**TO CONFIRM in this phase:** approved watermark artwork/defaults, accepted document formats and manual redaction protocol, representative photo size and upload limits, focal-point support, retention/regeneration strategy, and GCS ACL versus Uniform Bucket-Level Access compatibility before any exact approved disposable-service check. The named Owner permission, single Publish control and D-10 photo checklist are approved decisions. GCS is planned; its bucket/access setup and charges require their own operational authorization.
 
 ### Phase 4: Public used-excavator inventory
 
@@ -178,7 +190,7 @@ Plans:
 |---|---:|---|---|
 | 1. Portable foundation and Exabytes feasibility | 4/4 plans; verification pending | In Progress|  |
 | 2. Machine model and Payload owner workflow | 0/TBD | Not started | — |
-| 3. Photography, media processing and JPJ protection | 0/TBD | Not started | — |
+| 3. Photography, media processing and JPJ protection | 2/4 | In Progress|  |
 | 4. Public used-excavator inventory | 0/TBD | Not started | — |
 | 5. Enquiries and supporting pages | 0/TBD | Not started | — |
 | 6. Accessible design and inventory SEO | 0/TBD | Not started | — |
