@@ -68,6 +68,7 @@ export interface Config {
   blocks: {};
   collections: {
     'foundation-fixtures': FoundationFixture;
+    roles: Role;
     users: User;
     machines: Machine;
     'machine-media': MachineMedia;
@@ -80,6 +81,7 @@ export interface Config {
   collectionsJoins: {};
   collectionsSelect: {
     'foundation-fixtures': FoundationFixturesSelect<false> | FoundationFixturesSelect<true>;
+    'roles': RolesSelect<false> | RolesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     machines: MachinesSelect<false> | MachinesSelect<true>;
     'machine-media': MachineMediaSelect<false> | MachineMediaSelect<true>;
@@ -167,7 +169,7 @@ export interface FoundationFixture {
  */
 export interface User {
   id: number;
-  role: 'owner' | 'website-administrator';
+  role: (number | null) | Role;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -187,6 +189,24 @@ export interface User {
     | null;
   password?: string | null;
   collection: 'users';
+}
+/**
+ * Staff roles and their named permissions.
+ *
+ * This interface was referenced by the definition "roles".
+ */
+export interface Role {
+  id: number;
+  name: string;
+  key: string;
+  permissions?:
+    | {
+        id?: string | null;
+        name: string;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * Manage one record for each physical machine.
@@ -454,6 +474,14 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/** This interface was referenced by the definition "roles_select". */
+export interface RolesSelect<T extends boolean = true> {
+  name?: T;
+  key?: T;
+  permissions?: T | { id?: T; name?: T };
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

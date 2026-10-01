@@ -16,7 +16,7 @@ const handlePreview = createPreviewHandler({
   authenticate: async (request) => {
     const payload = await getPayload({ config });
     const result = await payload.auth({ headers: request.headers });
-    return result.user as { id: string | number; collection?: string; role?: string } | null;
+    return result.user as { id: string | number; collection?: string } | null;
   },
   findMachine: async (id, user) => {
     const payload = await getPayload({ config });

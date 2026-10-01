@@ -69,7 +69,7 @@ export function verifyMachinePreviewToken(
 }
 
 type PreviewMachine = { id: string | number; slug?: string; archived?: boolean };
-type PreviewUser = { id: string | number; collection?: string; role?: string };
+type PreviewUser = { id: string | number; collection?: string };
 
 export function createPreviewHandler(dependencies: {
   authenticate: (request: Request) => Promise<PreviewUser | null>;

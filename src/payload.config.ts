@@ -7,6 +7,7 @@ import { buildConfig } from "payload";
 import sharp from "sharp";
 
 import { FoundationFixture } from "./collections/FoundationFixture";
+import { Roles } from "./collections/Roles";
 import { Machines } from "./collections/Machines";
 import { MachineMedia } from "./collections/MachineMedia";
 import { Pages } from "./collections/Pages";
@@ -58,7 +59,7 @@ export default buildConfig({
   editor: lexicalEditor({}),
   serverURL: origin.origin,
   csrf: [origin.origin],
-  collections: [FoundationFixture, Users, Machines, MachineMedia, Pages],
+  collections: [FoundationFixture, Roles, Users, Machines, MachineMedia, Pages],
   globals: [SiteContact],
   email: noDeliveryEmailAdapter,
   admin: { user: "users" },
@@ -75,7 +76,7 @@ export default buildConfig({
     gcsStorage({
       collections: { "foundation-fixtures": true, "machine-media": true },
       bucket: requiredEnvironment("GCS_BUCKET"),
-      // Objects remain private in GCS. Payload serves the public fake collection.
+      // Objects remain private in GCS; every public derivative requires an app authorization check.
       acl: "Private",
       options: {
         projectId: requiredEnvironment("GCS_PROJECT_ID"),

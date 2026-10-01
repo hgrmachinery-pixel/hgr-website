@@ -3,7 +3,9 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { Users } from "../src/collections/Users.ts";
+import { Roles } from "../src/collections/Roles.ts";
 import { isStaffUser } from "../src/lib/machines/access.ts";
+import { APPROVE_PUBLIC_DOCUMENTS, BUILT_IN_ROLE_SEEDS, hasPermission } from "../src/lib/auth/permissions.ts";
 import {
   createMachinePreviewToken,
   createPreviewHandler,
@@ -19,55 +21,130 @@ const administrator = {
   role: "website-administrator",
 };
 
-test("only explicitly identified Payload staff identities pass staff access", () => {
+test("any authenticated staff collection user is staff regardless of role key", () => {
   assert.equal(isStaffUser(owner), true);
   assert.equal(isStaffUser(administrator), true);
-  assert.equal(isStaffUser({ id: 3, collection: "users", role: "customer" }), false);
+  assert.equal(isStaffUser({ id: 3, collection: "users", role: "future-reviewer" }), true);
   assert.equal(isStaffUser({ id: 4, collection: "customers", role: "owner" }), false);
+  assert.equal(isStaffUser({ collection: "users", role: "owner" }), false);
   assert.equal(isStaffUser(null), false);
 });
 
-test("first-user hook assigns the owner and permits exactly one owner-created administrator", async () => {
+function permissionRequest({
+  user = owner,
+  storedRole = 1,
+  roles = new Map([[1, { id: 1, permissions: [{ name: APPROVE_PUBLIC_DOCUMENTS }] }]]),
+  count = 1,
+} = {}) {
+  const calls = [];
+  const req = {
+    user,
+    payload: {
+      count: async () => ({ totalDocs: count }),
+      findByID: async ({ collection, id, ...options }) => {
+        calls.push({ collection, id, ...options });
+        if (collection === "users") return { id, role: storedRole };
+        if (collection === "roles") return roles.get(Number(id));
+        throw new Error(`Unexpected collection: ${collection}`);
+      },
+      find: async ({ collection }) => collection === "roles"
+        ? { docs: [{ id: 1, key: "owner" }] }
+        : { docs: [] },
+    },
+  };
+  return { req, calls };
+}
+
+test("built-in roles and permission resolution use current persisted relationships", async () => {
+  assert.deepEqual(BUILT_IN_ROLE_SEEDS, [
+    { name: "Owner", key: "owner", permissions: [{ name: APPROVE_PUBLIC_DOCUMENTS }] },
+    { name: "Website Administrator", key: "website-administrator", permissions: [] },
+  ]);
+  assert.equal(Roles.slug, "roles");
+  assert.equal(Roles.fields.find(({ name }) => name === "key").unique, true);
+  assert.ok(Roles.fields.find(({ name }) => name === "permissions").fields.some(({ name }) => name === "name"));
+
+  const { req, calls } = permissionRequest({
+    user: { ...administrator, role: "owner", permissions: [APPROVE_PUBLIC_DOCUMENTS] },
+    storedRole: 2,
+    roles: new Map([[2, { id: 2, permissions: [] }]]),
+  });
+  assert.equal(await hasPermission(req, APPROVE_PUBLIC_DOCUMENTS), false);
+  assert.deepEqual(calls.map(({ collection }) => collection), ["users", "roles"]);
+
+  const changingRoles = new Map([[3, { id: 3, permissions: [{ name: APPROVE_PUBLIC_DOCUMENTS }] }]]);
+  const ownerState = permissionRequest({ storedRole: 3, roles: changingRoles });
+  assert.equal(await hasPermission(ownerState.req, APPROVE_PUBLIC_DOCUMENTS), true);
+  changingRoles.set(3, { id: 3, permissions: [] });
+  assert.equal(await hasPermission(ownerState.req, APPROVE_PUBLIC_DOCUMENTS), false);
+});
+
+test("first staff account receives the seeded Owner role; later accounts require persisted permission", async () => {
   const beforeChange = Users.hooks.beforeChange[0];
   const run = (count, user, data = {}) => beforeChange({
     data,
     operation: "create",
     req: {
       user,
-      payload: { count: async () => ({ totalDocs: count }) },
+      payload: {
+        count: async () => ({ totalDocs: count }),
+        find: async () => ({ docs: [{ id: 1, key: "owner" }] }),
+      },
     },
   });
 
-  const first = await run(0, null, { email: "owner@example.invalid", role: "website-administrator" });
-  assert.equal(first.role, "owner");
-  const second = await run(1, owner, { email: "admin@example.invalid", role: "owner" });
-  assert.equal(second.role, "website-administrator");
-  await assert.rejects(run(2, owner), /Only the first owner/);
-  await assert.rejects(run(1, administrator), /Only the first owner/);
+  const first = await run(0, null, { email: "owner@example.invalid", role: 99 });
+  assert.equal(first.role, 1);
+  const unauthorized = permissionRequest({ user: administrator, storedRole: 2, roles: new Map([[2, { id: 2, permissions: [] }]]) });
+  await assert.rejects(beforeChange({ data: { email: "admin@example.invalid", role: 2 }, operation: "create", req: unauthorized.req }), /Approve Public Documents/);
 
-  assert.equal(await Users.access.create({ req: { user: null } }), false);
-  assert.equal(await Users.access.create({
-    req: { user: owner, payload: { count: async () => ({ totalDocs: 1 }) } },
-  }), true);
-  assert.equal(await Users.access.create({
-    req: { user: administrator, payload: { count: async () => ({ totalDocs: 1 }) } },
-  }), false);
+  const ownerState = permissionRequest({ count: 50 });
+  assert.equal(await Users.access.create({ req: ownerState.req }), true);
+  const second = await beforeChange({ data: { email: "admin@example.invalid", role: 2 }, operation: "create", req: ownerState.req });
+  assert.equal(second.role, 2);
+  assert.equal(Users.fields.find(({ name }) => name === "role").relationTo, "roles");
 });
 
-test("staff role is immutable and user administration is protected", async () => {
+test("role assignments and role permission changes are protected server-side", async () => {
   const beforeChange = Users.hooks.beforeChange[0];
+  const adminState = permissionRequest({ user: administrator, storedRole: 2, roles: new Map([[2, { id: 2, permissions: [] }]]) });
   await assert.rejects(beforeChange({
-    data: { role: "website-administrator" },
+    data: { role: 1 },
     operation: "update",
-    originalDoc: { role: "owner" },
-    req: { user: owner },
-  }), /identity cannot be changed/);
+    originalDoc: { role: 2 },
+    req: adminState.req,
+  }), /Approve Public Documents/);
+  assert.equal(await Users.fields.find(({ name }) => name === "role").access.update({ req: adminState.req }), false);
+  assert.equal(await Roles.access.create({ req: adminState.req }), false);
+  assert.equal(Roles.access.delete(), false);
+  await assert.rejects(Roles.hooks.beforeChange[0]({
+    data: { permissions: [{ name: APPROVE_PUBLIC_DOCUMENTS }] },
+    operation: "update",
+    originalDoc: { key: "website-administrator", permissions: [] },
+    req: adminState.req,
+  }), /Only a user with Approve Public Documents may manage roles/);
+
+  const ownerState = permissionRequest();
+  const roleHook = Roles.hooks.beforeChange[0];
+  await assert.rejects(roleHook({
+    data: { key: "website-administrator", permissions: [] },
+    operation: "update",
+    originalDoc: { key: "owner", permissions: [{ name: APPROVE_PUBLIC_DOCUMENTS }] },
+    req: ownerState.req,
+  }), /stable key cannot be changed/);
+  await assert.rejects(roleHook({
+    data: { permissions: [] },
+    operation: "update",
+    originalDoc: { key: "owner", permissions: [{ name: APPROVE_PUBLIC_DOCUMENTS }] },
+    req: ownerState.req,
+  }), /must retain Approve Public Documents/);
+  assert.equal(await Roles.access.update({ req: ownerState.req }), true);
+
   assert.equal(await Users.access.delete({ req: { user: owner } }), false);
-  assert.equal(await Users.access.read({ req: { user: administrator }, id: 1 }), false);
-  assert.equal(await Users.access.read({ req: { user: administrator }, id: 2 }), true);
-  assert.equal(await Users.access.admin({ req: { user: administrator } }), true);
+  assert.equal(await Users.access.read({ req: adminState.req, id: 1 }), false);
+  assert.equal(await Users.access.read({ req: adminState.req, id: 2 }), true);
+  assert.equal(await Users.access.admin({ req: adminState.req }), true);
   assert.equal(Users.disableDuplicate, true);
-  assert.equal(Users.fields.find(({ name }) => name === "role").unique, true);
 });
 
 test("signed preview links expire and are bound to one machine", () => {

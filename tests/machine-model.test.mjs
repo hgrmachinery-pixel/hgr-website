@@ -156,7 +156,8 @@ test("Payload access keeps drafts, archives, and private facts behind server rul
   assert.equal(await publicSerialRead({ ...anonymous, doc: { showSerialPublicly: false } }), false);
   assert.equal(await publicSerialRead({ ...anonymous, doc: { showSerialPublicly: true } }), true);
   assert.match(machineSource, /readVersions: isStaff/);
-  assert.match(mediaSource, /read: staffAccess/);
+  assert.match(mediaSource, /isReadingStaticFile[\s\S]*publicMachineMediaAccess/);
+  assert.match(mediaSource, /create: staffAccess,[\s\S]*update: staffAccess/);
   assert.match(pagesSource, /versions: \{ drafts: true/);
 });
 

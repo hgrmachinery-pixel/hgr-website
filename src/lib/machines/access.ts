@@ -3,14 +3,13 @@ import type { Access } from "payload";
 export type StaffUser = {
   collection: "users";
   id: string | number;
-  role: "owner" | "website-administrator";
 };
 
 export function isStaffUser(user: unknown): user is StaffUser {
   if (!user || typeof user !== "object") return false;
-  const candidate = user as { collection?: unknown; role?: unknown };
+  const candidate = user as { collection?: unknown; id?: unknown };
   return candidate.collection === "users" &&
-    (candidate.role === "owner" || candidate.role === "website-administrator");
+    (typeof candidate.id === "string" || typeof candidate.id === "number");
 }
 
 export const staffAccess: Access = ({ req }) => isStaffUser(req.user);
