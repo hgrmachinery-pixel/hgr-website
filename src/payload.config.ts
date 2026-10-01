@@ -1,4 +1,5 @@
 import { postgresAdapter } from "@payloadcms/db-postgres";
+import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import { gcsStorage } from "@payloadcms/storage-gcs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +10,9 @@ import { FoundationFixture } from "./collections/FoundationFixture";
 import { Machines } from "./collections/Machines";
 import { MachineMedia } from "./collections/MachineMedia";
 import { Pages } from "./collections/Pages";
+import { Users } from "./collections/Users";
 import { SiteContact } from "./globals/SiteContact";
+import { noDeliveryEmailAdapter } from "./lib/email/noDeliveryAdapter";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -51,10 +54,13 @@ if (
 }
 
 export default buildConfig({
+  editor: lexicalEditor({}),
   serverURL: origin.origin,
   csrf: [origin.origin],
-  collections: [FoundationFixture, Machines, MachineMedia, Pages],
+  collections: [FoundationFixture, Users, Machines, MachineMedia, Pages],
   globals: [SiteContact],
+  email: noDeliveryEmailAdapter,
+  admin: { user: "users" },
   secret,
   sharp,
   db: postgresAdapter({

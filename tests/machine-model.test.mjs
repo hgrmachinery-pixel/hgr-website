@@ -126,6 +126,8 @@ test("machine facts keep separate dates and the CMS contact values blank until v
   assert.match(pages, /name: "slug"[\s\S]*unique: true/);
   assert.match(pages, /name: "seoTitle"/);
   assert.match(pages, /name: "seoDescription"/);
+  assert.match(pages, /name: "body"[\s\S]*type: "richText"/);
+  assert.match(config, /editor: lexicalEditor\(\{\}\)/);
   assert.match(config, /collections: \[[^\]]*Pages/s);
   assert.match(config, /globals: \[SiteContact\]/);
 });
@@ -137,7 +139,7 @@ test("Payload access keeps drafts, archives, and private facts behind server rul
     readFile(new URL("../src/collections/Pages.ts", import.meta.url), "utf8"),
   ]);
   const anonymous = { req: { user: null } };
-  const staff = { req: { user: { id: 1 } } };
+  const staff = { req: { user: { id: 1, collection: "users", role: "owner" } } };
 
   assert.deepEqual(await publishedMachineRead(anonymous), {
     _status: { equals: "published" },

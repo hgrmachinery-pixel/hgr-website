@@ -35,5 +35,11 @@ export const Pages: CollectionConfig = {
       type: "textarea",
       maxLength: 180,
     },
+    {
+      name: "body",
+      label: "Page Content",
+      type: "richText",
+      required: true,
+    },
   ],
 };

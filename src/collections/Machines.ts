@@ -16,6 +16,7 @@ import {
   publicSerialRead,
   staffAccess as isStaff,
 } from "../lib/machines/access";
+import { machinePreviewURL } from "../lib/machines/preview";
 
 type MachineIdentity = {
   hgrId?: string;
@@ -71,6 +72,12 @@ export const Machines: CollectionConfig = {
     description: "Manage one record for each physical machine.",
     listSearchableFields: ["hgrId", "brand", "model"],
     enableRichTextRelationship: false,
+    preview: (doc) => {
+      const baseURL = process.env.SERVER_URL;
+      const secret = process.env.PREVIEW_SECRET;
+      if (!baseURL || !secret || secret.length < 32) return null;
+      return machinePreviewURL(doc, baseURL, secret);
+    },
   },
   disableDuplicate: true,
   access: {
@@ -110,8 +117,9 @@ export const Machines: CollectionConfig = {
             : identity.slug;
         if (
           requestedSlug &&
-          identity.hgrId &&
-          !hasMachineIdSuffix(requestedSlug, identity.hgrId)
+          (!identity.hgrId ||
+            !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(requestedSlug) ||
+            !hasMachineIdSuffix(requestedSlug, identity.hgrId))
         ) {
           throw new Error("A machine route must retain its permanent HGR reference");
         }

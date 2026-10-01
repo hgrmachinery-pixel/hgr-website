@@ -1,10 +1,23 @@
 import type { Access } from "payload";
 
-export const staffAccess: Access = ({ req }) => Boolean(req.user);
+export type StaffUser = {
+  collection: "users";
+  id: string | number;
+  role: "owner" | "website-administrator";
+};
+
+export function isStaffUser(user: unknown): user is StaffUser {
+  if (!user || typeof user !== "object") return false;
+  const candidate = user as { collection?: unknown; role?: unknown };
+  return candidate.collection === "users" &&
+    (candidate.role === "owner" || candidate.role === "website-administrator");
+}
+
+export const staffAccess: Access = ({ req }) => isStaffUser(req.user);
 export const denyAccess: Access = () => false;
 
 export const publishedMachineRead: Access = ({ req }) =>
-  req.user
+  isStaffUser(req.user)
     ? true
     : {
         _status: { equals: "published" },
@@ -12,10 +25,10 @@ export const publishedMachineRead: Access = ({ req }) =>
       };
 
 export const publishedPageRead: Access = ({ req }) =>
-  req.user ? true : { _status: { equals: "published" } };
+  isStaffUser(req.user) ? true : { _status: { equals: "published" } };
 
 export function publicPriceRead({ req, doc }: { req: { user?: unknown }; doc?: { priceMode?: string } }) {
-  return Boolean(req.user) || doc?.priceMode === "public";
+  return isStaffUser(req.user) || doc?.priceMode === "public";
 }
 
 export function publicSerialRead({
@@ -25,5 +38,5 @@ export function publicSerialRead({
   req: { user?: unknown };
   doc?: { showSerialPublicly?: boolean };
 }) {
-  return Boolean(req.user) || doc?.showSerialPublicly === true;
+  return isStaffUser(req.user) || doc?.showSerialPublicly === true;
 }
