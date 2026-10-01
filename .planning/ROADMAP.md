@@ -63,7 +63,7 @@ Plans:
 2. Draft/Published and Available/Reserved/Sold remain independent; draft preview is protected.
 3. Core structured fields, price visibility and private serial visibility are modelled without inventing missing facts.
 
-**TO CONFIRM in this phase:** exact internal/public ID format, slug/collision and redirect policy, any existing URLs needing migration, field-level publication minimum, account recovery and whether internal ID is displayed prominently to visitors. Keep the private serial out of public identity.
+**Owner decisions recorded in** `.planning/phases/02-machine-model-and-payload-owner-workflow/02-CONTEXT.md`: permanent sequential HGR IDs; immutable public URLs containing the HGR ID, with a 301 redirect only for a necessary correction; assume no existing WordPress machine pages and inventory any discovered before migration; owner-approved required publishing fields; owner-controlled email password reset to be configured later; small public “Reference” field; and separate Draft/Published/Archived publication state from Available/Reserved/Sold stock status. Keep the private serial out of public identity.
 
 ### Phase 3: Photography, media processing and JPJ protection
 

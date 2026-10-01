@@ -5,11 +5,11 @@ milestone_name: versus deferred scope
 current_phase: 1
 current_phase_name: Portable foundation and Exabytes feasibility
 status: in_progress
-stopped_at: Plan 01-04 report closed with host/local integration pending because required existing PostgreSQL/object-storage services are unavailable
-last_updated: "2026-10-01T05:48:05.000Z"
+stopped_at: Phase 2 owner decisions recorded; planning Phase 2
+last_updated: "2026-10-01T06:09:15.397Z"
 last_activity: 2026-10-01
 last_activity_desc: Official dependency requirements confirm Node 22.23.3 is supported; project engine and deployment guidance updated. Approved remote test and local integration remain pending due absent database/storage services.
-state_head: 9a6f645
+state_head: 710892723455e16ef7c1183bdf605c1be8507777
 progress:
   total_phases: 8
   completed_phases: 0
@@ -24,11 +24,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** HGR can independently publish accurate used-excavator listings that lead customers to a direct enquiry and an arranged viewing.
-**Current focus:** Phase 1 — Portable foundation and Exabytes feasibility.
+**Current focus:** Phase 2 local planning and implementation are authorized; Phase 1 external infrastructure verification remains pending and does not block independent local work.
 
 ## Current Position
 
-Phase: 1 (Portable foundation and Exabytes feasibility) — FOUNDATION CONFIGURED
+Phase: 1 foundation configured; Phase 1 external verification pending. Phase 2 local work authorized.
 Plan: 4 of 4 — Plan 01-04 reporting tasks complete; local integration and actual host workload remain pending
 Total Plans in Phase: 4
 Status: in_progress
@@ -66,7 +66,7 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 
 ### Pending Todos
 
-- Plan 01-01 package checkpoint was explicitly approved. Plan 01-02 implementation and Plan 01-03 setup/redeployment documents are complete. Plan 01-04 report is complete and summarized. Owner reports Exabytes Business Hosting eBiz 12 Plus with Node 22.23.3, npm, production mode, `/httpdocs` app root, configurable startup file, custom environment variables and File Manager. Official Next.js/Payload/Sharp requirements and audited lockfile engines accept Node 22.23.3; project engines now allow `>=22.23.3 <23 || >=24 <25`. Node 22 build/runtime and Exabytes platform/Sharp binary compatibility remain untested. Owner approved the exact synthetic test but confirms no Exabytes PostgreSQL or object-storage services exist; do not provision resources. No isolated app slot is confirmed. `npm run smoke:foundation` exited at its disposable-local-service guard; local PostgreSQL/GCS services are unavailable, so integration remains pending. Owner confirms no second host. PORT-04/05/06 and Phase 1 remain incomplete. Phase 2 is not authorized.
+- Plan 01-01 package checkpoint was explicitly approved. Plan 01-02 implementation and Plan 01-03 setup/redeployment documents are complete. Plan 01-04 report is complete and summarized. Owner reports Exabytes Business Hosting eBiz 12 Plus with Node 22.23.3, npm, production mode, `/httpdocs` app root, configurable startup file, custom environment variables and File Manager. Official Next.js/Payload/Sharp requirements and audited lockfile engines accept Node 22.23.3; project engines now allow `>=22.23.3 <23 || >=24 <25`. Node 22 build/runtime and Exabytes platform/Sharp binary compatibility remain untested. Owner approved the exact synthetic test but confirms no Exabytes PostgreSQL or object-storage services exist; do not provision resources. No isolated app slot is confirmed. `npm run smoke:foundation` exited at its disposable-local-service guard; local PostgreSQL/GCS services are unavailable, so integration remains pending. Owner confirms no second host. PORT-04/05/06 and Phase 1 remain incomplete. Owner has now authorized local work in subsequent phases while infrastructure verification remains pending.
 - Exact installed tuple: next 16.3.7; react/react-dom 19.3.0; payload/@payloadcms/next/@payloadcms/db-postgres/@payloadcms/storage-gcs 3.90.2; sharp 0.35.5; typescript 5.9.3; @types/node 24.19.0; @types/react/@types/react-dom 19.3.0; graphql 16.14.2 (required Payload peer).
 - Review and full metadata retained outside application source in the local temporary directory: `C:/Users/thamk/AppData/Local/Temp/hgr-phase-1-package-review-2026-09-30.md` and companion `hgr-phase-1-package-metadata-2026-09-30.json`. Re-query exact metadata if those temporary files are no longer available.
 - Clean npm ci and TypeScript checks passed. All 376 deduplicated installed Windows instances use approved name/version pairs. See docs/development/dependency-review.md. The resumed approved local runtime passed the production build and all three foundation configuration/access/Sharp tests plus eight smoke-boundary tests. Historical native-policy failures did not recur; no OS policy was changed.
@@ -87,6 +87,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-01T00:14:34.085Z
-Stopped at: Plan 01-04 complete; local integration and approved Exabytes synthetic test remain pending because required services are unavailable
-Resume file: .planning/phases/01-portable-foundation-and-exabytes-feasibility/01-04-CHECKPOINT.md
+Last session: 2026-10-01T06:09:15.342Z
+Stopped at: Phase 2 owner decisions recorded; planning Phase 2
+Resume file: .planning/phases/02-machine-model-and-payload-owner-workflow/02-CONTEXT.md
