@@ -5,10 +5,10 @@ milestone_name: versus deferred scope
 current_phase: 2
 current_phase_name: Machine model and Payload owner workflow
 status: in_progress
-stopped_at: Phase 2 owner decisions recorded; planning Phase 2
+stopped_at: Phase 2 local implementation complete; Phase 3 not started
 last_updated: "2026-10-01T08:13:47Z"
 last_activity: 2026-10-01
-last_activity_desc: Phase 2 planning complete — 3 plans ready
+last_activity_desc: Phase 2 implementation committed; external integration and dependency review remain pending
 state_head: a1dcc2cc84ae7a95e757daf6e1412af8e0446cf0
 progress:
   total_phases: 8
