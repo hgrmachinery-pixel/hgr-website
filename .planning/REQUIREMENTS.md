@@ -159,7 +159,7 @@ Each checkbox stays unchecked until the capability is built, verified and record
 - [ ] **RELS-05**: Real WhatsApp/call/viewing actions, form receipt/failure handling and public/private-document access boundaries are verified before launch.
 - [ ] **RELS-06**: HGR approves verified public business/location/machine facts, image rights, legal text and launch copy without unresolved placeholder claims.
 - [ ] **RELS-07**: Production readiness checks cover HTTPS/domain access, public indexing and sitemap, Search Console, analytics/Ads measurement, backups, restore and operational responsibilities before any authorized launch.
-- [ ] **RELS-08**: The launch handover includes owner instructions and an initial monitoring plan for uptime, errors, lead delivery, indexing, performance and inventory updates.
+- [x] **RELS-08**: The launch handover includes owner instructions and an initial monitoring plan for uptime, errors, lead delivery, indexing, performance and inventory updates.
 
 ## Deferred / future requirements
 
@@ -298,7 +298,7 @@ Each V1 requirement is owned by exactly one phase. See the roadmap's phase detai
 | RELS-05 | Phase 8 | Pending |
 | RELS-06 | Phase 8 | Pending |
 | RELS-07 | Phase 8 | Pending |
-| RELS-08 | Phase 8 | Pending |
+| RELS-08 | Phase 8 | Complete |
 
 **Coverage:** 108 V1 requirements; 108 mapped to one owning phase; 0 unmapped.
 

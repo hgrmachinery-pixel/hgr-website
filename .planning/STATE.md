@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: V1
 milestone_name: versus deferred scope
-current_phase: 7
-current_phase_name: Measurement, privacy, security and recovery
-current_plan: 3
-status: Plans 07-01 and 07-02 are complete. Local preparation for Plans 07-03 and 07-04 is recorded; owner-approved analytics/privacy and isolated-recovery deployment gates remain open. Measurement must remain disabled.
-stopped_at: Awaiting approved production account, consent, privacy and tag evidence plus an isolated recovery target for Phase 7 deployment acceptance
-last_updated: "2026-10-02T15:11:18.000Z"
+current_phase: 8
+current_phase_name: Owner acceptance and launch readiness
+current_plan: 1
+status: Phase 8 implementation complete. HGR owner acceptance and approved deferred deployment gates remain open; production launch is not authorized. Measurement remains disabled.
+stopped_at: V1 implementation complete; awaiting separately authorized owner and deployment acceptance
+last_updated: "2026-10-02T23:00:00.000Z"
 last_activity: 2026-10-02
-last_activity_desc: Recorded the owner's instruction to keep measurement disabled until account, consent, privacy review and tag configuration approval. Added non-secret approval and recovery gate records and completed local Phase 7 focused checks; live account, privacy and isolated-target evidence remains pending.
+last_activity_desc: Added the owner guide, V1 acceptance record, monitoring checklist and completion summary; ran 123 focused tests, typecheck and a synthetic-config production build. Live acceptance gates remain deferred.
 state_head: 09ece2df903c007a6cfdca2703d5ded866f6d9da
 progress:
   total_phases: 8
-  completed_phases: 0
-  total_plans: 22
-  completed_plans: 20
+  completed_phases: 2
+  total_plans: 23
+  completed_plans: 23
 ---
 
 Total Phases: 8
@@ -27,23 +27,23 @@ Total Phases: 8
 See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** HGR can independently publish accurate used-excavator listings that lead customers to a direct enquiry and an arranged viewing.
-**Current focus:** Phase 7 measurement, privacy, security and recovery, following the completed pre-Phase 7 enquiry UX review. PostgreSQL, GCS, media delivery, browser verification and deployment checks remain subject to their existing verification gates.
+**Current focus:** V1 implementation is complete through Phase 8. HGR owner acceptance and all approved deployment gates remain open; see `.planning/V1-COMPLETION-SUMMARY.md` and `docs/operations/v1-acceptance.md`. No production launch is authorized.
 
 ## Current Position
 
-Phase: 7 (Measurement, privacy, security and recovery)
-Current Plan: 3
-Total Plans in Phase: 4
-Status: Plans 07-01 and 07-02 are complete. Local preparation and summaries for Plans 07-03 and 07-04 are recorded; their owner approval and deployment evidence gates remain open. Measurement remains disabled.
+Phase: 8 (Owner acceptance and launch readiness)
+Current Plan: 1
+Total Plans in Phase: 1
+Status: Phase 8 implementation complete. Real owner acceptance and approved deferred deployment evidence remain open; measurement remains disabled.
 Last Activity: 2026-10-02
-Last Activity Description: Recorded the owner's instruction to keep measurement disabled until account, consent, privacy review and tag configuration approval. Added approval/recovery gate records and ran focused Phase 7 checks; live account, privacy and isolated-target evidence remains pending.
+Last Activity Description: Added the owner guide, V1 acceptance record, monitoring checklist and completion summary; ran 123 focused tests, typecheck and a synthetic-config production build. Live acceptance gates remain deferred.
 
-Progress: 20 of 22 implementation plans are complete. Phase 1–4 external verification remains pending. Phase 5 implementation and Phase 6 implementation are complete; legal publication, SMTP setup, phone/WhatsApp numbers, Search Console, analytics activation, browser/device and infrastructure/deployment acceptance remain deferred. Phase 7 local work in Plans 07-01/02 is complete and local preparation in Plans 07-03/04 is recorded; account/consent/privacy approvals, production tag evidence, staging access checks and live restore remain deployment gates.
+Progress: 23 of 23 implementation plans are complete across eight roadmap phases. Live PostgreSQL, GCS/media, SMTP, Exabytes/second-host, staging, restore, analytics/privacy, contact configuration, Search Console, browser/device/accessibility, legal publication, launch-content/rights, production domain/HTTPS and launch authorization gates remain deferred as listed in the V1 completion summary.
 
 ## Performance Metrics
 
-- Plans with completed permitted work: 10
-- Execution: Phase 3 Plan 03-02 focused authorization/document/photo tests (31) pass; typecheck, synthetic Webpack production build and diff check pass. Database/GCS and migration checks remain pending; the full historical suite still has sandbox `tsx` child-process failures (`uv_os_get_passwd returned ENOMEM`).
+- Plans with completed implementation work: 23 of 23
+- Phase 8 verification: 123 focused tests passed; `npm run typecheck` passed; synthetic-config `npm run build` passed; GSD plan index accepted the plan; repository consistency validation passed with one pre-existing Phase 3 missing-`wave` warning. Live database/GCS, migration, browser and deployment evidence remains deferred.
 
 **Per-Plan Metrics:**
 
@@ -68,6 +68,7 @@ Progress: 20 of 22 implementation plans are complete. Phase 1–4 external verif
 | Phase 06 P03 | 7 min | 2 tasks | 5 files |
 | Phase 06 P05 | 7 min | 2 tasks | 4 files |
 | Phase 07 P02 | about 14 minutes | 3 tasks | 4 files |
+| Phase 08 P01 | 1 session | 2 tasks | owner guide, acceptance record and checkpoint |
 
 ## Accumulated Context
 

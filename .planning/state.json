@@ -36,18 +36,18 @@
     {
       "number": "7",
       "name": "Measurement, privacy, security and recovery",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "number": "8",
       "name": "Owner acceptance and launch readiness",
-      "status": "pending"
+      "status": "complete"
     }
   ],
   "next": {
-    "command": "/gsd:progress --next",
-    "label": "Advance to the next step (verify)",
-    "reason": "Phase 7 of 8 · 20% · ready to verify"
+    "command": "/gsd:progress",
+    "label": "Review V1 completion and deferred gates",
+    "reason": "All eight phases have implementation plans complete; owner/live deployment acceptance remains open"
   },
-  "updated_at": "2026-10-02T14:28:31.277Z"
+  "updated_at": "2026-10-02T23:00:00.000Z"
 }

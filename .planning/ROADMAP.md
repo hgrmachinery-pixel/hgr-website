@@ -14,8 +14,8 @@ This roadmap plans V1 work. Phase 1 has four plan summaries covering the foundat
 - [ ] **Phase 4: Public used-excavator inventory** — ship browse, machine detail, truthful status/price behaviour and stable public links.
 - [x] **Phase 5: Enquiries and supporting pages** — implement direct contact flows and simple editable secondary sections. SMTP/live mailbox, phone/WhatsApp numbers, legal approval/publication and infrastructure verification are deferred to deployment/configuration.
 - [x] **Phase 6: Accessible design and inventory SEO** — implementation complete: apply HGR design and crawlable, truthful search foundations with a static-first hero. Phase verification is human-needed only for owner-deferred browser/device and launch-asset rights review.
-- [ ] **Phase 7: Measurement, privacy, security and recovery** — validate tracking, protect data and prove staging/backups.
-- [ ] **Phase 8: Owner acceptance and launch readiness** — test real workflows and content, train HGR and prepare an authorized launch.
+- [x] **Phase 7: Measurement, privacy, security and recovery** — local implementation complete; analytics/privacy approval, staging and restore deployment acceptance remain deferred.
+- [x] **Phase 8: Owner acceptance and launch readiness** — implementation complete with owner guide and acceptance record; real-owner acceptance and deferred deployment gates remain open. No launch is authorized.
 
 ## Dependency rule
 
@@ -168,13 +168,15 @@ Plans:
 **Goal:** Make marketing measurement trustworthy and show that customer, draft and document data remain protected and recoverable.  
 **Depends on:** Phase 5 contact flows and Phase 6 public/SEO behaviour. Security design began in Phases 1–3.  
 **Requirements:** ANLY-01, ANLY-02, ANLY-03, ANLY-04, ANLY-05, ANLY-06, SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06, SAFE-07.  
-**Plans:** 2/4 plans executed; local preparation for 07-03 and 07-04 is recorded, with owner and deployment verification gates still open.
+**Plans:** 4/4 implementation plans complete; owner and deployment verification gates remain open by owner direction.
 
 Plans:
 - [x] 07-01-PLAN.md — Add fail-closed privacy-safe measurement events.
 - [x] 07-02-PLAN.md — Verify existing security boundaries and document recovery.
-- [ ] 07-03-PLAN.md — Gate analytics and privacy disclosures on owner/reviewer approval.
-- [ ] 07-04-PLAN.md — Gate staging and restore proof on approved disposable infrastructure.
+- [x] 07-03-PLAN.md — Prepare analytics and privacy approval gates; activation and publication remain deferred.
+- [x] 07-04-PLAN.md — Prepare staging and restore acceptance gates; target checks remain deferred.
+
+**Implementation status:** Complete. Analytics stays disabled; staging authentication/cache and live restore evidence remain approved deferred deployment acceptance gates.
 
 **Success criteria:**
 
@@ -189,7 +191,12 @@ Plans:
 **Goal:** Prove the daily owner workflow and customer journey on real data, close launch-only facts and prepare a controlled release.  
 **Depends on:** Phases 1–7.  
 **Requirements:** RELS-01, RELS-02, RELS-03, RELS-04, RELS-05, RELS-06, RELS-07, RELS-08.  
-**Plans:** TBD during `$gsd-plan-phase 8`.
+**Plans:** 1/1 implementation plan complete. Live owner acceptance and launch gates remain open.
+
+Plan:
+- [x] 08-01-PLAN.md — Prepare the owner guide and V1 acceptance record from local implementation evidence; preserve all approved deployment deferrals.
+
+**Implementation status:** Complete. See [V1 completion summary](V1-COMPLETION-SUMMARY.md). This does not certify live service readiness or authorize launch.
 
 **Success criteria:**
 
@@ -215,8 +222,8 @@ Plans:
 | 4. Public used-excavator inventory | 1/1 local plan summarized; live checks pending | In Progress | — |
 | 5. Enquiries and supporting pages | 0/1 | In Progress | — |
 | 6. Accessible design and inventory SEO | 5/5 | In Progress|  |
-| 7. Measurement, privacy, security and recovery | 2/4 | In Progress|  |
-| 8. Owner acceptance and launch readiness | 0/TBD | Not started | — |
+| 7. Measurement, privacy, security and recovery | 4/4 implementation plans | Implementation complete; deployment acceptance deferred | 2026-10-02 |
+| 8. Owner acceptance and launch readiness | 1/1 implementation plan | Implementation complete; owner/live acceptance open | 2026-10-02 |
 
 ---
 *Roadmap defined: 2026-09-30 from owner-approved source reconciliation. Phase order and scope will change only through an explicit planning decision.*
