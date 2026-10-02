@@ -168,7 +168,13 @@ Plans:
 **Goal:** Make marketing measurement trustworthy and show that customer, draft and document data remain protected and recoverable.  
 **Depends on:** Phase 5 contact flows and Phase 6 public/SEO behaviour. Security design began in Phases 1–3.  
 **Requirements:** ANLY-01, ANLY-02, ANLY-03, ANLY-04, ANLY-05, ANLY-06, SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06, SAFE-07.  
-**Plans:** TBD during `$gsd-plan-phase 7`.
+**Plans:** 1/4 plans executed
+
+Plans:
+- [x] 07-01-PLAN.md — Add fail-closed privacy-safe measurement events.
+- [ ] 07-02-PLAN.md — Verify existing security boundaries and document recovery.
+- [ ] 07-03-PLAN.md — Gate analytics and privacy disclosures on owner/reviewer approval.
+- [ ] 07-04-PLAN.md — Gate staging and restore proof on approved disposable infrastructure.
 
 **Success criteria:**
 
@@ -209,7 +215,7 @@ Plans:
 | 4. Public used-excavator inventory | 1/1 local plan summarized; live checks pending | In Progress | — |
 | 5. Enquiries and supporting pages | 0/1 | In Progress | — |
 | 6. Accessible design and inventory SEO | 5/5 | In Progress|  |
-| 7. Measurement, privacy, security and recovery | 0/TBD | Not started | — |
+| 7. Measurement, privacy, security and recovery | 1/4 | In Progress|  |
 | 8. Owner acceptance and launch readiness | 0/TBD | Not started | — |
 
 ---

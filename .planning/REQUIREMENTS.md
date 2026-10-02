@@ -134,9 +134,9 @@ Each checkbox stays unchecked until the capability is built, verified and record
 ### Measurement — Phase 7
 
 - [ ] **ANLY-01**: HGR can configure GA4, GTM, Search Console and Google Ads conversion measurement through environment/account configuration without exposing credentials in Git.
-- [ ] **ANLY-02**: Useful inventory/unit, WhatsApp, phone, form and viewing actions can be measured without claiming that a click proves an offline sale.
-- [ ] **ANLY-03**: Successful form submission is distinguishable from a form start, button click or failed delivery in measurement.
-- [ ] **ANLY-04**: Where practical and permitted, HGR can distinguish Mudah referral/campaign traffic from other sources while Mudah listings remain independently managed.
+- [x] **ANLY-02**: Useful inventory/unit, WhatsApp, phone, form and viewing actions can be measured without claiming that a click proves an offline sale.
+- [x] **ANLY-03**: Successful form submission is distinguishable from a form start, button click or failed delivery in measurement.
+- [x] **ANLY-04**: Where practical and permitted, HGR can distinguish Mudah referral/campaign traffic from other sources while Mudah listings remain independently managed.
 - [ ] **ANLY-05**: Names, phone numbers, emails, free-text messages and private serials do not enter ordinary analytics events, URLs or campaign parameters.
 - [ ] **ANLY-06**: Conversion implementation avoids material duplicate counting and follows reviewed tag/consent controls.
 
@@ -279,9 +279,9 @@ Each V1 requirement is owned by exactly one phase. See the roadmap's phase detai
 | SEO-08 | Phase 6 | Complete |
 | SEO-09 | Phase 6 | Complete |
 | ANLY-01 | Phase 7 | Pending |
-| ANLY-02 | Phase 7 | Pending |
-| ANLY-03 | Phase 7 | Pending |
-| ANLY-04 | Phase 7 | Pending |
+| ANLY-02 | Phase 7 | Complete |
+| ANLY-03 | Phase 7 | Complete |
+| ANLY-04 | Phase 7 | Complete |
 | ANLY-05 | Phase 7 | Pending |
 | ANLY-06 | Phase 7 | Pending |
 | SAFE-01 | Phase 7 | Pending |
