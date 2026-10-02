@@ -2,13 +2,13 @@
 gsd_state_version: "1.0"
 milestone: V1
 milestone_name: versus deferred scope
-current_phase: 5
-current_phase_name: Enquiries and supporting pages
+current_phase: 6
+current_phase_name: Accessible design and inventory SEO
 status: Phase 5 implementation complete; legal/contact/mail and infrastructure verification deferred to deployment
 stopped_at: Phase 5 checkpoint; Phase 6 planning authorized
-last_updated: "2026-10-02T10:25:00.000Z"
+last_updated: "2026-10-02T10:45:00.000Z"
 last_activity: 2026-10-02
-last_activity_desc: Added opt-in environment-configured SMTP delivery and Owner-review legal drafts; tests, type check, build and security review passed. Phone/WhatsApp remain hidden. No Phase 6 work.
+last_activity_desc: Phase 5 checkpoint committed. Phase 6 UI contract and implementation planning started; deferred Phase 5 legal/contact/mail configuration remains off.
 state_head: fadd88226e0f3de3a54c6acfc9d2845b999e918d
 progress:
   total_phases: 8
@@ -26,18 +26,18 @@ Total Phases: 5
 See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** HGR can independently publish accurate used-excavator listings that lead customers to a direct enquiry and an arranged viewing.
-**Current focus:** Phase 5 local implementation. PostgreSQL, GCS, media delivery, browser verification and deployment checks are intentionally deferred until the deployment verification milestone and do not block Phase 5.
+**Current focus:** Phase 6 accessible design and inventory SEO. PostgreSQL, GCS, media delivery, browser verification and deployment checks are intentionally deferred to the deployment verification milestone.
 
 ## Current Position
 
-Phase: 5 (Enquiries and supporting pages) — COMPLETE (implementation; deployment configuration deferred)
-Plan: 1 of 1 — implementation complete
+Phase: 6 (Accessible design and inventory SEO) — PLANNING
+Plan: UI contract and executable plan in progress
 Total Plans in Phase: 1
-Status: Phase 5 implementation checkpoint complete; deployment/configuration items deferred
-Last Activity: 2026-10-02 — Phase 5 checkpoint complete; Phase 6 planning started
-Last Activity Description: Committed Phase 4 and Phase 5 implementation work; legal/contact/mail configuration is deferred. Phase 6 planning is now authorized.
+Status: Phase 5 implementation checkpoint complete; Phase 6 planning active
+Last Activity: 2026-10-02 — Phase 5 checkpoint committed; Phase 6 planning started
+Last Activity Description: Implementation checkpoint commit 831c052 contains completed Phase 4/5 work. Legal/contact/mail configuration remains deferred. Phase 6 is active.
 
-Progress: Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 is active.
+Progress: Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 is being planned and will proceed to implementation.
 
 ## Performance Metrics
 

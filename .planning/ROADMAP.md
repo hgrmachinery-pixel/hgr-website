@@ -4,7 +4,7 @@
 
 Deliver an English V1 used-excavator lead-generation website through eight dependent phases. First verify the approved architecture and the real Exabytes account. Then establish permanent physical-machine identity and the owner's Payload workflow, add structured photography and protected JPJ documents, and deliver the public inventory and machine pages. Complete direct enquiries and compact secondary pages, then accessibility/visual polish and inventory SEO. Finish measurement, privacy, security and recovery before owner acceptance and authorized launch readiness. Later business divisions and systems remain outside this V1 milestone.
 
-This roadmap plans V1 work. Phase 1 has four plan summaries covering the foundation, documentation and conditional host findings; local end-to-end integration and actual host workload verification remain pending. No phase is complete. It does not authorize paid resources, DNS changes, production deployment or publication. Later plan files will be created during each phase's planning step. No date or week estimate is promised by the historical source roadmap.
+This roadmap plans V1 work. Phase 1 has four plan summaries covering the foundation, documentation and conditional host findings; local end-to-end integration and actual host workload verification remain pending. Phase 5 implementation is complete; its live contact configuration and legal page publication remain deferred to deployment. This roadmap does not authorize paid resources, DNS changes, production deployment or publication. Later plan files will be created during each phase's planning step. No date or week estimate is promised by the historical source roadmap.
 
 ## Phases
 
