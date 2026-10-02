@@ -4,18 +4,18 @@ milestone: V1
 milestone_name: versus deferred scope
 current_phase: 6
 current_phase_name: Accessible design and inventory SEO
-current_plan: 4
-status: Phase 6 plans 06-01, 06-02, 06-03 and 06-04 complete; plan 06-05 remains. Phase 5 implementation is complete; legal/contact/mail and infrastructure verification are deferred to deployment
-stopped_at: Completed 06-03-PLAN.md
-last_updated: "2026-10-02T05:46:48.477Z"
+current_plan: 5
+status: Phase 6 implementation plans are complete; phase verification remains pending. Phase 5 implementation is complete; legal/contact/mail and infrastructure verification are deferred to deployment
+stopped_at: Completed 06-05-PLAN.md
+last_updated: "2026-10-02T05:55:19.934Z"
 last_activity: 2026-10-02
-last_activity_desc: Phase 6 plan 06-03 verified responsive derivatives, gallery/card rendering and factual share metadata passed focused tests and typecheck. Plan 06-05 remains. Phone/WhatsApp, legal publication, SMTP, and production/infrastructure/browser/device checks remain deferred.
-state_head: a30ad53b27aa7a9c379ae9ead337d4b14830e853
+last_activity_desc: Phase 6 plan 06-05 added fail-closed robots guidance and a canonical sitemap; focused SEO/inventory tests, typecheck and diff checks passed. Search Console, analytics, indexing activation, legal/contact setup, and production/infrastructure/browser/device checks remain deferred.
+state_head: de1611ce63751475785586e8c458be8198b6a960
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 Total Phases: 8
@@ -32,13 +32,13 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 ## Current Position
 
 Phase: 6 (Accessible design and inventory SEO) — IMPLEMENTATION
-Current Plan: 4
+Current Plan: 5
 Total Plans in Phase: 5
-Status: Phase 5 implementation checkpoint complete; Phase 6 execution active
-Last Activity: 2026-10-02 — Phase 6 plan 06-03 implementation complete
-Last Activity Description: Verified responsive image derivatives now drive machine cards, the accessible gallery and factual share metadata. Focused tests and typecheck passed. Plan 06-05 remains; phone/WhatsApp, legal publication, SMTP and production/infrastructure/browser/device checks remain deferred.
+Status: Phase 6 implementation plans complete; phase verification pending
+Last Activity: 2026-10-02 — Phase 6 plan 06-05 implementation complete
+Last Activity Description: Added fail-closed robots guidance and the canonical sitemap. Focused SEO/inventory tests, typecheck and diff checks passed. Search Console, analytics, indexing activation, phone/WhatsApp, legal publication, SMTP and production/infrastructure/browser/device checks remain deferred.
 
-Progress: 17 of 18 plans are complete (94%). Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 plans 06-01, 06-02, 06-03 and 06-04 are complete; plan 06-05 remains.
+Progress: 18 of 18 implementation plans are complete (100%). Phase 1–4 external verification and phase-level verification remain pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers, Search Console, analytics activation and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 plans 06-01 through 06-05 are complete.
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: 17 of 18 plans are complete (94%). Phase 1–4 external verification r
 | Phase 06 P04 | 10min | 2 tasks | 4 files |
 | Phase 06 P02 | 1 session | 2 tasks | 5 files |
 | Phase 06 P03 | 7 min | 2 tasks | 5 files |
+| Phase 06 P05 | 7 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,8 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - [Phase 06]: Rendered homepage machine imagery only from the existing public featured-image projection.
 - [Phase 06]: Only validated named image derivatives are exposed through the existing verified-media gate; master URLs never enter public output.
 - [Phase 06]: Share metadata uses the verified featured large derivative and stored factual alt text, or omits social images.
+- [Phase 06]: Robots and sitemap share the validated production opt-in and public origin.
+- [Phase 06]: Sitemap routes are fixed public pages plus published machines, including Sold units.
 
 ### Pending Todos
 
@@ -127,6 +130,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-02T05:46:48.216Z
-Stopped at: Completed 06-03-PLAN.md
+Last session: 2026-10-02T05:55:19.717Z
+Stopped at: Completed 06-05-PLAN.md
 Resume file: None
