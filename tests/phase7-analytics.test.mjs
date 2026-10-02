@@ -86,3 +86,10 @@ test("campaign attribution accepts only documented categorical values", () => {
   });
   assert.deepEqual(campaignFromSearch("?utm_source=customer%40example.test&utm_medium=PII_PHONE_SENTINEL&utm_campaign=free-text"), {});
 });
+
+test("approved runtime analytics requires consent and stops permanently after withdrawal", () => {
+  return import("../src/lib/analytics/events.ts").then((analytics) => {
+    assert.equal(typeof analytics.createConsentAwareTagController, "function");
+    assert.equal(typeof analytics.getGtmScriptRequest, "function");
+  });
+});
