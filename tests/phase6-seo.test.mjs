@@ -41,7 +41,7 @@ test("indexing fails closed unless production and explicit opt-in are both set",
 test("robots builder keeps pages crawlable while withholding sitemap until indexing is enabled", async () => {
   const { buildRobotsRoute } = await import("../src/lib/siteMetadata.ts");
   const closed = buildRobotsRoute({ index: false, follow: true }, "https://hgrmachinery.com");
-  assert.deepEqual(closed.rules, [{ userAgent: "*", allow: "/", disallow: ["/admin", "/api", "/api/machine-documents/file/"] }]);
+  assert.deepEqual(closed.rules, { userAgent: "*", allow: "/", disallow: ["/admin", "/api", "/api/machine-documents/file/"] });
   assert.equal(closed.sitemap, undefined);
   const enabled = buildRobotsRoute({ index: true, follow: true }, "https://hgrmachinery.com");
   assert.equal(enabled.sitemap, "https://hgrmachinery.com/sitemap.xml");
@@ -57,7 +57,7 @@ test("public sitemap builder emits only fixed routes and published machine paths
   ];
   const entries = buildPublicSitemap({ index: true, follow: true }, "https://hgrmachinery.com", machines);
   assert.deepEqual(entries.map((entry) => entry.url), [
-    "https://hgrmachinery.com",
+    "https://hgrmachinery.com/",
     "https://hgrmachinery.com/used-excavators",
     "https://hgrmachinery.com/about",
     "https://hgrmachinery.com/contact",

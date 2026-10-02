@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, MetadataRoute } from "next";
 import { getPublicImageURL, publicMachinePath, type PublicImageCandidate } from "./machines/publicInventory.ts";
 
 type IndexingEnvironment = {
@@ -6,6 +6,8 @@ type IndexingEnvironment = {
   enabled?: string;
   origin?: string;
 };
+
+type PublicIndexingPolicy = { index: boolean; follow: boolean };
 
 type MachineForMetadata = {
   hgrId: string;
@@ -51,6 +53,47 @@ export function getIndexingPolicy(environment: IndexingEnvironment = {
 export function getSiteMetadataBase(): URL | undefined {
   const origin = getPublicOrigin();
   return origin ? new URL(origin) : undefined;
+}
+
+const publicSitemapPaths = [
+  "/",
+  "/used-excavators",
+  "/about",
+  "/contact",
+  "/rental",
+  "/machinery-services",
+  "/lubricants",
+] as const;
+
+export function buildRobotsRoute(
+  policy: PublicIndexingPolicy,
+  origin: string | undefined,
+): MetadataRoute.Robots {
+  const safeOrigin = getPublicOrigin(origin);
+  return {
+    rules: {
+      userAgent: "*",
+      allow: "/",
+      disallow: ["/admin", "/api", "/api/machine-documents/file/"],
+    },
+    ...(policy.index && safeOrigin ? { sitemap: `${safeOrigin}/sitemap.xml` } : {}),
+  };
+}
+
+export function buildPublicSitemap(
+  policy: PublicIndexingPolicy,
+  origin: string | undefined,
+  machines: readonly { slug: string; stockStatus: unknown }[],
+): MetadataRoute.Sitemap {
+  const safeOrigin = getPublicOrigin(origin);
+  if (!policy.index || !safeOrigin) return [];
+
+  const entries: MetadataRoute.Sitemap = publicSitemapPaths.map((path) => ({ url: new URL(path, safeOrigin).toString() }));
+  for (const machine of machines) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(machine.slug) || !["available", "reserved", "sold"].includes(String(machine.stockStatus))) continue;
+    entries.push({ url: new URL(publicMachinePath(machine.slug), safeOrigin).toString() });
+  }
+  return entries;
 }
 
 export function buildRouteMetadata({
