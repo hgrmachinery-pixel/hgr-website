@@ -4,18 +4,18 @@ milestone: V1
 milestone_name: versus deferred scope
 current_phase: 6
 current_phase_name: Accessible design and inventory SEO
-current_plan: 3
-status: Phase 6 plans 06-01, 06-02 and 06-04 complete; plans 06-03 and 06-05 remain. Phase 5 implementation is complete; legal/contact/mail and infrastructure verification are deferred to deployment
-stopped_at: Completed 06-02-PLAN.md
-last_updated: "2026-10-02T05:38:46.023Z"
+current_plan: 4
+status: Phase 6 plans 06-01, 06-02, 06-03 and 06-04 complete; plan 06-05 remains. Phase 5 implementation is complete; legal/contact/mail and infrastructure verification are deferred to deployment
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-10-02T05:46:48.477Z"
 last_activity: 2026-10-02
 last_activity_desc: Phase 6 plan 06-02 accessible brand/navigation styling and static-first homepage completed with focused tests and typecheck. Plans 06-03 and 06-05 remain. Phone/WhatsApp, legal publication, SMTP, and production/infrastructure/browser/device checks remain deferred.
-state_head: 8cb9b2dd66040355175597a4a0a44479b36bec5f
+state_head: a30ad53b27aa7a9c379ae9ead337d4b14830e853
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 Total Phases: 8
@@ -32,13 +32,13 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 ## Current Position
 
 Phase: 6 (Accessible design and inventory SEO) — IMPLEMENTATION
-Current Plan: 3
+Current Plan: 4
 Total Plans in Phase: 5
 Status: Phase 5 implementation checkpoint complete; Phase 6 execution active
-Last Activity: 2026-10-02 — Phase 6 plan 06-02 implementation complete
-Last Activity Description: HGR brand/navigation styling and a static-first homepage with direct inventory/enquiry actions passed focused tests and typecheck. Plans 06-03 and 06-05 remain.
+Last Activity: 2026-10-02 — Phase 6 plan 06-03 implementation complete
+Last Activity Description: Verified responsive image derivatives now drive machine cards, the accessible gallery and factual share metadata. Focused tests and typecheck passed. Plan 06-05 remains; phone/WhatsApp, legal publication, SMTP and production/infrastructure/browser/device checks remain deferred.
 
-Progress: 16 of 18 plans are complete (89%). Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 plans 06-01, 06-02 and 06-04 are complete; plans 06-03 and 06-05 remain.
+Progress: 17 of 18 plans are complete (94%). Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 plans 06-01, 06-02, 06-03 and 06-04 are complete; plan 06-05 remains.
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: 16 of 18 plans are complete (89%). Phase 1–4 external verification r
 | Phase 6 P01 | 11 min | 2 tasks | 8 files |
 | Phase 06 P04 | 10min | 2 tasks | 4 files |
 | Phase 06 P02 | 1 session | 2 tasks | 5 files |
+| Phase 06 P03 | 7 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,8 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - [Phase 06]: Enquiry delivery statuses and messages remain unchanged while field validation errors are announced and associated with controls.
 - [Phase 06]: Kept the homepage hero static and text-led because no approved layered HGR hero asset is available.
 - [Phase 06]: Rendered homepage machine imagery only from the existing public featured-image projection.
+- [Phase 06]: Only validated named image derivatives are exposed through the existing verified-media gate; master URLs never enter public output.
+- [Phase 06]: Share metadata uses the verified featured large derivative and stored factual alt text, or omits social images.
 
 ### Pending Todos
 
@@ -124,6 +127,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-02T05:38:45.764Z
-Stopped at: Completed 06-02-PLAN.md
+Last session: 2026-10-02T05:46:48.216Z
+Stopped at: Completed 06-03-PLAN.md
 Resume file: None

@@ -128,7 +128,7 @@ Each checkbox stays unchecked until the capability is built, verified and record
 - [x] **SEO-05**: Machine structured data appears only when it accurately matches visible, verified content and never invents a hidden price, review or availability.
 - [x] **SEO-06**: Machine cards/pages, breadcrumbs and internal links let crawlers and visitors reach inventory without infinite-scroll dependence.
 - [x] **SEO-07**: Sold pages retain truthful metadata and stay accessible unless a documented specific reason requires removal.
-- [ ] **SEO-08**: Real machine photos are served at suitable responsive sizes with factual alt text and sharing imagery.
+- [x] **SEO-08**: Real machine photos are served at suitable responsive sizes with factual alt text and sharing imagery.
 - [ ] **SEO-09**: The site is ready for Search Console verification and appropriate GA4/GTM/Google Ads landing measurements without inventing keyword volumes or ranking claims.
 
 ### Measurement — Phase 7
@@ -276,7 +276,7 @@ Each V1 requirement is owned by exactly one phase. See the roadmap's phase detai
 | SEO-05 | Phase 6 | Complete |
 | SEO-06 | Phase 6 | Complete |
 | SEO-07 | Phase 6 | Complete |
-| SEO-08 | Phase 6 | Pending |
+| SEO-08 | Phase 6 | Complete |
 | SEO-09 | Phase 6 | Pending |
 | ANLY-01 | Phase 7 | Pending |
 | ANLY-02 | Phase 7 | Pending |
