@@ -4,17 +4,18 @@ milestone: V1
 milestone_name: versus deferred scope
 current_phase: 6
 current_phase_name: Accessible design and inventory SEO
+current_plan: 2
 status: Phase 6 plan 06-01 complete; plans 06-02 through 06-05 remain. Phase 5 implementation is complete; legal/contact/mail and infrastructure verification are deferred to deployment
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-10-02T03:46:18.468Z"
+stopped_at: Completed 06-04-PLAN.md
+last_updated: "2026-10-02T03:58:00.238Z"
 last_activity: 2026-10-02
 last_activity_desc: Phase 6 plan 06-01 implementation and synthetic verification completed. Plans 06-02 through 06-05 remain. Phase 5 deployment configuration remains deferred.
-state_head: a1fb45ee5613ba7afc7cbb0a92085d1a05a5bad8
+state_head: 98c3b0ec7dbb4d7f0153088654653f73b7b4c255
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 18
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 Total Phases: 8
@@ -34,10 +35,10 @@ Phase: 6 (Accessible design and inventory SEO) — IMPLEMENTATION
 Current Plan: 2
 Total Plans in Phase: 5
 Status: Phase 5 implementation checkpoint complete; Phase 6 execution active
-Last Activity: 2026-10-02 — Phase 6 plan 06-01 implementation complete
-Last Activity Description: Plan 06-01 route metadata, canonical paths, indexing policy and structured data passed focused tests, typecheck and synthetic production build. Plans 06-02 through 06-05 remain.
+Last Activity: 2026-10-02 — Phase 6 plan 06-04 implementation complete
+Last Activity Description: Plan 06-04 field-keyed enquiry validation and accessible field error associations passed focused tests and typecheck. Plans 06-02, 06-03, and 06-05 remain unstarted.
 
-Progress: 14 of 18 plans are complete (78%). Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 plan 06-01 is complete; four plans remain.
+Progress: 15 of 18 plans are complete (83%). Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 plans 06-01 and 06-04 are complete; plans 06-02, 06-03, and 06-05 remain.
 
 ## Performance Metrics
 
@@ -62,6 +63,7 @@ Progress: 14 of 18 plans are complete (78%). Phase 1–4 external verification r
 | Phase 3 P4 | 25min | 1 tasks | 10 files |
 | Phase 05 P01 | 1 session | 3 tasks | 13 files |
 | Phase 6 P01 | 11 min | 2 tasks | 8 files |
+| Phase 06 P04 | 10min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -88,6 +90,8 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - [Phase 3]: Keep the migration unapplied and public media delivery denied until exact approved disposable PostgreSQL/GCS targets pass live checks.
 - [Phase 6]: Machine SEO metadata and structured data use the public machine projection and visible verified facts.
 - [Phase 6]: Indexing requires production, explicit HGR_PUBLIC_INDEXING_ENABLED opt-in, and a valid SERVER_URL origin.
+- [Phase 06]: Enquiry validation retains general safe error strings and adds a separate typed field-error map.
+- [Phase 06]: Enquiry delivery statuses and messages remain unchanged while field validation errors are announced and associated with controls.
 
 ### Pending Todos
 
@@ -117,6 +121,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-02T03:46:18.213Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-10-02T03:58:00.042Z
+Stopped at: Completed 06-04-PLAN.md
 Resume file: None
