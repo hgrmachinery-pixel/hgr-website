@@ -61,3 +61,39 @@ test("JSON-LD escapes markup-significant characters", async () => {
   assert.doesNotMatch(encoded, /<|>|&|\u2028/);
   assert.match(encoded, /\\u003c/);
 });
+
+test("route metadata helpers exist for home, inventory and supporting pages", async () => {
+  const source = await readFile(new URL("../src/lib/siteMetadata.ts", import.meta.url), "utf8");
+  assert.match(source, /export function buildRouteMetadata/);
+  assert.match(source, /export function buildInventoryMetadata/);
+  assert.match(source, /export function buildSupportingPageMetadata/);
+});
+
+test("home and inventory have distinct factual metadata and stable canonicals", async () => {
+  const { buildRouteMetadata } = await import("../src/lib/siteMetadata.ts");
+  const origin = "https://hgrmachinery.com";
+  const home = buildRouteMetadata({ title: "Used Excavators", description: "Browse HGR’s used excavator inventory.", path: "/", origin, robots: { index: true, follow: true } });
+  const inventory = buildRouteMetadata({ title: "Used Excavators", description: "Browse excavators by brand, model and current stock status.", path: "/used-excavators", origin, robots: { index: true, follow: true } });
+  assert.equal(home.alternates.canonical, `${origin}/`);
+  assert.equal(inventory.alternates.canonical, `${origin}/used-excavators`);
+  assert.notEqual(home.description, inventory.description);
+});
+
+test("inventory query variants remain canonical to the base route and noindex", async () => {
+  const { buildInventoryMetadata } = await import("../src/lib/siteMetadata.ts");
+  for (const searchParams of [{ q: "PC200" }, { brand: "Komatsu" }, { status: "sold" }, { page: "2" }]) {
+    const metadata = buildInventoryMetadata(searchParams, "https://hgrmachinery.com", { index: true, follow: true });
+    assert.equal(metadata.alternates.canonical, "https://hgrmachinery.com/used-excavators");
+    assert.deepEqual(metadata.robots, { index: false, follow: true });
+  }
+});
+
+test("supporting page metadata follows visible content and withholds empty legal pages", async () => {
+  const { buildSupportingPageMetadata } = await import("../src/lib/siteMetadata.ts");
+  const about = buildSupportingPageMetadata({ slug: "about", title: "About HGR", visibleText: "HGR Equipment Resources is a Malaysian used heavy machinery business.", fallbackDescription: "About HGR.", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
+  assert.equal(about.alternates.canonical, "https://hgrmachinery.com/about");
+  assert.match(about.description, /Malaysian used heavy machinery business/);
+  assert.equal(buildSupportingPageMetadata({ slug: "privacy-policy", title: "Privacy Policy", visibleText: "", fallbackDescription: "", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } }), null);
+  const policy = buildSupportingPageMetadata({ slug: "privacy-policy", title: "Privacy Policy", visibleText: "Owner-published privacy wording.", fallbackDescription: "", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
+  assert.equal(policy.alternates.canonical, "https://hgrmachinery.com/privacy-policy");
+});
