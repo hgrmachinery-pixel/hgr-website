@@ -38,6 +38,39 @@ test("indexing fails closed unless production and explicit opt-in are both set",
   ]) assert.equal(getIndexingPolicy(config).index, false);
 });
 
+test("robots builder keeps pages crawlable while withholding sitemap until indexing is enabled", async () => {
+  const { buildRobotsRoute } = await import("../src/lib/siteMetadata.ts");
+  const closed = buildRobotsRoute({ index: false, follow: true }, "https://hgrmachinery.com");
+  assert.deepEqual(closed.rules, [{ userAgent: "*", allow: "/", disallow: ["/admin", "/api", "/api/machine-documents/file/"] }]);
+  assert.equal(closed.sitemap, undefined);
+  const enabled = buildRobotsRoute({ index: true, follow: true }, "https://hgrmachinery.com");
+  assert.equal(enabled.sitemap, "https://hgrmachinery.com/sitemap.xml");
+  assert.deepEqual(enabled.rules, closed.rules);
+});
+
+test("public sitemap builder emits only fixed routes and published machine paths when indexing is enabled", async () => {
+  const { buildPublicSitemap } = await import("../src/lib/siteMetadata.ts");
+  const machines = [
+    { slug: "sold-pc200", stockStatus: "sold" },
+    { slug: "available-pc210", stockStatus: "available" },
+    { slug: "draft-private", stockStatus: "draft" },
+  ];
+  const entries = buildPublicSitemap({ index: true, follow: true }, "https://hgrmachinery.com", machines);
+  assert.deepEqual(entries.map((entry) => entry.url), [
+    "https://hgrmachinery.com",
+    "https://hgrmachinery.com/used-excavators",
+    "https://hgrmachinery.com/about",
+    "https://hgrmachinery.com/contact",
+    "https://hgrmachinery.com/rental",
+    "https://hgrmachinery.com/machinery-services",
+    "https://hgrmachinery.com/lubricants",
+    "https://hgrmachinery.com/machines/sold-pc200",
+    "https://hgrmachinery.com/machines/available-pc210",
+  ]);
+  assert.deepEqual(buildPublicSitemap({ index: false, follow: true }, "https://hgrmachinery.com", machines), []);
+  assert.deepEqual(buildPublicSitemap({ index: true, follow: true }, undefined, machines), []);
+});
+
 test("machine metadata and schema use only visible projected facts and stable slug", async () => {
   const { buildMachineMetadata, buildMachineStructuredData } = await import("../src/lib/siteMetadata.ts");
   const metadata = buildMachineMetadata(machine, "https://hgrmachinery.com");
