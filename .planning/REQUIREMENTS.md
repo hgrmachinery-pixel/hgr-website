@@ -111,12 +111,12 @@ Each checkbox stays unchecked until the capability is built, verified and record
 
 ### Brand, accessibility and homepage polish — Phase 6
 
-- [ ] **UX-01**: The public site uses central approved HGR colour tokens and Inter with a practical, mostly light responsive layout and selected dark sections.
-- [ ] **UX-02**: Action buttons and text meet applicable accessibility contrast requirements while retaining approved HGR brand colours.
+- [x] **UX-01**: The public site uses central approved HGR colour tokens and Inter with a practical, mostly light responsive layout and selected dark sections.
+- [x] **UX-02**: Action buttons and text meet applicable accessibility contrast requirements while retaining approved HGR brand colours.
 - [x] **UX-03**: Public navigation, forms and galleries work with keyboard focus, visible labels, readable status text and practical touch targets.
-- [ ] **UX-04**: The homepage foregrounds real used excavators and direct contact before secondary service promotion.
+- [x] **UX-04**: The homepage foregrounds real used excavators and direct contact before secondary service promotion.
 - [ ] **UX-05**: A real-HGR-excavator hero can show the planned scroll-responsive boom/arm motion with anchored body/tracks where it passes performance and usability checks.
-- [ ] **UX-06**: Mobile, weak-device and reduced-motion visitors receive a static or simplified hero with immediate access to inventory and contact actions.
+- [x] **UX-06**: Mobile, weak-device and reduced-motion visitors receive a static or simplified hero with immediate access to inventory and contact actions.
 - [ ] **UX-07**: Approved logo, favicon, sharing assets and real-machine images are used only with appropriate rights; placeholder or fabricated images/claims are absent at launch.
 
 ### Inventory-first SEO — Phase 6
@@ -262,12 +262,12 @@ Each V1 requirement is owned by exactly one phase. See the roadmap's phase detai
 | SITE-04 | Phase 5 | Pending |
 | SITE-05 | Phase 5 | Pending |
 | SITE-06 | Phase 5 | Pending |
-| UX-01 | Phase 6 | Pending |
-| UX-02 | Phase 6 | Pending |
+| UX-01 | Phase 6 | Complete |
+| UX-02 | Phase 6 | Complete |
 | UX-03 | Phase 6 | Complete |
-| UX-04 | Phase 6 | Pending |
+| UX-04 | Phase 6 | Complete |
 | UX-05 | Phase 6 | Pending |
-| UX-06 | Phase 6 | Pending |
+| UX-06 | Phase 6 | Complete |
 | UX-07 | Phase 6 | Pending |
 | SEO-01 | Phase 6 | Complete |
 | SEO-02 | Phase 6 | Complete |

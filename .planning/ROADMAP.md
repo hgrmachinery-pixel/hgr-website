@@ -143,7 +143,7 @@ Plan:
 **Goal:** Apply HGR's brand and signature visual idea without compromising the usable inventory or organic search foundations.  
 **Depends on:** Phase 4 inventory and Phase 5 contact/page routes; foundational data and owner workflow already exist.  
 **Requirements:** UX-01, UX-02, UX-03, UX-04, UX-05, UX-06, UX-07, SEO-01, SEO-02, SEO-03, SEO-04, SEO-05, SEO-06, SEO-07, SEO-08, SEO-09.  
-**Plans:** 2/5 plans executed
+**Plans:** 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -151,7 +151,7 @@ Plans:
 - [x] 06-04-PLAN.md — Make enquiry validation errors accessible by field.
 
 **Wave 2** *(06-02, 06-03 and 06-05 depend on 06-01)*
-- [ ] 06-02-PLAN.md — Apply HGR visual design and static-first homepage experience.
+- [x] 06-02-PLAN.md — Apply HGR visual design and static-first homepage experience.
 - [ ] 06-03-PLAN.md — Add responsive machine imagery and safe share metadata.
 - [ ] 06-05-PLAN.md — Generate environment-aware robots instructions and the canonical sitemap.
 
@@ -208,7 +208,7 @@ Plans:
 | 3. Photography, media processing and JPJ protection | 4/4 | In Progress|  |
 | 4. Public used-excavator inventory | 1/1 local plan summarized; live checks pending | In Progress | — |
 | 5. Enquiries and supporting pages | 0/1 | In Progress | — |
-| 6. Accessible design and inventory SEO | 2/5 | In Progress|  |
+| 6. Accessible design and inventory SEO | 3/5 | In Progress|  |
 | 7. Measurement, privacy, security and recovery | 0/TBD | Not started | — |
 | 8. Owner acceptance and launch readiness | 0/TBD | Not started | — |
 
