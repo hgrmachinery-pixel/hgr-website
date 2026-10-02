@@ -31,6 +31,7 @@ const textPairs = [
   ["#53565a", "#efefed", "machine card image fallback"],
   ["#a12c22", "#f5f5f5", "enquiry error on form surface"],
   ["#205c34", "#f5f5f5", "accepted enquiry notice on form surface"],
+  ["#171717", "#fff6ef", "current pagination text"],
   ["#ffffff", "#151515", "dark feature text"],
   ["#d0d0d0", "#151515", "dark feature secondary text"],
   ["#205c34", "#e8f4ec", "available status"],
@@ -64,9 +65,15 @@ test("used control boundaries meet non-text contrast and every matrix pair maps 
   assert.match(declarations(".machine-card__image"), /background:\s*#efefed/);
   assert.match(declarations(".enquiry-form__errors"), /color:\s*#a12c22/);
   assert.match(declarations(".enquiry-form__notice--accepted"), /color:\s*#205c34/);
-  assert.match(declarations(".button--quiet"), /border-color:\s*#767676/);
+  const controlSelectors = [
+    [".button--quiet", /border-color:\s*#767676/],
+    [".inventory-filters input, .inventory-filters select, .copy-machine-link input", /border:\s*1px solid #767676/],
+    [".pagination a, .pagination span", /border:\s*1px solid #767676/],
+    [".machine-gallery__filters button, .machine-gallery__thumbs button, .machine-gallery__featured button", /border:\s*1px solid #767676/],
+    [".enquiry-form__field input, .enquiry-form__field textarea", /border:\s*1px solid #767676/],
+  ];
+  for (const [selector, border] of controlSelectors) assert.match(declarations(selector), border, `${selector} must retain its tested control boundary`);
   assert.match(declarations(".pagination [aria-current=\"page\"]"), /background:\s*#fff6ef/);
-  assert.match(css, /border:\s*1px solid #767676/);
 });
 
 test("the focus indicator contrasts on light, dark and action surfaces", () => {
