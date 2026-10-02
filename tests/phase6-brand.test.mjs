@@ -73,7 +73,9 @@ test("used control boundaries meet non-text contrast and every matrix pair maps 
     [".enquiry-form__field input, .enquiry-form__field textarea", /border:\s*1px solid #767676/],
   ];
   for (const [selector, border] of controlSelectors) assert.match(declarations(selector), border, `${selector} must retain its tested control boundary`);
-  assert.match(declarations(".pagination [aria-current=\"page\"]"), /background:\s*#fff6ef/);
+  const currentPage = declarations(".pagination [aria-current=\"page\"]");
+  assert.match(currentPage, /background:\s*#fff6ef/);
+  assert.match(currentPage, /border-color:\s*#767676/);
 });
 
 test("the focus indicator contrasts on light, dark and action surfaces", () => {
