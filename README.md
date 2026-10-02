@@ -14,6 +14,21 @@ Production build, type checks and the 11 configuration/safety tests passed durin
 
 ## Configure locally
 
+### Local UI review without infrastructure
+
+For a UI-only review, you can run the public pages without PostgreSQL or GCS by explicitly enabling the fictional local review data. This mode is development-only, shows a warning banner, and never sends or stores enquiries. It does not provide CMS login or admin functionality.
+
+```powershell
+npm ci
+$env:HGR_LOCAL_UI_REVIEW='true'
+$env:SERVER_URL='http://127.0.0.1:3000'
+npm run dev -- --hostname 127.0.0.1 --port 3000
+```
+
+Open `http://127.0.0.1:3000/`. The same mode is available at `/used-excavators`, `/machines/demo-komatsu-pc200-8-hgr-900001`, `/machines/demo-caterpillar-320d-hgr-900002`, `/machines/demo-hitachi-zx200-5g-hgr-900003`, `/machines/demo-kobelco-sk200-10-hgr-900004`, and the rental, machinery-services, lubricants, about, and contact pages. All sample machine facts are fictional. Phone and WhatsApp details are inert placeholders. Enquiry form submission is acknowledged locally and discarded.
+
+Stop with Ctrl+C. The mode turns off when the shell closes. Do not set `HGR_LOCAL_UI_REVIEW=true` in production.
+
 From the repository root, install the locked packages and copy the names-only [environment example](.env.example):
 
 ```powershell

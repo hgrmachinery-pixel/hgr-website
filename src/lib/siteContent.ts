@@ -7,6 +7,7 @@ export function isPublicPageSlug(slug: string): slug is PublicPageSlug {
 
 export async function getPublishedPage(slug: string) {
   if (!isPublicPageSlug(slug)) return null;
+  if (process.env.HGR_LOCAL_UI_REVIEW === "true" && process.env.NODE_ENV !== "production") return null;
   try {
     const [{ default: config }, { getPayload }] = await Promise.all([import("@payload-config"), import("payload")]);
     const payload = await getPayload({ config });
@@ -21,6 +22,9 @@ export async function getPublishedPage(slug: string) {
 }
 
 export async function getPublicContact() {
+  if (process.env.HGR_LOCAL_UI_REVIEW === "true" && process.env.NODE_ENV !== "production") {
+    return { phone: "+60 00-000 0000", whatsApp: "60000000000", email: "review@example.invalid", yardLocation: "Fictional local-review location — not a real HGR contact" };
+  }
   try {
     const [{ default: config }, { getPayload }] = await Promise.all([import("@payload-config"), import("payload")]);
     const payload = await getPayload({ config });
