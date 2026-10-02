@@ -56,7 +56,7 @@ export function AnalyticsProvider({ enabled, containerId, localReview, children 
     const onAnalyticsEvent = (event: Event) => controller.track((event as CustomEvent<AnalyticsEvent>).detail);
     const onConsentChange = (event: Event) => controller.setConsent((event as CustomEvent).detail);
     const onStorageChange = (event: StorageEvent) => {
-      if (event.key === consentStorageKey) controller.setConsent(storedConsent());
+      if (event.key === null || event.key === consentStorageKey) controller.setConsent(storedConsent());
     };
 
     window.addEventListener(analyticsEventType(), onAnalyticsEvent);

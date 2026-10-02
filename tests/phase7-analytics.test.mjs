@@ -170,6 +170,13 @@ test("approved runtime analytics requires runtime config and consent, and stops 
   controller.dispose();
 });
 
+test("consent storage clearing in another tab returns the provider to unknown consent", async () => {
+  const provider = await readFile(new URL("../src/components/site/AnalyticsProvider.tsx", import.meta.url), "utf8");
+  assert.match(provider, /event\.key === null \|\| event\.key === consentStorageKey/);
+  const analytics = await import("../src/lib/analytics/events.ts");
+  assert.deepEqual(analytics.parseAnalyticsConsent(null), { analytics: "unknown", advertising: "unknown" });
+});
+
 test("public inventory, unit and contact routes wire distinct intent events", async () => {
   const inventoryPage = await readFile(new URL("../src/app/(site)/used-excavators/page.tsx", import.meta.url), "utf8");
   assert.match(inventoryPage, /name:\s*"inventory_list_view"/);

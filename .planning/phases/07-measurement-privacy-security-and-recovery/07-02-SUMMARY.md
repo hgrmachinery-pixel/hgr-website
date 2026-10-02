@@ -56,7 +56,7 @@ Added local regression checks around existing access and privacy boundaries, fai
 
 - Added regression coverage for draft/private projection, public-query constraints, private document responses, private media, input validation and the initial staff-role boundary.
 - Added source-level staging-indexing checks that clearly distinguish crawler directives from host authentication and cache denial.
-- Added tracked-file credential-pattern checks that report paths and rule categories without printing matched values. The existing safe `HGR_LOCAL_UI_REVIEW=false` default is allowed; other environment-example values must be blank.
+- Added tracked-file credential-pattern checks that report paths and rule categories without printing matched values. They detect quoted and unquoted credential assignments and reject tracked real environment files. The existing safe `HGR_LOCAL_UI_REVIEW=false` default is allowed; other environment-example values must be blank.
 - Documented matched database/object capture points, migration/source revisions, separated public/private object classes, protected configuration, permission parity, isolated restore checks and explicit stop conditions.
 
 ## Verification
@@ -64,6 +64,8 @@ Added local regression checks around existing access and privacy boundaries, fai
 - `node --test tests/phase7-security.test.mjs tests/machine-access.test.mjs tests/machine-documents.test.mjs tests/machine-media.test.mjs tests/phase5-enquiries.test.mjs` — passed, 55 tests.
 - `node --test tests/phase7-staging.test.mjs tests/phase7-secrets.test.mjs tests/phase6-seo.test.mjs` — passed, 15 tests.
 - `node --test tests/phase7-secrets.test.mjs` — passed, 2 tests.
+- After Sol's audit identified quoted-assignment and tracked-environment-file coverage gaps, the focused analytics/secret suite passed again (10 tests), including synthetic quoted credential and tracked `.env` filename cases.
+- The follow-up also handles cross-tab `localStorage.clear()` by returning the app-level consent adapter to unknown; focused analytics and secret checks, typecheck and diff check passed.
 - `git diff --check HEAD` — passed.
 - `npm run typecheck` — passed.
 - No provider endpoint was contacted, no service/resource was created, and no live backup or restore was attempted.
@@ -92,7 +94,7 @@ Added local regression checks around existing access and privacy boundaries, fai
 
 ## Deviations from Plan
 
-None — plan executed within the listed file scope. The pre-existing `.env.example` edit was preserved; its single non-secret false-valued local-review flag is explicitly recognized by the local template check.
+**Post-close-out security correction:** Sol's review found the original secret check missed quoted assignments and did not detect tracked real environment files. The scanner and tests were corrected to cover both; no actual credential was found. The privacy-boundary summary for 07-01 now explicitly limits local consent evidence to application events and keeps external tag-container/withdrawal behavior gated for owner verification. The pre-existing `.env.example` edit was preserved; its single non-secret false-valued local-review flag remains explicitly allowed by the local template check.
 
 ## Known Stubs
 
