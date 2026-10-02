@@ -8,9 +8,17 @@ import { getPublicMachineForSlug, getPublicMachines } from "../../../../lib/mach
 import { publicMachinePath } from "../../../../lib/machines/publicInventory";
 import { EnquiryForm } from "../../../../components/site/EnquiryForm";
 import { getPublicContact } from "../../../../lib/siteContent";
+import { buildMachineMetadata, buildMachineStructuredData, getIndexingPolicy, getPublicOrigin, serializeJsonLd } from "../../../../lib/siteMetadata";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { robots: { index: false, follow: true } };
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const resolved = await getPublicMachineForSlug(slug);
+  const machine = resolved.machine;
+  if (!machine || resolved.unavailable) return { robots: getIndexingPolicy() };
+  return { ...buildMachineMetadata(machine, getPublicOrigin()), robots: getIndexingPolicy() };
+}
 
 export default async function MachineDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -24,7 +32,7 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
   const available = inventory.machines.filter((item) => item.stockStatus === "available" && item.hgrId !== machine.hgrId).slice(0, 3);
   const title = [machine.year, machine.brand, machine.model].filter(Boolean).join(" ") || `Excavator ${machine.reference}`;
   const contact = await getPublicContact();
-  const origin = process.env.SERVER_URL;
+  const origin = getPublicOrigin();
   const canonicalURL = origin ? new URL(publicMachinePath(machine.slug), origin).toString() : undefined;
   const whatsappMessage = canonicalURL ? `Hello HGR, I am interested in ${title} (${machine.reference}): ${canonicalURL}` : undefined;
   const specifications = [
@@ -39,7 +47,9 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
   ].filter((entry): entry is [string, string] => Boolean(entry[1]));
 
   return <main className="page-shell">
-    <div className="machine-detail__top"><Link href="/used-excavators">← All used excavators</Link><p className={`machine-status machine-status--${machine.stockStatus}`}>{statusLabel(machine.stockStatus)}</p><h1 className="page-title">{title}</h1><p className="machine-card__reference">Reference: {machine.reference}</p></div>
+    {origin && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildMachineStructuredData(machine, origin)) }} />}
+    <nav aria-label="Breadcrumb"><ol className="breadcrumbs"><li><Link href="/">Home</Link></li><li><Link href="/used-excavators">Used Excavators</Link></li><li aria-current="page">{title} ({machine.reference})</li></ol></nav>
+    <div className="machine-detail__top"><p className={`machine-status machine-status--${machine.stockStatus}`}>{statusLabel(machine.stockStatus)}</p><h1 className="page-title">{title}</h1><p className="machine-card__reference">Reference: {machine.reference}</p></div>
     <div className="machine-detail__layout">
       <MachineGallery images={images} />
       <section aria-label="Machine details">
