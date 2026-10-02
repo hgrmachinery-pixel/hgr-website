@@ -15,15 +15,15 @@ const machine = {
 };
 
 test("shared SEO helpers exist for validated origins and machine metadata", async () => {
-  const source = await readFile(new URL("../src/lib/siteMetadata.ts", import.meta.url), "utf8").catch(() => "");
-  assert.match(source, /export function getPublicOrigin/);
-  assert.match(source, /export function buildMachineMetadata/);
+  const { getPublicOrigin, buildMachineMetadata } = await import("../src/lib/siteMetadata.ts");
+  assert.equal(getPublicOrigin("https://hgrmachinery.com"), "https://hgrmachinery.com");
+  assert.equal(typeof buildMachineMetadata, "function");
 });
 
 test("public origin accepts only credential-free HTTP(S) origins", async () => {
   const { getPublicOrigin } = await import("../src/lib/siteMetadata.ts");
-  assert.equal(getPublicOrigin("https://hgrmachinery.com/path?x=1"), "https://hgrmachinery.com");
-  for (const value of [undefined, "not a URL", "ftp://hgrmachinery.com", "https://user:pass@hgrmachinery.com"]) {
+  assert.equal(getPublicOrigin("https://hgrmachinery.com"), "https://hgrmachinery.com");
+  for (const value of [undefined, "not a URL", "ftp://hgrmachinery.com", "https://user:pass@hgrmachinery.com", "https://hgrmachinery.com/path?x=1"]) {
     assert.equal(getPublicOrigin(value), undefined);
   }
 });
@@ -41,7 +41,7 @@ test("indexing fails closed unless production and explicit opt-in are both set",
 test("machine metadata and schema use only visible projected facts and stable slug", async () => {
   const { buildMachineMetadata, buildMachineStructuredData } = await import("../src/lib/siteMetadata.ts");
   const metadata = buildMachineMetadata(machine, "https://hgrmachinery.com");
-  assert.equal(metadata.title, "2018 Komatsu PC200 | HGR-000028");
+  assert.equal(metadata.title, "2018 Komatsu PC200 — HGR-000028");
   assert.equal(metadata.alternates.canonical, "https://hgrmachinery.com/machines/komatsu-pc200-hgr-000028");
   const json = buildMachineStructuredData(machine, "https://hgrmachinery.com");
   assert.equal(json.url, metadata.alternates.canonical);
