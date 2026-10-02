@@ -4,7 +4,7 @@ milestone: V1
 milestone_name: versus deferred scope
 current_phase: 7
 current_phase_name: Measurement, privacy, security and recovery
-current_plan: 3
+current_plan: 2
 status: Phase 6 implementation is complete. The requested five-form enquiry UX review and improvement pass is complete. Continue with Phase 7 planning and implementation; owner-dependent measurement, privacy and recovery decisions remain tracked in the roadmap.
 stopped_at: Completed 07-01-PLAN.md
 last_updated: "2026-10-02T10:05:19.449Z"
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 ## Current Position
 
 Phase: 7 (Measurement, privacy, security and recovery)
-Current Plan: 3
+Current Plan: 2
 Total Plans in Phase: 4
 Status: Plan 07-01 local measurement implementation is complete. Owner account, consent, container-review and external activation gates remain open; Phase 7 continues.
 Last Activity: 2026-10-02 — Phase 07 Plan 01 complete
