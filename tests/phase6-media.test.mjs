@@ -11,9 +11,9 @@ const image = (overrides = {}) => ({
   assetKind: "derivative",
   processingStatus: "ready",
   sizes: {
-    thumbnail: { url: "/api/machine-media/file/thumb.jpg" },
-    card: { url: "/api/machine-media/file/card.jpg" },
-    large: { url: "/api/machine-media/file/large.jpg" },
+    thumbnail: { url: "/api/machine-media/file/thumb.jpg", width: 320 },
+    card: { url: "/api/machine-media/file/card.jpg", width: 640 },
+    large: { url: "/api/machine-media/file/large.jpg", width: 1280 },
   },
   ...overrides,
 });
@@ -24,6 +24,9 @@ test("verified public image projects supported responsive derivatives and review
     thumbnailUrl: "/api/machine-media/file/thumb.jpg",
     cardUrl: "/api/machine-media/file/card.jpg",
     largeUrl: "/api/machine-media/file/large.jpg",
+    thumbnailWidth: 320,
+    cardWidth: 640,
+    largeWidth: 1280,
     altText: "Komatsu PC200 excavator viewed from the side",
     category: "side-view-1",
     order: 4,
@@ -50,7 +53,17 @@ test("unverified and malformed responsive URLs stay closed and empty alt text st
 
 test("responsive srcSet contains only available, validated derivatives", () => {
   assert.equal(publicImageSrcSet(projectPublicImage(image(), true)), "/api/machine-media/file/thumb.jpg 320w, /api/machine-media/file/card.jpg 640w, /api/machine-media/file/large.jpg 1280w");
-  assert.equal(publicImageSrcSet(projectPublicImage(image({ sizes: { large: { url: "/api/machine-media/file/large.jpg" } } }), true)), "/api/machine-media/file/large.jpg 1280w");
+  assert.equal(publicImageSrcSet(projectPublicImage(image({ sizes: { large: { url: "/api/machine-media/file/large.jpg", width: 1280 } } }), true)), "/api/machine-media/file/large.jpg 1280w");
+});
+
+test("responsive srcSet uses actual derivative widths and omits invalid width metadata", () => {
+  const projected = projectPublicImage(image({ sizes: {
+    thumbnail: { url: "/api/machine-media/file/thumb.jpg", width: 180 },
+    card: { url: "/api/machine-media/file/card.jpg", width: 500 },
+    large: { url: "/api/machine-media/file/large.jpg", width: 0 },
+  } }), true);
+  assert.equal(publicImageSrcSet(projected), "/api/machine-media/file/thumb.jpg 180w, /api/machine-media/file/card.jpg 500w");
+  assert.equal(projectPublicImage(image({ sizes: { card: { url: "/api/machine-media/file/card.jpg", width: "640" } } }), true)?.cardWidth, undefined);
 });
 
 test("machine share metadata uses only the eligible featured large derivative and factual alt", async () => {

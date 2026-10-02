@@ -16,6 +16,9 @@ export type PublicImageCandidate = {
   thumbnailUrl?: string;
   cardUrl?: string;
   largeUrl?: string;
+  thumbnailWidth?: number;
+  cardWidth?: number;
+  largeWidth?: number;
   altText?: string;
   category?: string;
   order?: number;
@@ -111,6 +114,8 @@ export function projectPublicImage(value: unknown, deliveryVerified = false): Pu
   const thumbnailUrl = getPublicImageURL(thumbnail.url, deliveryVerified);
   const cardUrl = getPublicImageURL(card.url, deliveryVerified);
   const largeUrl = getPublicImageURL(large.url, deliveryVerified);
+  const actualWidth = (size: Record<string, unknown>) =>
+    typeof size.width === "number" && Number.isSafeInteger(size.width) && size.width > 0 ? size.width : undefined;
   const url = cardUrl ?? largeUrl ?? thumbnailUrl;
   if (!url) return undefined;
   return {
@@ -119,6 +124,9 @@ export function projectPublicImage(value: unknown, deliveryVerified = false): Pu
     ...(thumbnailUrl ? { thumbnailUrl } : {}),
     ...(cardUrl ? { cardUrl } : {}),
     ...(largeUrl ? { largeUrl } : {}),
+    ...(actualWidth(thumbnail) ? { thumbnailWidth: actualWidth(thumbnail) } : {}),
+    ...(actualWidth(card) ? { cardWidth: actualWidth(card) } : {}),
+    ...(actualWidth(large) ? { largeWidth: actualWidth(large) } : {}),
     ...(text(image.category) ? { category: text(image.category) } : {}),
     ...(typeof image.order === "number" && Number.isFinite(image.order) ? { order: image.order } : {}),
   };
@@ -126,9 +134,9 @@ export function projectPublicImage(value: unknown, deliveryVerified = false): Pu
 
 export function publicImageSrcSet(image: PublicImageCandidate): string | undefined {
   const sources = [
-    image.thumbnailUrl ? `${image.thumbnailUrl} 320w` : undefined,
-    image.cardUrl ? `${image.cardUrl} 640w` : undefined,
-    image.largeUrl ? `${image.largeUrl} 1280w` : undefined,
+    image.thumbnailUrl && image.thumbnailWidth ? `${image.thumbnailUrl} ${image.thumbnailWidth}w` : undefined,
+    image.cardUrl && image.cardWidth ? `${image.cardUrl} ${image.cardWidth}w` : undefined,
+    image.largeUrl && image.largeWidth ? `${image.largeUrl} ${image.largeWidth}w` : undefined,
   ].filter((source): source is string => Boolean(source));
   return sources.length ? sources.join(", ") : undefined;
 }
