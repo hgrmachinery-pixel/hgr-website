@@ -13,7 +13,7 @@ This roadmap plans V1 work. Phase 1 has four plan summaries covering the foundat
 - [ ] **Phase 3: Photography, media processing and JPJ protection** — complete category-led uploads, responsive images, watermarks and human-approved public documents.
 - [ ] **Phase 4: Public used-excavator inventory** — ship browse, machine detail, truthful status/price behaviour and stable public links.
 - [x] **Phase 5: Enquiries and supporting pages** — implement direct contact flows and simple editable secondary sections. SMTP/live mailbox, phone/WhatsApp numbers, legal approval/publication and infrastructure verification are deferred to deployment/configuration.
-- [ ] **Phase 6: Accessible design and inventory SEO** — apply HGR design, bounded hero motion and crawlable, truthful search foundations.
+- [x] **Phase 6: Accessible design and inventory SEO** — implementation complete: apply HGR design and crawlable, truthful search foundations with a static-first hero. Phase verification is human-needed only for owner-deferred browser/device and launch-asset rights review.
 - [ ] **Phase 7: Measurement, privacy, security and recovery** — validate tracking, protect data and prove staging/backups.
 - [ ] **Phase 8: Owner acceptance and launch readiness** — test real workflows and content, train HGR and prepare an authorized launch.
 
@@ -143,7 +143,7 @@ Plan:
 **Goal:** Apply HGR's brand and signature visual idea without compromising the usable inventory or organic search foundations.  
 **Depends on:** Phase 4 inventory and Phase 5 contact/page routes; foundational data and owner workflow already exist.  
 **Requirements:** UX-01, UX-02, UX-03, UX-04, UX-05, UX-06, UX-07, SEO-01, SEO-02, SEO-03, SEO-04, SEO-05, SEO-06, SEO-07, SEO-08, SEO-09.  
-**Plans:** 5/5 plans executed
+**Plans:** 5/5 plans executed; automated code, build, and security gates passed. Verification records human-needed status only for the explicitly deferred browser/device and launch-asset review.
 
 Plans:
 **Wave 1**

@@ -26,7 +26,7 @@
     {
       "number": "5",
       "name": "Enquiries and supporting pages",
-      "status": "complete"
+      "status": "in_progress"
     },
     {
       "number": "6",
@@ -45,9 +45,9 @@
     }
   ],
   "next": {
-    "command": "/gsd:execute-phase 6",
-    "label": "Begin Phase 6 Wave 1 implementation",
-    "reason": "All five Phase 6 plans passed independent validation. Execute Wave 1 plans 06-01 and 06-04; Phase 5 deployment/configuration work remains deferred."
+    "command": "/gsd:progress --next",
+    "label": "Advance to the next step (verify)",
+    "reason": "Phase 6 of 8 · 18% · ready to verify"
   },
-  "updated_at": "2026-10-02T11:34:00.000Z"
+  "updated_at": "2026-10-02T06:31:20.040Z"
 }
