@@ -32,9 +32,9 @@ test("enquiry errors are associated with current controls and summarized", async
   assert.match(form, /role="alert"/);
   assert.match(form, /aria-invalid/);
   assert.match(form, /aria-describedby/);
-  assert.match(form, /href={`#\$\{field\.name\}`}/);
-  assert.match(form, /id=\{field\.name\}/);
-  assert.match(form, /fieldErrors\[name\]/);
+  assert.match(form, /href={`#\$\{name\}`}/);
+  assert.match(form, /id=\{name\}/);
+  assert.match(form, /fieldErrors\?\.\[name/);
   assert.match(action, /fieldErrors\?: EnquiryFieldErrors/);
   assert.match(action, /fieldErrors: result\.fieldErrors/);
   assert.match(form, /htmlFor=/);
