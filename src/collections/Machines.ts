@@ -19,6 +19,7 @@ import {
 } from "../lib/machines/access";
 import { machinePreviewURL } from "../lib/machines/preview";
 import { isPublicMachineDerivative, serialVisibilityPolicyChanged } from "../lib/machines/media.ts";
+import { youtubeVideoId } from "../lib/machines/video.ts";
 
 type MachineIdentity = {
   hgrId?: string;
@@ -89,7 +90,7 @@ export const Machines: CollectionConfig = {
     description: "Manage one record for each physical machine.",
     listSearchableFields: ["hgrId", "brand", "model"],
     enableRichTextRelationship: false,
-    components: { edit: { beforeDocumentControls: ["@/components/payload/MachinePhotoUploader#MachinePhotoUploader"] } },
+    components: { edit: { beforeDocumentControls: ["@/components/payload/MachinePhotoUploader#MachinePhotoUploader", "@/components/payload/CopyMachineLink#CopyMachineLink"] } },
     preview: (doc) => {
       const baseURL = process.env.SERVER_URL;
       const secret = process.env.PREVIEW_SECRET;
@@ -352,6 +353,13 @@ export const Machines: CollectionConfig = {
       admin: { date: { pickerAppearance: "dayOnly" } },
     },
     { name: "description", type: "textarea", maxLength: 5000 },
+    {
+      name: "videoUrl",
+      label: "YouTube Video URL (optional)",
+      type: "text",
+      admin: { description: "Paste a standard YouTube, youtu.be, Shorts, or embed link." },
+      validate: (value: unknown) => value == null || value === "" || youtubeVideoId(value) ? true : "Enter a valid HTTPS YouTube video URL.",
+    },
     {
       name: "stockStatus",
       label: "Stock Status",

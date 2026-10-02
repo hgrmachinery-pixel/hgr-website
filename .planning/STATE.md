@@ -2,20 +2,22 @@
 gsd_state_version: "1.0"
 milestone: V1
 milestone_name: versus deferred scope
-current_phase: 3
-current_phase_name: Photography, media processing and JPJ protection
-status: local plan execution complete; PostgreSQL/GCS verification remains pending; do not begin Phase 4
-stopped_at: Completed local implementation of 03-04-PLAN.md; awaiting approved disposable PostgreSQL/GCS targets for Phase 3 live verification
-last_updated: "2026-10-01T17:45:49.990Z"
+current_phase: 5
+current_phase_name: Enquiries and supporting pages
+status: Phase 5 implementation complete; legal/contact/mail and infrastructure verification deferred to deployment
+stopped_at: Phase 5 checkpoint; Phase 6 planning authorized
+last_updated: "2026-10-02T10:25:00.000Z"
 last_activity: 2026-10-02
-last_activity_desc: Phase 3 Plans 03-01 through 03-04 have local summaries; Plan 03-04 migration is unapplied, public delivery remains disabled, and exact approved disposable service targets are still unavailable.
-state_head: 5b5d65d191c8a16d6ab436b2c950cba6a95fc2e9
+last_activity_desc: Added opt-in environment-configured SMTP delivery and Owner-review legal drafts; tests, type check, build and security review passed. Phone/WhatsApp remain hidden. No Phase 6 work.
+state_head: fadd88226e0f3de3a54c6acfc9d2845b999e918d
 progress:
   total_phases: 8
   completed_phases: 0
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 13
+  completed_plans: 12
 ---
+
+Total Phases: 5
 
 # Project State
 
@@ -24,22 +26,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** HGR can independently publish accurate used-excavator listings that lead customers to a direct enquiry and an arranged viewing.
-**Current focus:** Phase 3 local implementation and plan summaries are complete; exact disposable PostgreSQL/GCS verification remains pending and does not authorize resource provisioning.
+**Current focus:** Phase 5 local implementation. PostgreSQL, GCS, media delivery, browser verification and deployment checks are intentionally deferred until the deployment verification milestone and do not block Phase 5.
 
 ## Current Position
 
-Phase: 3 (Photography, media processing and JPJ protection) — IN PROGRESS
-Plan: 4 of 4 — all four plans summarized; Phase 3 live verification remains gated
-Total Plans in Phase: 4
-Status: local plan execution complete; PostgreSQL/GCS verification remains pending; do not begin Phase 4
-Last Activity: 2026-10-02 — Plan 03-04 migration/auth safeguards reviewed locally and committed; live checks remain gated
-Last Activity Description: Phase 3 Plans 03-01 through 03-04 have local summaries; Plan 03-04 migration is unapplied, public delivery remains disabled, and exact approved disposable service targets are still unavailable.
+Phase: 5 (Enquiries and supporting pages) — COMPLETE (implementation; deployment configuration deferred)
+Plan: 1 of 1 — implementation complete
+Total Plans in Phase: 1
+Status: Phase 5 implementation checkpoint complete; deployment/configuration items deferred
+Last Activity: 2026-10-02 — Phase 5 checkpoint complete; Phase 6 planning started
+Last Activity Description: Committed Phase 4 and Phase 5 implementation work; legal/contact/mail configuration is deferred. Phase 6 planning is now authorized.
 
-Progress: 4 Phase 1, 3 Phase 2 and 4 Phase 3 plan summaries are recorded. Phase 1 and Phase 2 live checks remain incomplete. Phase 3 local work is complete; migration apply, database/GCS compatibility and public media delivery remain gated. Do not begin Phase 4 automatically.
+Progress: Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 is active.
 
 ## Performance Metrics
 
-- Plans with completed permitted work: 9
+- Plans with completed permitted work: 10
 - Execution: Phase 3 Plan 03-02 focused authorization/document/photo tests (31) pass; typecheck, synthetic Webpack production build and diff check pass. Database/GCS and migration checks remain pending; the full historical suite still has sandbox `tsx` child-process failures (`uv_os_get_passwd returned ENOMEM`).
 
 **Per-Plan Metrics:**
@@ -50,6 +52,7 @@ Progress: 4 Phase 1, 3 Phase 2 and 4 Phase 3 plan summaries are recorded. Phase 
 | Phase 01 P02 | 18min | 2 tasks | 21 files |
 | Phase 01 P03 | 6min | 2 tasks | 2 files |
 | Phase 01 P04 | 14min | 3 tasks | 9 files |
+| Phase 04 P01 | 1 session | 5 tasks | public routes, query helpers, UI and validation artifacts |
 | Phase 02 P01 | 1 session | 2 tasks | 5 files |
 | Phase 02 P02 | 1 session | 3 tasks | 8 files |
 | Phase 02 P03 | 1 session | 3 tasks | 10 files |
@@ -57,6 +60,7 @@ Progress: 4 Phase 1, 3 Phase 2 and 4 Phase 3 plan summaries are recorded. Phase 
 | Phase 03 P02 | 1 session | 3 tasks | 24 files |
 | Phase 3 P3 | 25min | 2 tasks | 13 files |
 | Phase 3 P4 | 25min | 1 tasks | 10 files |
+| Phase 05 P01 | 1 session | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -110,6 +114,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-01T17:44:45.218Z
-Stopped at: Completed local implementation of 03-04-PLAN.md; awaiting approved disposable PostgreSQL/GCS targets for Phase 3 live verification
-Resume file: .planning/phases/03-photography-media-processing-and-jpj-protection/03-04-SERVICE-READINESS.md
+Last session: 2026-10-02T01:44:20.340Z
+Stopped at: Phase 5 local implementation complete; LEAD-07 and SITE-06 owner inputs pending
+Resume file: .planning/phases/05-enquiries-and-supporting-pages/05-01-PLAN.md

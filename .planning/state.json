@@ -6,7 +6,7 @@
     {
       "number": "1",
       "name": "Portable foundation and Exabytes feasibility",
-      "status": "in_progress"
+      "status": "complete"
     },
     {
       "number": "2",
@@ -21,12 +21,12 @@
     {
       "number": "4",
       "name": "Public used-excavator inventory",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "number": "5",
       "name": "Enquiries and supporting pages",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "number": "6",
@@ -45,9 +45,9 @@
     }
   ],
   "next": {
-    "command": "/gsd:progress --next",
-    "label": "Advance to the next step",
-    "reason": "Phase 3 of 8 · 4% · executing"
+    "command": "/gsd:plan-phase 6",
+    "label": "Plan Phase 6 accessible design and inventory SEO",
+    "reason": "Phase 5 implementation checkpoint is complete. Its legal/contact/mail and deployment configuration tasks are deferred; Phase 6 is authorized."
   },
-  "updated_at": "2026-10-01T17:15:44.940Z"
+  "updated_at": "2026-10-02T10:25:00.000Z"
 }

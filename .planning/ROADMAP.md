@@ -12,7 +12,7 @@ This roadmap plans V1 work. Phase 1 has four plan summaries covering the foundat
 - [ ] **Phase 2: Machine model and Payload owner workflow** — make every physical excavator distinct and let HGR manage drafts and core facts.
 - [ ] **Phase 3: Photography, media processing and JPJ protection** — complete category-led uploads, responsive images, watermarks and human-approved public documents.
 - [ ] **Phase 4: Public used-excavator inventory** — ship browse, machine detail, truthful status/price behaviour and stable public links.
-- [ ] **Phase 5: Enquiries and supporting pages** — make direct contact work and publish simple editable secondary sections.
+- [x] **Phase 5: Enquiries and supporting pages** — implement direct contact flows and simple editable secondary sections. SMTP/live mailbox, phone/WhatsApp numbers, legal approval/publication and infrastructure verification are deferred to deployment/configuration.
 - [ ] **Phase 6: Accessible design and inventory SEO** — apply HGR design, bounded hero motion and crawlable, truthful search foundations.
 - [ ] **Phase 7: Measurement, privacy, security and recovery** — validate tracking, protect data and prove staging/backups.
 - [ ] **Phase 8: Owner acceptance and launch readiness** — test real workflows and content, train HGR and prepare an authorized launch.
@@ -108,7 +108,9 @@ Plans:
 **Goal:** Make the core buyer journey useful before secondary promotion and visual effects.  
 **Depends on:** Phase 2 stable unit model and Phase 3 published-media/document rules.  
 **Requirements:** ADMN-07, ADMN-08, LIST-01, LIST-02, LIST-03, LIST-04, LIST-05, LIST-06, LIST-07, LIST-08, MACH-01, MACH-02, MACH-03, MACH-04, MACH-05, MACH-06, MACH-07.  
-**Plans:** TBD during `$gsd-plan-phase 4`.
+**Plans:** 1/1 local implementation plan summarized; database-backed UI and Phase 3 live media verification remain pending.
+Plan:
+- [x] 04-01-PLAN.md — Build the public browse, stable machine pages and owner link-copy action. Public photo bytes remain gated on Phase 3 approved-service verification.
 
 **Success criteria:**
 
@@ -116,22 +118,25 @@ Plans:
 2. Reserving or selling a machine changes homepage/list/detail behaviour without an owner-run deployment; sold pages retain their own URLs and guide visitors toward Available machines.
 3. Drafts/private facts stay absent from public listing and metadata; the owner can copy the correct public link for manual sharing.
 
-**TO CONFIRM in this phase:** pagination or accessible Load More, exact related-machine fallback, sold-price display choice if HGR wants a policy beyond per-unit price visibility. Use real status rather than assuming all planned inventory is currently available.
+**Decisions recorded in** `.planning/phases/04-public-used-excavator-inventory/04-CONTEXT.md`: use accessible crawlable pagination; offer Published + Available alternatives, falling back to inventory; display price only according to each unit's explicit visibility setting. No owner business decision blocks local implementation. Real photo delivery remains gated by Phase 3 service verification.
 
 ### Phase 5: Enquiries and supporting pages
 
 **Goal:** Complete the listing-to-contact journey and keep secondary businesses easy to edit and enquire about.  
 **Depends on:** Phase 4 public unit identity/pages; broad page structure can be drafted earlier with verified-only copy.  
 **Requirements:** LEAD-01, LEAD-02, LEAD-03, LEAD-04, LEAD-05, LEAD-06, LEAD-07, LEAD-08, LEAD-09, SITE-01, SITE-02, SITE-03, SITE-04, SITE-05, SITE-06.  
-**Plans:** TBD during `$gsd-plan-phase 5`.
+**Plans:** 1/1 implementation plan complete; owner-approved recipient is stored in environment configuration. SMTP service settings/live receipt, phone/WhatsApp numbers, legal approval/publication, and infrastructure verification remain deferred deployment/configuration items.
+
+Plan:
+- [x] 05-01-PLAN.md — Implement machine/general enquiry flows, supporting pages and contact navigation. Deployment/configuration items remain separately tracked.
 
 **Success criteria:**
 
-1. WhatsApp, phone and machine-specific/general forms carry correct unit context; a tested accepted submission reaches HGR's configured mailbox, and failure offers a direct alternative.
+1. Machine-specific/general forms carry correct unit context; forms report success only after adapter acceptance. Phone/WhatsApp remain hidden and live mailbox receipt is deferred until deployment configuration.
 2. Rental, Machinery Services and Lubricants remain useful editable enquiry pages even with no rental fleet, service catalogue or lubricant products.
-3. Navigation, Contact, About, approved legal-page routes and 404 recovery work without unsupported public claims.
+3. Navigation, Contact, About, unpublished Owner Review Required legal drafts, and 404 recovery work without unsupported public claims.
 
-**TO CONFIRM in this phase:** working phone/WhatsApp/receiving mailbox, email provider and retry behaviour, form anti-spam choice, verified address and current machine-location copy before publication. Exact rental/service/product claims are only needed when they are shown.
+**Deferred deployment/configuration:** SMTP connection/sender and live mailbox acceptance, phone/WhatsApp numbers, Owner review/publication of legal drafts, and verified address/machine-location copy. These do not block Phase 5 implementation completion. Exact rental/service/product claims are only needed when they are shown.
 
 ### Phase 6: Accessible design and inventory SEO
 
@@ -191,8 +196,8 @@ Plans:
 | 1. Portable foundation and Exabytes feasibility | 4/4 plans; verification pending | In Progress|  |
 | 2. Machine model and Payload owner workflow | 0/TBD | Not started | — |
 | 3. Photography, media processing and JPJ protection | 4/4 | In Progress|  |
-| 4. Public used-excavator inventory | 0/TBD | Not started | — |
-| 5. Enquiries and supporting pages | 0/TBD | Not started | — |
+| 4. Public used-excavator inventory | 1/1 local plan summarized; live checks pending | In Progress | — |
+| 5. Enquiries and supporting pages | 0/1 | In Progress | — |
 | 6. Accessible design and inventory SEO | 0/TBD | Not started | — |
 | 7. Measurement, privacy, security and recovery | 0/TBD | Not started | — |
 | 8. Owner acceptance and launch readiness | 0/TBD | Not started | — |

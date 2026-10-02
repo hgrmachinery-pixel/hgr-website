@@ -247,6 +247,10 @@ export interface Machine {
   machineOriginStatus?: string | null;
   registrationDate?: string | null;
   description?: string | null;
+  /**
+   * Paste a standard YouTube, youtu.be, Shorts, or embed link.
+   */
+  videoUrl?: string | null;
   stockStatus?: ('available' | 'reserved' | 'sold') | null;
   priceMode?: ('unset' | 'contact' | 'public') | null;
   price?: number | null;
@@ -701,6 +705,7 @@ export interface MachinesSelect<T extends boolean = true> {
   machineOriginStatus?: T;
   registrationDate?: T;
   description?: T;
+  videoUrl?: T;
   stockStatus?: T;
   priceMode?: T;
   price?: T;

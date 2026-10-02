@@ -1,51 +1,18 @@
-import config from "@payload-config";
-import { getPayload } from "payload";
+import Link from "next/link";
+import { MachineCard } from "../../components/site/MachineCard";
+import { getAvailableHomepageMachines } from "../../lib/machines/publicInventory";
+import { getPublicMachines } from "../../lib/machines/publicQueries";
 
 export const dynamic = "force-dynamic";
 
-export default async function FoundationPage() {
-  const payload = await getPayload({ config });
-  const { docs } = await payload.find({
-    collection: "foundation-fixtures",
-    limit: 1,
-    depth: 0,
-    overrideAccess: false,
-    sort: "-createdAt",
-  });
-  const fixture = docs[0];
-  const image = fixture?.sizes?.card;
-
-  return (
-    <main
-      style={{
-        maxWidth: 800,
-        margin: "2rem auto",
-        padding: "1rem",
-        fontFamily: "sans-serif",
-      }}
-    >
-      <h1>Application foundation test</h1>
-      <p>
-        Synthetic, disposable test content. This is not HGR machine inventory.
-      </p>
-      {fixture ? (
-        <article>
-          <h2>{fixture.title}</h2>
-          {image?.url ? (
-            <img
-              src={image.url}
-              alt="Generated geometric test image"
-              width={image.width ?? 640}
-              height={image.height ?? 400}
-              style={{ maxWidth: "100%", height: "auto" }}
-            />
-          ) : (
-            <p>The test image could not be loaded.</p>
-          )}
-        </article>
-      ) : (
-        <p>No synthetic test record has been added.</p>
-      )}
-    </main>
-  );
+export default async function HomePage() {
+  const inventory = await getPublicMachines();
+  const available = getAvailableHomepageMachines(inventory.machines);
+  return <main className="page-shell">
+    <p className="eyebrow">HGR equipment resources</p>
+    <h1 className="page-title">Used Excavators</h1>
+    <p className="page-intro">Browse HGR’s used excavator inventory and inspect the details available for each machine.</p>
+    <div className="section-heading"><h2>Available Excavators</h2><Link href="/used-excavators">View all excavators</Link></div>
+    {inventory.unavailable ? <section className="empty-state" role="status"><h2>Inventory is temporarily unavailable</h2><p>Please try again later.</p></section> : available.length > 0 ? <div className="machine-grid">{available.map((machine) => <MachineCard key={machine.hgrId} machine={machine} image={machine.featuredImage} />)}</div> : <section className="empty-state"><h2>No excavators are currently listed as available</h2><p>Check the full inventory for Reserved or Sold machines.</p><Link className="button button--primary" href="/used-excavators">Browse all excavators</Link></section>}
+  </main>;
 }

@@ -1,3 +1,5 @@
+import { youtubeEmbedURL } from "./video.ts";
+
 export type PublicMachine = {
   hgrId: string;
   slug: string;
@@ -14,6 +16,7 @@ export type PublicMachine = {
   machineOriginStatus?: string;
   registrationDate?: string;
   description?: string;
+  videoUrl?: string;
   stockStatus: "available" | "reserved" | "sold";
   price?: { mode: "contact" } | { mode: "public"; amount: number };
   serialNumber?: string;
@@ -38,6 +41,9 @@ export function projectPublicMachine(document: MachineDocument): PublicMachine |
     document.archived === true ||
     !hgrId ||
     !slug ||
+    !/^HGR-[0-9]{6,}$/i.test(hgrId) ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ||
+    !slug.endsWith(hgrId.toLowerCase()) ||
     !["available", "reserved", "sold"].includes(String(stockStatus))
   ) {
     return null;
@@ -76,13 +82,16 @@ export function projectPublicMachine(document: MachineDocument): PublicMachine |
     projection.price = { mode: "contact" };
   } else if (document.priceMode === "public") {
     const amount = optionalNumber(document.price);
-    if (amount !== undefined) projection.price = { mode: "public", amount };
+    if (amount !== undefined && amount >= 0) projection.price = { mode: "public", amount };
   }
 
   const serialNumber = optionalString(document.serialNumber);
   if (document.showSerialPublicly === true && serialNumber) {
     projection.serialNumber = serialNumber;
   }
+
+  const videoUrl = youtubeEmbedURL(document.videoUrl);
+  if (videoUrl) projection.videoUrl = videoUrl;
 
   return projection;
 }
