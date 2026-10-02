@@ -5,11 +5,11 @@ milestone_name: versus deferred scope
 current_phase: 7
 current_phase_name: Measurement, privacy, security and recovery
 current_plan: 3
-status: Plans 07-01 and 07-02 local implementation are complete, and their summaries, plans and security review are committed. Owner account, consent, privacy and target-verification gates for Plans 07-03 and 07-04 remain open.
-stopped_at: Awaiting owner inputs at the Phase 07-03 and 07-04 human gates
-last_updated: "2026-10-02T10:28:01.837Z"
+status: Plans 07-01 and 07-02 are complete. Local preparation for Plans 07-03 and 07-04 is recorded; owner-approved analytics/privacy and isolated-recovery deployment gates remain open. Measurement must remain disabled.
+stopped_at: Awaiting approved production account, consent, privacy and tag evidence plus an isolated recovery target for Phase 7 deployment acceptance
+last_updated: "2026-10-02T12:00:00.000Z"
 last_activity: 2026-10-02
-last_activity_desc: Completed Phase 7 Plans 07-01 and 07-02, closed the high-severity secret-scan review finding, and recorded the remaining medium tag-container limitation. Focused checks pass; the full suite reports 133 passed and 3 existing foundation-config child-process ENOMEM failures. Waiting for owner decisions on accounts, consent, privacy facts and an isolated staging/restore target.
+last_activity_desc: Recorded the owner's instruction to keep measurement disabled until account, consent, privacy review and tag configuration approval. Added non-secret approval and recovery gate records and completed local Phase 7 focused checks; live account, privacy and isolated-target evidence remains pending.
 state_head: fb13deba9749c3d2e296ff3254371b8ac3434fcd
 progress:
   total_phases: 8
@@ -34,11 +34,11 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 Phase: 7 (Measurement, privacy, security and recovery)
 Current Plan: 3
 Total Plans in Phase: 4
-Status: Plans 07-01 and 07-02 local implementation are complete, and their summaries, plans and security review are committed. Owner account, consent, privacy and target-verification gates for Plans 07-03 and 07-04 remain open.
+Status: Plans 07-01 and 07-02 are complete. Local preparation and summaries for Plans 07-03 and 07-04 are recorded; their owner approval and deployment evidence gates remain open. Measurement remains disabled.
 Last Activity: 2026-10-02
-Last Activity Description: Completed Phase 7 Plans 07-01 and 07-02, closed the high-severity secret-scan review finding, and recorded the remaining medium tag-container limitation. Focused checks pass; the full suite reports 133 passed and 3 existing foundation-config child-process ENOMEM failures. Awaiting owner decisions on accounts, consent, privacy facts and an isolated staging/restore target.
+Last Activity Description: Recorded the owner's instruction to keep measurement disabled until account, consent, privacy review and tag configuration approval. Added approval/recovery gate records and ran focused Phase 7 checks; live account, privacy and isolated-target evidence remains pending.
 
-Progress: 20 of 22 implementation plans are complete. Phase 1–4 external verification remains pending. Phase 5 implementation and Phase 6 implementation are complete; legal publication, SMTP setup, phone/WhatsApp numbers, Search Console, analytics activation, browser/device and infrastructure/deployment acceptance remain deferred. Phase 7 Plans 07-01 and 07-02 local implementation is complete; owner decisions and external verification remain open.
+Progress: 20 of 22 implementation plans are complete. Phase 1–4 external verification remains pending. Phase 5 implementation and Phase 6 implementation are complete; legal publication, SMTP setup, phone/WhatsApp numbers, Search Console, analytics activation, browser/device and infrastructure/deployment acceptance remain deferred. Phase 7 local work in Plans 07-01/02 is complete and local preparation in Plans 07-03/04 is recorded; account/consent/privacy approvals, production tag evidence, staging access checks and live restore remain deployment gates.
 
 ## Performance Metrics
 
@@ -136,5 +136,5 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 ## Session Continuity
 
 Last session: 2026-10-02T10:26:44.753Z
-Stopped at: Awaiting owner inputs at the Phase 07-03 and 07-04 human gates
+Stopped at: Awaiting approved production account, consent, privacy and tag evidence plus an isolated recovery target for Phase 7 deployment acceptance
 Resume file: None

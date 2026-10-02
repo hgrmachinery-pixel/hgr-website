@@ -4,6 +4,8 @@
 **Draft date:** 2 October 2026
 **Business:** HGR Equipment Resources (confirm the registered legal entity name and business address before publication)
 
+**Measurement deployment gate:** The owner has directed that all measurement remain disabled. Do not configure GA4, GTM, analytics cookies, advertising tags, or remarketing until the production analytics account, consent behavior, privacy review, and tag configuration have all been approved. Actual deployment cookies, logs, recipients, providers, and retention remain unverified; the applicable disclosure sections below remain unresolved.
+
 This draft is for review and must be checked against HGR's actual data handling and the Malaysian Personal Data Protection Act 2010 (Act 709), including amendments in force. Items marked **[OWNER TO CONFIRM]** must be completed before publication. Prepare the required Bahasa Malaysia version and review both versions together before publication.
 
 ## 1. Who we are

@@ -1,5 +1,9 @@
 # Backup and Restore Procedure
 
+## Current owner gate status — 2 October 2026
+
+The owner confirmed that the isolated recovery target remains an unresolved deployment item. No target, operator, isolation evidence, or restore approval is recorded. Do not access or write to any live environment, and do not provision or purchase a recovery resource. SAFE-03 target checks and SAFE-05 restore proof remain pending until an existing disposable PostgreSQL/object-storage target and its approval evidence are supplied.
+
 This provider-neutral procedure is a template for a future, owner-approved recovery rehearsal. It is not evidence that a backup exists or that a restore has succeeded. All target names, operators, schedules, retention periods, providers and access details remain **TO CONFIRM**.
 
 ## Safety rules

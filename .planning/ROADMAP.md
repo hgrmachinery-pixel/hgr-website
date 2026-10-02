@@ -168,7 +168,7 @@ Plans:
 **Goal:** Make marketing measurement trustworthy and show that customer, draft and document data remain protected and recoverable.  
 **Depends on:** Phase 5 contact flows and Phase 6 public/SEO behaviour. Security design began in Phases 1–3.  
 **Requirements:** ANLY-01, ANLY-02, ANLY-03, ANLY-04, ANLY-05, ANLY-06, SAFE-01, SAFE-02, SAFE-03, SAFE-04, SAFE-05, SAFE-06, SAFE-07.  
-**Plans:** 2/4 plans executed
+**Plans:** 2/4 plans executed; local preparation for 07-03 and 07-04 is recorded, with owner and deployment verification gates still open.
 
 Plans:
 - [x] 07-01-PLAN.md — Add fail-closed privacy-safe measurement events.
@@ -182,7 +182,7 @@ Plans:
 2. Unauthenticated access to drafts, private facts and JPJ originals is rejected across page/API/media/cache paths; staging is protected and non-indexable.
 3. The documented database/media/configuration backup procedure passes a representative restore, and reviewed privacy/terms wording matches actual data handling.
 
-**TO CONFIRM in this phase:** account access for GA4/GTM/Search Console/Ads, tracking/consent configuration, recipient/retention practices, privacy reviewer, backup targets and responsible operator. An Ads campaign spend/activation decision is separate from measurement readiness.
+**TO CONFIRM in this phase:** production account access and configuration, consent behavior, actual recipient/retention practices, privacy reviewer and tag review evidence, plus an isolated recovery target/operator and target-level staging/restore evidence. Owner direction: all measurement stays disabled; do not configure GA4, GTM, analytics cookies, advertising tags or remarketing until the production analytics account, consent behavior, privacy review and tag configuration are approved. An Ads campaign spend/activation decision is separate from measurement readiness.
 
 ### Phase 8: Owner acceptance and launch readiness
 
