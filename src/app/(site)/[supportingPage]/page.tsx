@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EnquiryForm } from "../../../components/site/EnquiryForm";
 import { getPublishedPage, getPublicContact, lexicalPlainText } from "../../../lib/siteContent";
+import type { Metadata } from "next";
+import { buildSupportingPageMetadata, getIndexingPolicy, getPublicOrigin } from "../../../lib/siteMetadata";
 
 const pages = {
   rental: { title: "Rental enquiries", intro: "Tell us about your project. Availability and suitability are confirmed by HGR; this form does not make a booking.", kind: "rental" },
@@ -14,6 +16,24 @@ const pages = {
 } as const;
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ supportingPage: string }> }): Promise<Metadata> {
+  const { supportingPage } = await params;
+  if (!Object.prototype.hasOwnProperty.call(pages, supportingPage)) return { robots: { index: false, follow: true } };
+  const key = supportingPage as keyof typeof pages;
+  const definition = pages[key];
+  const page = await getPublishedPage(key);
+  const visibleText = lexicalPlainText(page?.body).join(" ");
+  const metadata = buildSupportingPageMetadata({
+    slug: key,
+    title: typeof page?.title === "string" ? page.title : definition.title,
+    visibleText,
+    fallbackDescription: definition.intro,
+    origin: getPublicOrigin(),
+    robots: getIndexingPolicy(),
+  });
+  return metadata ?? { robots: { index: false, follow: true } };
+}
 
 export default async function SupportingPage({ params }: { params: Promise<{ supportingPage: string }> }) {
   const { supportingPage } = await params;

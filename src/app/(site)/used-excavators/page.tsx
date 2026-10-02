@@ -1,16 +1,20 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { InventoryFilters } from "../../../components/site/InventoryFilters";
 import { MachineCard } from "../../../components/site/MachineCard";
 import { filterPublicMachines, inventoryBrandOptions, normalizeInventoryFilters, paginateMachines } from "../../../lib/machines/publicInventory";
 import { getPublicMachines } from "../../../lib/machines/publicQueries";
+import { buildInventoryMetadata, getIndexingPolicy, getPublicOrigin } from "../../../lib/siteMetadata";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: "Used Excavators | HGR", description: "Browse available, reserved and sold used excavators from HGR Equipment Resources.", robots: { index: false, follow: true } };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 function queryValue(value: string | string[] | undefined): string | undefined { return Array.isArray(value) ? value[0] : value; }
+
+export async function generateMetadata({ searchParams }: { searchParams: SearchParams }) {
+  const params = await searchParams;
+  return buildInventoryMetadata(params, getPublicOrigin(), getIndexingPolicy());
+}
 
 export default async function UsedExcavatorsPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;

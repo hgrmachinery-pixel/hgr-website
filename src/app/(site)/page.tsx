@@ -2,8 +2,19 @@ import Link from "next/link";
 import { MachineCard } from "../../components/site/MachineCard";
 import { getAvailableHomepageMachines } from "../../lib/machines/publicInventory";
 import { getPublicMachines } from "../../lib/machines/publicQueries";
+import { buildRouteMetadata, getIndexingPolicy, getPublicOrigin } from "../../lib/siteMetadata";
 
 export const dynamic = "force-dynamic";
+
+export function generateMetadata() {
+  return buildRouteMetadata({
+    title: "Used Excavators",
+    description: "Browse HGR’s used excavator inventory and inspect the details available for each machine.",
+    path: "/",
+    origin: getPublicOrigin(),
+    robots: getIndexingPolicy(),
+  });
+}
 
 export default async function HomePage() {
   const inventory = await getPublicMachines();

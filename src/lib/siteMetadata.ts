@@ -52,6 +52,69 @@ export function getSiteMetadataBase(): URL | undefined {
   return origin ? new URL(origin) : undefined;
 }
 
+export function buildRouteMetadata({
+  title,
+  description,
+  path,
+  origin,
+  robots,
+}: {
+  title: string;
+  description: string;
+  path: string;
+  origin?: string;
+  robots: Metadata["robots"];
+}): Metadata {
+  const canonical = origin ? new URL(path, origin).toString() : undefined;
+  return {
+    title,
+    description: normalizeDescription(description),
+    robots,
+    ...(canonical ? { alternates: { canonical } } : {}),
+  };
+}
+
+export function buildInventoryMetadata(
+  searchParams: Record<string, string | string[] | undefined>,
+  origin: string | undefined,
+  robots: Metadata["robots"],
+): Metadata {
+  const filtered = ["q", "brand", "status", "page"].some((key) => searchParams[key] !== undefined);
+  return buildRouteMetadata({
+    title: "Used Excavators",
+    description: "Browse excavators by brand, model and current stock status. Machine information is shown as entered by HGR.",
+    path: "/used-excavators",
+    origin,
+    robots: filtered ? { index: false, follow: true } : robots,
+  });
+}
+
+export function buildSupportingPageMetadata({
+  slug,
+  title,
+  visibleText,
+  fallbackDescription,
+  origin,
+  robots,
+}: {
+  slug: string;
+  title: string;
+  visibleText: string;
+  fallbackDescription: string;
+  origin?: string;
+  robots: Metadata["robots"];
+}): Metadata | null {
+  const legal = slug === "privacy-policy" || slug === "website-terms";
+  if (legal && !visibleText.trim()) return null;
+  return buildRouteMetadata({
+    title,
+    description: visibleText.trim() || fallbackDescription,
+    path: `/${slug}`,
+    origin,
+    robots,
+  });
+}
+
 export function buildMachineMetadata(machine: MachineForMetadata, origin?: string): Metadata {
   const name = machineName(machine);
   const description = machine.description?.replace(/\s+/g, " ").trim().slice(0, 160) ||
@@ -115,4 +178,8 @@ function statusText(status: MachineForMetadata["stockStatus"]): string {
 
 function availability(status: MachineForMetadata["stockStatus"]): string {
   return status === "available" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock";
+}
+
+function normalizeDescription(value: string): string {
+  return value.replace(/\s+/g, " ").trim().slice(0, 160);
 }
