@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { sendEnquiry, type EnquiryFormState } from "../../app/(site)/contact/actions";
 import type { EnquiryKind } from "../../lib/enquiries/submit.ts";
+import { campaignFromSearch, createEnquiryEventGate, createAnalyticsEvent, trackAnalyticsEvent } from "../../lib/analytics/events.ts";
 
 const initialState: EnquiryFormState = { status: "idle" };
 const fieldLimits: Record<string, number> = { name: 160, company: 160, phone: 40, email: 254, message: 4000, projectLocation: 200, machineRequired: 160, startDate: 10, rentalDuration: 120, needOperator: 10, brand: 100, model: 100, problemDescription: 4000, machineLocation: 200, urgent: 10, machineBrand: 100, machineModel: 100, lubricantRequired: 160, quantity: 80, subject: 40, machineInterest: 200, purchaseTimeline: 80, budget: 80, tradeIn: 10, tradeInBrand: 100, tradeInModel: 100, tradeInYear: 4, preferredContact: 20, referrer: 500, utmSource: 200, utmMedium: 200, utmCampaign: 200, utmTerm: 200, utmContent: 200 };
@@ -15,6 +16,10 @@ export function EnquiryForm({ kind, machineSlug, machineName = "", machineRefere
   const [tradeIn, setTradeIn] = useState(values.tradeIn ?? "no");
   const [preferredContact, setPreferredContact] = useState(values.preferredContact ?? "whatsapp");
   const [crm, setCrm] = useState<Record<string, string>>({});
+  const eventGate = useRef<ReturnType<typeof createEnquiryEventGate> | null>(null);
+  const formStarted = useRef(false);
+  const viewingIntentSent = useRef(false);
+  if (!eventGate.current) eventGate.current = createEnquiryEventGate();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -27,6 +32,30 @@ export function EnquiryForm({ kind, machineSlug, machineName = "", machineRefere
       utmContent: params.get("utm_content")?.slice(0, 200) ?? "",
     });
   }, []);
+
+  useEffect(() => {
+    const acceptedEvent = eventGate.current?.settle(state, campaignFromSearch(window.location.search));
+    if (acceptedEvent) trackAnalyticsEvent(acceptedEvent);
+  }, [state]);
+
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    if (!eventGate.current?.begin()) {
+      event.preventDefault();
+      return;
+    }
+  };
+
+  const onFormFocus = () => {
+    if (formStarted.current) return;
+    formStarted.current = true;
+    trackAnalyticsEvent(createAnalyticsEvent({ name: "enquiry_start", enquiryKind: kind, machineReference, campaign: campaignFromSearch(window.location.search) }));
+  };
+
+  const onViewingFocus = () => {
+    if (viewingIntentSent.current) return;
+    viewingIntentSent.current = true;
+    trackAnalyticsEvent(createAnalyticsEvent({ name: "viewing_intent", machineReference, campaign: campaignFromSearch(window.location.search) }));
+  };
 
   const field = (name: string, label: string, options: { required?: boolean; type?: string; area?: boolean; choices?: Choice[]; hint?: string; readOnly?: boolean; value?: string } = {}) => {
     const error = state.fieldErrors?.[name as keyof NonNullable<EnquiryFormState["fieldErrors"]>];
@@ -43,6 +72,7 @@ export function EnquiryForm({ kind, machineSlug, machineName = "", machineRefere
       readOnly: options.readOnly,
       "aria-invalid": error ? true : undefined,
       "aria-describedby": descriptionIds,
+      onFocus: name === "viewingPreference" ? onViewingFocus : undefined,
     };
     return <div className="enquiry-form__field" key={name}>
       <label htmlFor={name}>{label}{options.required && <span aria-hidden="true"> *</span>}</label>
@@ -58,7 +88,7 @@ export function EnquiryForm({ kind, machineSlug, machineName = "", machineRefere
   };
 
   const yesNo: Choice[] = [{ value: "yes", label: "Yes" }, { value: "no", label: "No" }];
-  return <form key={`${state.status}-${JSON.stringify(values)}`} className="enquiry-form" action={action}>
+  return <form key={`${state.status}-${JSON.stringify(values)}`} className="enquiry-form" action={action} onSubmit={onSubmit} onFocusCapture={onFormFocus}>
     <label className="enquiry-form__trap" aria-hidden="true">Leave this field empty<input tabIndex={-1} autoComplete="off" name="website" /></label>
     {Object.entries(crm).map(([key, value]) => <input key={key} type="hidden" name={key} value={value} />)}
     {field("name", "Name", { required: true })}

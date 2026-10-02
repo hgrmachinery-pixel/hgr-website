@@ -5,6 +5,7 @@ import { getPayload } from "payload";
 import { getPublicMachineForSlug } from "../../../lib/machines/publicQueries";
 import { smtpEnquiryAdapter } from "../../../lib/email/enquiryAdapter";
 import { submitEnquiry, type EnquiryFieldErrors, type EnquiryKind, type EnquiryMetadata } from "../../../lib/enquiries/submit.ts";
+import { isLocalReviewMode } from "../../../lib/machines/publicQueries.ts";
 import { headers } from "next/headers";
 
 export type EnquiryFormState = {
@@ -13,6 +14,9 @@ export type EnquiryFormState = {
   errors?: string[];
   fieldErrors?: EnquiryFieldErrors;
   values?: Record<string, string>;
+  measurementEligible?: boolean;
+  measurementKind?: EnquiryKind;
+  measurementMachineReference?: string;
 };
 
 const publicKinds: EnquiryKind[] = ["general", "machine", "rental", "service", "lubricant"];
@@ -54,8 +58,20 @@ export async function sendEnquiry(expectedKind: EnquiryKind, expectedMachineSlug
     browser: requestHeaders.get("user-agent")?.slice(0, 500) ?? undefined,
     timestamp: new Date().toISOString(),
   };
+  if (isLocalReviewMode()) {
+    const validation = await submitEnquiry(input as never, async () => ({ accepted: true }), context);
+    if (validation.status === "accepted") return { status: "accepted", measurementEligible: false, message: "Local review only: this sample enquiry was not sent or saved." };
+    if (validation.status === "invalid") return { status: "invalid", errors: validation.errors, fieldErrors: validation.fieldErrors, values };
+    return { status: "unavailable", message: "Local review only: no enquiry was sent or saved.", values };
+  }
   const result = await submitEnquiry(input as never, smtpEnquiryAdapter, context);
-  if (result.status === "accepted") return { status: "accepted", message: "Thank you. Your enquiry has been received. Our team will contact you as soon as possible." };
+  if (result.status === "accepted") return {
+    status: "accepted",
+    measurementEligible: true,
+    measurementKind: kind,
+    ...(context.machine?.reference ? { measurementMachineReference: context.machine.reference } : {}),
+    message: "Thank you. Your enquiry has been received. Our team will contact you as soon as possible.",
+  };
   if (result.status === "invalid") return { status: "invalid", errors: result.errors, fieldErrors: result.fieldErrors, values };
   if (result.status === "unavailable") return { status: "unavailable", message: "Online enquiries are not available right now. Please use the phone or WhatsApp options shown on this page when configured.", values };
   return { status: "failed", message: "We could not send your enquiry. Please try again later or use a direct contact option when available.", values };
