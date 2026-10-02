@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { publicMachinePath } from "./machines/publicInventory.ts";
+import { getPublicImageURL, publicMachinePath, type PublicImageCandidate } from "./machines/publicInventory.ts";
 
 type IndexingEnvironment = {
   nodeEnv?: string;
@@ -17,6 +17,7 @@ type MachineForMetadata = {
   description?: string;
   stockStatus: "available" | "reserved" | "sold";
   price?: { mode: "contact" } | { mode: "public"; amount: number };
+  featuredImage?: PublicImageCandidate;
 };
 
 export function getPublicOrigin(value: string | undefined = process.env.SERVER_URL): string | undefined {
@@ -120,6 +121,12 @@ export function buildMachineMetadata(machine: MachineForMetadata, origin?: strin
   const description = machine.description?.replace(/\s+/g, " ").trim().slice(0, 160) ||
     `${name}. Reference ${machine.reference}. Current status: ${statusText(machine.stockStatus)}.`;
   const canonical = origin ? new URL(publicMachinePath(machine.slug), origin).toString() : undefined;
+  const featuredLargeImage = machine.featuredImage && typeof machine.featuredImage.altText === "string"
+    ? getPublicImageURL(machine.featuredImage.largeUrl, true)
+    : undefined;
+  const shareImage = featuredLargeImage
+    ? { url: origin ? new URL(featuredLargeImage, origin).toString() : featuredLargeImage, alt: machine.featuredImage?.altText ?? "" }
+    : undefined;
   return {
     title: name,
     description,
@@ -129,7 +136,9 @@ export function buildMachineMetadata(machine: MachineForMetadata, origin?: strin
       title: name,
       description,
       ...(canonical ? { url: canonical } : {}),
+      ...(shareImage ? { images: [shareImage] } : {}),
     },
+    ...(shareImage ? { twitter: { card: "summary_large_image", images: [shareImage] } } : {}),
   };
 }
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { PublicMachine } from "../../lib/machines/publicProjection";
 import type { PublicImageCandidate } from "../../lib/machines/publicInventory";
-import { publicMachinePath } from "../../lib/machines/publicInventory";
+import { publicImageSrcSet, publicMachinePath } from "../../lib/machines/publicInventory";
 
 const statusLabels = { available: "Available", reserved: "Reserved", sold: "Sold" } as const;
 
@@ -11,7 +11,7 @@ export function MachineCard({ machine, image }: { machine: PublicMachine; image?
     <article className="machine-card">
       <Link className="machine-card__link" href={publicMachinePath(machine.slug)}>
         <div className="machine-card__image" aria-label={image ? undefined : "Machine photo unavailable"}>
-          {image ? <img src={image.url} alt={image.altText ?? `${title} machine`} loading="lazy" /> : <span>Photo unavailable</span>}
+          {image ? <img src={image.cardUrl ?? image.url} srcSet={publicImageSrcSet(image)} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" alt={image.altText ?? ""} loading="lazy" /> : <span>Photo unavailable</span>}
         </div>
         <div className="machine-card__content">
           <p className={`machine-status machine-status--${machine.stockStatus}`}>{statusLabels[machine.stockStatus]}</p>

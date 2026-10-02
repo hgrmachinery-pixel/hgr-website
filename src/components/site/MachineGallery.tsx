@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { PublicImageCandidate } from "../../lib/machines/publicInventory";
 import { MACHINE_PHOTO_CATEGORY_LABELS } from "../../lib/machines/media.ts";
+import { publicImageSrcSet } from "../../lib/machines/publicInventory.ts";
 
 export function MachineGallery({ images }: { images: PublicImageCandidate[] }) {
   const categories = useMemo(() => [...new Set(images.map((image) => image.category).filter((value): value is string => Boolean(value)))], [images]);
@@ -24,12 +25,12 @@ export function MachineGallery({ images }: { images: PublicImageCandidate[] }) {
       </div>
       <div className="machine-gallery__featured">
         <button type="button" aria-label="Previous photo" onClick={() => move(-1)}>‹</button>
-        <img src={current.url} alt={current.altText ?? "Machine photo"} />
+        <img src={current.largeUrl ?? current.url} srcSet={publicImageSrcSet(current)} sizes="(max-width: 800px) 100vw, 70vw" alt={current.altText ?? ""} />
         <button type="button" aria-label="Next photo" onClick={() => move(1)}>›</button>
       </div>
       <p aria-live="polite">Photo {selected + 1} of {visible.length}{current.category ? ` · ${MACHINE_PHOTO_CATEGORY_LABELS[current.category as keyof typeof MACHINE_PHOTO_CATEGORY_LABELS] ?? "Other details"}` : ""}</p>
       <div className="machine-gallery__thumbs" aria-label="Choose a photo">
-        {visible.map((image, index) => <button type="button" key={`${image.url}-${index}`} aria-label={`Show photo ${index + 1}${image.altText ? `: ${image.altText}` : ""}`} aria-pressed={selected === index} onClick={() => setSelected(index)}><img src={image.url} alt="" loading="lazy" /></button>)}
+        {visible.map((image, index) => <button type="button" key={`${image.url}-${index}`} aria-label={`Show photo ${index + 1}${image.altText ? `: ${image.altText}` : ""}`} aria-pressed={selected === index} onClick={() => setSelected(index)}><img src={image.thumbnailUrl ?? image.url} alt="" loading="lazy" /></button>)}
       </div>
     </section>
   );
