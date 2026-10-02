@@ -143,12 +143,12 @@ Each checkbox stays unchecked until the capability is built, verified and record
 ### Security, privacy and operations — Phase 7
 
 - [ ] **SAFE-01**: Public and unauthenticated requests cannot access unpublished machine records, private serial fields or original JPJ/ownership files through pages, APIs, generated media or cached responses.
-- [ ] **SAFE-02**: Uploads and form input are validated, and administrator access follows least privilege appropriate to the two initial accounts.
+- [x] **SAFE-02**: Uploads and form input are validated, and administrator access follows least privilege appropriate to the two initial accounts.
 - [ ] **SAFE-03**: Staging is protected and non-indexable, with test credentials/data and tags handled separately as appropriate.
-- [ ] **SAFE-04**: Database, structured content, media and deployment configuration have a documented backup and recovery procedure.
+- [x] **SAFE-04**: Database, structured content, media and deployment configuration have a documented backup and recovery procedure.
 - [ ] **SAFE-05**: Maintainers can demonstrate a restore of representative database and media content before launch.
 - [ ] **SAFE-06**: Reviewed privacy/terms/form and third-party disclosures match actual enquiry, media, analytics, mail and embed behaviour before publication.
-- [ ] **SAFE-07**: No passwords, API keys, database credentials, service-account credentials, private keys or `.env` secrets are committed to Git.
+- [x] **SAFE-07**: No passwords, API keys, database credentials, service-account credentials, private keys or `.env` secrets are committed to Git.
 
 ### Owner acceptance and launch readiness — Phase 8
 
@@ -285,12 +285,12 @@ Each V1 requirement is owned by exactly one phase. See the roadmap's phase detai
 | ANLY-05 | Phase 7 | Pending |
 | ANLY-06 | Phase 7 | Pending |
 | SAFE-01 | Phase 7 | Pending |
-| SAFE-02 | Phase 7 | Pending |
+| SAFE-02 | Phase 7 | Complete |
 | SAFE-03 | Phase 7 | Pending |
-| SAFE-04 | Phase 7 | Pending |
+| SAFE-04 | Phase 7 | Complete |
 | SAFE-05 | Phase 7 | Pending |
 | SAFE-06 | Phase 7 | Pending |
-| SAFE-07 | Phase 7 | Pending |
+| SAFE-07 | Phase 7 | Complete |
 | RELS-01 | Phase 8 | Pending |
 | RELS-02 | Phase 8 | Pending |
 | RELS-03 | Phase 8 | Pending |

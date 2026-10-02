@@ -4,18 +4,18 @@ milestone: V1
 milestone_name: versus deferred scope
 current_phase: 7
 current_phase_name: Measurement, privacy, security and recovery
-current_plan: 2
+current_plan: 3
 status: Phase 6 implementation is complete. The requested five-form enquiry UX review and improvement pass is complete. Continue with Phase 7 planning and implementation; owner-dependent measurement, privacy and recovery decisions remain tracked in the roadmap.
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-10-02T10:05:19.449Z"
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-10-02T10:14:52.468Z"
 last_activity: 2026-10-02
 last_activity_desc: Reviewed and improved Machine Enquiry, General Contact, Rental, Machinery Service and Lubricants forms together. Focused tests, typecheck and synthetic build passed. Phase 7 planning is next; three full-suite foundation configuration tests remain blocked by the known Node child-process ENOMEM sandbox issue.
-state_head: 55568725b06e1d4d94d17c44c059aa7e2da18d29
+state_head: 869d26c17f6a9f8480a535d55f82857278ceaa56
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 22
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 Total Phases: 8
@@ -32,13 +32,13 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 ## Current Position
 
 Phase: 7 (Measurement, privacy, security and recovery)
-Current Plan: 2
+Current Plan: 3
 Total Plans in Phase: 4
-Status: Plan 07-01 local measurement implementation is complete. Owner account, consent, container-review and external activation gates remain open; Phase 7 continues.
-Last Activity: 2026-10-02 — Phase 07 Plan 01 complete
-Last Activity Description: Added consent-gated, privacy-bounded measurement events. Focused tests and typecheck pass; production build reached page-data collection but requires the missing local DATABASE_URL.
+Status: Phase 7 Plans 07-01 and 07-02 local implementation is complete. Owner account, consent, staging-target, live-restore, container-review and external activation gates remain open; Phase 7 continues.
+Last Activity: 2026-10-02 — Phase 07 Plan 02 complete
+Last Activity Description: Added local security-boundary, staging-indexing and secret-hygiene checks plus a synthetic-only isolated recovery runbook. Focused tests and typecheck pass; host authentication/cache acceptance and a live restore remain pending.
 
-Progress: 19 of 22 implementation plans are complete. Phase 1–4 external verification remains pending. Phase 5 implementation and Phase 6 implementation are complete; legal publication, SMTP setup, phone/WhatsApp numbers, Search Console, analytics activation, browser/device and infrastructure/deployment acceptance remain deferred. Phase 7 Plan 01 local implementation is complete; owner decisions and external verification remain open.
+Progress: 20 of 22 implementation plans are complete. Phase 1–4 external verification remains pending. Phase 5 implementation and Phase 6 implementation are complete; legal publication, SMTP setup, phone/WhatsApp numbers, Search Console, analytics activation, browser/device and infrastructure/deployment acceptance remain deferred. Phase 7 Plans 07-01 and 07-02 local implementation is complete; owner decisions and external verification remain open.
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: 19 of 22 implementation plans are complete. Phase 1–4 external verif
 | Phase 06 P02 | 1 session | 2 tasks | 5 files |
 | Phase 06 P03 | 7 min | 2 tasks | 5 files |
 | Phase 06 P05 | 7 min | 2 tasks | 4 files |
+| Phase 07 P02 | about 14 minutes | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,8 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - [Phase 06]: Sitemap routes are fixed public pages plus published machines, including Sold units.
 - [Phase 07]: Analytics remains runtime-configured and disabled unless the reviewed consent state permits loading; activation stays owner-gated.
 - [Phase 07]: Only real eligible server-accepted delivery counts as enquiry success; local review samples and contact clicks do not.
+- [Phase 07]: Crawler directives remain distinct from staging host authentication and cache protection.
+- [Phase 07]: Recovery rehearsal uses synthetic data with matched database/object capture revisions and isolated configuration.
 
 ### Pending Todos
 
@@ -132,6 +135,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-02T10:05:19.136Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-10-02T10:14:52.134Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
