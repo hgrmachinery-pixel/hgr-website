@@ -9,6 +9,8 @@ import { publicMachinePath } from "../../../../lib/machines/publicInventory";
 import { EnquiryForm } from "../../../../components/site/EnquiryForm";
 import { getPublicContact } from "../../../../lib/siteContent";
 import { buildMachineMetadata, buildMachineStructuredData, getIndexingPolicy, getPublicOrigin, serializeJsonLd } from "../../../../lib/siteMetadata";
+import { TrackAnalyticsEvent, TrackedContactLink } from "../../../../components/site/AnalyticsProvider";
+import { createAnalyticsEvent } from "../../../../lib/analytics/events.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +49,7 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
   ].filter((entry): entry is [string, string] => Boolean(entry[1]));
 
   return <main className="page-shell">
+    <TrackAnalyticsEvent event={createAnalyticsEvent({ name: "machine_view", machineReference: machine.reference })} />
     {origin && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildMachineStructuredData(machine, origin)) }} />}
     <nav aria-label="Breadcrumb"><ol className="breadcrumbs"><li><Link href="/">Home</Link></li><li><Link href="/used-excavators">Used Excavators</Link></li><li aria-current="page">{title} ({machine.reference})</li></ol></nav>
     <div className="machine-detail__top"><p className={`machine-status machine-status--${machine.stockStatus}`}>{statusLabel(machine.stockStatus)}</p><h1 className="page-title">{title}</h1><p className="machine-card__reference">Reference: {machine.reference}</p></div>
@@ -63,8 +66,8 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
         <section className="machine-enquiry" aria-labelledby="machine-enquiry-title">
           <h2 id="machine-enquiry-title">Enquire about this machine</h2>
           <div className="direct-contact" aria-label="Direct contact options">
-            {contact.phone && <a href={`tel:${contact.phone.replace(/[^+\d]/g, "")}`}>Call HGR</a>}
-            {contact.whatsApp && whatsappMessage && <a href={`https://wa.me/${contact.whatsApp}?text=${encodeURIComponent(whatsappMessage)}`} target="_blank" rel="noreferrer">WhatsApp about this machine</a>}
+            {contact.phone && <TrackedContactLink href={`tel:${contact.phone.replace(/[^+\d]/g, "")}`} channel="phone" machineReference={machine.reference}>Call HGR</TrackedContactLink>}
+            {contact.whatsApp && whatsappMessage && <TrackedContactLink href={`https://wa.me/${contact.whatsApp}?text=${encodeURIComponent(whatsappMessage)}`} channel="whatsapp" machineReference={machine.reference} target="_blank" rel="noreferrer">WhatsApp about this machine</TrackedContactLink>}
           </div>
           <EnquiryForm kind="machine" machineSlug={machine.slug} machineName={title} machineReference={machine.reference} />
           <p className="enquiry-form__hint">Please confirm this machine's current location with HGR before travelling.</p>

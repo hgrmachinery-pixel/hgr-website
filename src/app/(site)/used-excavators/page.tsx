@@ -4,6 +4,8 @@ import { MachineCard } from "../../../components/site/MachineCard";
 import { filterPublicMachines, inventoryBrandOptions, normalizeInventoryFilters, paginateMachines } from "../../../lib/machines/publicInventory";
 import { getPublicMachines } from "../../../lib/machines/publicQueries";
 import { buildInventoryMetadata, getIndexingPolicy, getPublicOrigin } from "../../../lib/siteMetadata";
+import { TrackAnalyticsEvent } from "../../../components/site/AnalyticsProvider";
+import { createAnalyticsEvent } from "../../../lib/analytics/events.ts";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,7 @@ export default async function UsedExcavatorsPage({ searchParams }: { searchParam
   const page = paginateMachines(filtered, filters.page, 12);
 
   return <main className="page-shell">
+    <TrackAnalyticsEvent event={createAnalyticsEvent({ name: "inventory_list_view" })} />
     <p className="eyebrow">HGR inventory</p>
     <h1 className="page-title">Used Excavators</h1>
     <p className="page-intro">Browse excavators by brand, model and current stock status. Machine information is shown as entered by HGR.</p>

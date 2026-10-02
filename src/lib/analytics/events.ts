@@ -105,6 +105,17 @@ export function createAnalyticsEvent(input: EventInput): AnalyticsEvent {
   return event;
 }
 
+export function eventWithCampaignAttribution(event: AnalyticsEvent, campaign: unknown): AnalyticsEvent {
+  return createAnalyticsEvent({
+    name: event.event,
+    machineReference: event.machine_reference,
+    enquiryKind: event.enquiry_kind,
+    contactChannel: event.contact_channel,
+    pageGroup: event.page_group,
+    campaign,
+  });
+}
+
 export type AcceptedEnquiryState = {
   status?: string;
   measurementEligible?: boolean;
