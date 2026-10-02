@@ -80,6 +80,10 @@ requirements-completed: [SEO-08]
 
 None — the plan was completed within its existing public media safety boundary and without new dependencies.
 
+## State Update Note
+
+The state SDK advanced the plan, recorded metrics/decisions/session data, and updated the roadmap and requirement traceability. Its progress-bar helper skipped the legacy prose format, so the displayed plan count and activity description were updated directly in `STATE.md` after verifying the summary and roadmap counts.
+
 ## TDD Gate Compliance
 
 - Task 1 RED evidence passed `check tdd-red-evidence` for the responsive derivative projection behavior; GREEN verification passed.
