@@ -39,6 +39,12 @@ test("only a real eligible server-accepted result creates a lead event", () => {
   });
 });
 
+test("local-review sample acceptance is explicitly ineligible while real adapter acceptance is eligible", async () => {
+  const actions = await readFile(new URL("../src/app/(site)/contact/actions.ts", import.meta.url), "utf8");
+  assert.match(actions, /if \(isLocalReviewMode\(\)\)[\s\S]*?status:\s*"accepted",\s*measurementEligible:\s*false/);
+  assert.match(actions, /if \(result\.status === "accepted"\) return \{[\s\S]*?measurementEligible:\s*true/);
+});
+
 test("pending submissions and repeated accepted result renders do not duplicate lead events", () => {
   const gate = createEnquiryEventGate();
   assert.equal(gate.begin(), true);
@@ -167,16 +173,21 @@ test("approved runtime analytics requires runtime config and consent, and stops 
 test("public inventory, unit and contact routes wire distinct intent events", async () => {
   const inventoryPage = await readFile(new URL("../src/app/(site)/used-excavators/page.tsx", import.meta.url), "utf8");
   assert.match(inventoryPage, /name:\s*"inventory_list_view"/);
-  const [machinePage, supportingPage, contactLink] = await Promise.all([
+  const [machinePage, supportingPage, analyticsProvider, enquiryForm] = await Promise.all([
     readFile(new URL("../src/app/(site)/machines/[slug]/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/app/(site)/[supportingPage]/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/site/AnalyticsProvider.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/site/EnquiryForm.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(machinePage, /name:\s*"machine_view",\s*machineReference:\s*machine\.reference/);
   assert.match(machinePage, /TrackedContactLink/);
   assert.match(supportingPage, /TrackedContactLink/);
-  assert.match(contactLink, /name:\s*"contact_intent"/);
-  assert.doesNotMatch(contactLink, /href:\s*href|page_url|link_destination/);
+  assert.match(analyticsProvider, /name:\s*"contact_intent"/);
+  assert.doesNotMatch(analyticsProvider, /href:\s*href|page_url|link_destination/);
+  assert.match(enquiryForm, /onFocus:\s*name === "viewingPreference" \? onViewingFocus/);
+  const viewingHandler = enquiryForm.match(/const onViewingFocus = \(\) => \{([\s\S]*?)\n  \};/)?.[1] ?? "";
+  assert.notEqual(viewingHandler, "");
+  assert.doesNotMatch(viewingHandler, /currentTarget|FormData|\.value/);
 
   const analytics = await import("../src/lib/analytics/events.ts");
   assert.deepEqual([
