@@ -4,11 +4,11 @@ milestone: V1
 milestone_name: versus deferred scope
 current_phase: 6
 current_phase_name: Accessible design and inventory SEO
-status: Phase 5 implementation complete; legal/contact/mail and infrastructure verification deferred to deployment
-stopped_at: Phase 5 checkpoint; Phase 6 planning authorized
-last_updated: "2026-10-02T10:45:00.000Z"
+status: Phase 6 plan validated; implementation starting. Phase 5 implementation is complete; legal/contact/mail and infrastructure verification are deferred to deployment
+stopped_at: Phase 6 plans validated; Wave 1 ready
+last_updated: "2026-10-02T11:34:00.000Z"
 last_activity: 2026-10-02
-last_activity_desc: Phase 5 checkpoint committed. Phase 6 UI contract and implementation planning started; deferred Phase 5 legal/contact/mail configuration remains off.
+last_activity_desc: Phase 6 plans 06-01 through 06-05 passed independent plan validation. Wave 1 implementation is starting. Phase 5 deployment configuration remains deferred.
 state_head: fadd88226e0f3de3a54c6acfc9d2845b999e918d
 progress:
   total_phases: 8
@@ -31,11 +31,11 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 ## Current Position
 
 Phase: 6 (Accessible design and inventory SEO) — PLANNING
-Plan: UI contract and executable plan in progress
-Total Plans in Phase: 1
-Status: Phase 5 implementation checkpoint complete; Phase 6 planning active
-Last Activity: 2026-10-02 — Phase 5 checkpoint committed; Phase 6 planning started
-Last Activity Description: Implementation checkpoint commit 831c052 contains completed Phase 4/5 work. Legal/contact/mail configuration remains deferred. Phase 6 is active.
+Plan: 5 plans validated across two waves; Wave 1 starting
+Total Plans in Phase: 5
+Status: Phase 5 implementation checkpoint complete; Phase 6 execution active
+Last Activity: 2026-10-02 — Phase 6 planning and independent validation complete
+Last Activity Description: Phase 6 plans 06-01 through 06-05 passed independent review; context, research, UI contract and validation map are recorded. Begin Wave 1.
 
 Progress: Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 is being planned and will proceed to implementation.
 

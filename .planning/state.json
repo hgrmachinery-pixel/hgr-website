@@ -45,9 +45,9 @@
     }
   ],
   "next": {
-    "command": "/gsd:plan-phase 6",
-    "label": "Plan Phase 6 accessible design and inventory SEO",
-    "reason": "Phase 5 implementation checkpoint is complete. Its legal/contact/mail and deployment configuration tasks are deferred; Phase 6 is authorized."
+    "command": "/gsd:execute-phase 6",
+    "label": "Begin Phase 6 Wave 1 implementation",
+    "reason": "All five Phase 6 plans passed independent validation. Execute Wave 1 plans 06-01 and 06-04; Phase 5 deployment/configuration work remains deferred."
   },
-  "updated_at": "2026-10-02T10:45:00.000Z"
+  "updated_at": "2026-10-02T11:34:00.000Z"
 }
