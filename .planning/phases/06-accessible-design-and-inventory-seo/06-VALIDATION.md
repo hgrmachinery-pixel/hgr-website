@@ -1,8 +1,8 @@
 ---
 phase: "06"
 slug: "accessible-design-and-inventory-seo"
-status: draft
-nyquist_compliant: true
+status: validated
+nyquist_compliant: false
 wave_0_complete: true
 created: "2026-10-02"
 ---
@@ -58,6 +58,52 @@ Every task runs its listed focused Node test command and `npm run typecheck`; co
 | SEO-07 | 06-01 Task 1 Sold identity, status and metadata regression. |
 | SEO-08 | 06-03 Tasks 1–2 responsive derivatives, factual alt text, safe gallery and share-image checks. |
 | SEO-09 | 06-01 Tasks 1–2 and 06-05 Task 2 configured-origin, canonical/sitemap and readiness assertions; no analytics activation. |
+
+## Requirement coverage audit
+
+The listed commands and behavioral test cases were cross-checked against all five plans and summaries. The Phase 6 automated suite, type check, synthetic build and diff hygiene passed in the completed phase run. The focused tests provide automated evidence for the source-level behaviors in the map above. UX-05 and UX-07 remain manual-only because the scroll-motion acceptance depends on an approved layered HGR asset and live performance/usability review, while image rights require human review. These are not treated as automated passes.
+
+| Requirement | Audit status | Evidence / limitation |
+|---|---|---|
+| UX-01 | COVERED | `phase6-brand.test.mjs`: palette, type, touch-target and navigation assertions. |
+| UX-02 | COVERED | `phase6-brand.test.mjs`: calculated contrast assertions for used text/action/focus pairings. |
+| UX-03 | COVERED | `phase6-brand.test.mjs`, `phase6-accessibility.test.mjs`, and `phase5-pages.test.mjs`. |
+| UX-04 | COVERED | `phase6-hero.test.mjs` and `public-inventory.test.mjs`: product-first actions and inventory behavior. |
+| UX-05 | MANUAL-ONLY | No approved layered hero asset; real scroll-motion performance/usability review is deferred. Static fallback behavior is tested, but this does not verify the planned motion. |
+| UX-06 | COVERED (SOURCE) | `phase6-hero.test.mjs` verifies a complete static/no-image path; device-level review is deferred below. |
+| UX-07 | MANUAL-ONLY | Synthetic tests verify safe media projection and no fabricated fallback; rights clearance of real launch assets requires human review. |
+| SEO-01 | COVERED | `phase6-seo.test.mjs`: route metadata and canonical behavior. |
+| SEO-02 | COVERED | `phase6-seo.test.mjs` and `public-inventory.test.mjs`: stable identity and historical-slug resolution. |
+| SEO-03 | COVERED | `phase6-seo.test.mjs` and `public-inventory.test.mjs`: canonical sitemap allow-list and published projection. |
+| SEO-04 | COVERED (SOURCE) | `phase6-seo.test.mjs`: fail-closed environment and query behavior; staging access-layer verification remains manual-only. |
+| SEO-05 | COVERED | `phase6-seo.test.mjs` and `phase6-media.test.mjs`: visible facts and safe sharing metadata. |
+| SEO-06 | COVERED | `phase6-seo.test.mjs` and `phase5-pages.test.mjs`: breadcrumbs, route links and crawlable pagination. |
+| SEO-07 | COVERED | `phase6-seo.test.mjs` and `public-inventory.test.mjs`: Sold identity/status behavior. |
+| SEO-08 | COVERED (SOURCE) | `phase6-media.test.mjs`: safe derivatives, responsive sources and factual alt; visual review deferred. |
+| SEO-09 | COVERED (READINESS ONLY) | `phase6-seo.test.mjs`: configured-origin/canonical/sitemap readiness; account ownership and analytics activation deferred. |
+
+## Manual-only checks
+
+| Requirement / area | Manual check still required | Reason |
+|---|---|---|
+| UX-05 | Review a rights-cleared layered HGR hero asset, then test scroll response, performance and usability on supported devices. | The checkout has no verified layered hero media and browser/device checks are deferred. |
+| UX-07 | Human-review rights and factual suitability for each real launch image, logo, favicon and sharing asset. | Rights clearance cannot be established by synthetic tests. |
+| UX-01, UX-03, UX-06, SEO-08 | Inspect rendered layouts, keyboard/touch behavior, screen-reader output and image presentation on real browsers/devices. | Source assertions do not replace browser/device review. |
+| SEO-04 | Verify staging access protection at the deployment/access layer. | Robots and `noindex` metadata are crawler guidance, not access control. |
+| SEO-09 | Verify Search Console ownership and any analytics/advertising setup when those accounts are configured. | Account checks and activation are intentionally deferred. |
+| Data/media/deployment | Verify live PostgreSQL, GCS/media delivery, staging/deployment behavior and production configuration when explicitly in scope. | These external services and production checks are intentionally deferred. |
+
+## Sign-Off
+
+Automated source-level validation is recorded for requirements with passing behavioral tests. The phase is **partially validated**: UX-05 and UX-07 and the manual-only checks above are not certified by this test suite.
+
+## Validation Audit 2026-10-02
+
+| Metric | Count |
+|--------|-------|
+| Gaps found | 2 |
+| Resolved automatically | 0 |
+| Recorded as manual-only | 2 |
 
 ## Phase gate
 
