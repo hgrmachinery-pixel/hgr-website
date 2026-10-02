@@ -28,9 +28,14 @@ test("optional empty email is accepted and valid submissions keep adapter outcom
 
 test("enquiry errors are associated with current controls and summarized", async () => {
   const form = await readFile(new URL("../src/components/site/EnquiryForm.tsx", import.meta.url), "utf8");
+  const action = await readFile(new URL("../src/app/(site)/contact/actions.ts", import.meta.url), "utf8");
   assert.match(form, /role="alert"/);
   assert.match(form, /aria-invalid/);
   assert.match(form, /aria-describedby/);
-  assert.match(form, /<a href=/);
+  assert.match(form, /href={`#\$\{field\.name\}`}/);
+  assert.match(form, /id=\{field\.name\}/);
+  assert.match(form, /fieldErrors\[name\]/);
+  assert.match(action, /fieldErrors\?: EnquiryFieldErrors/);
+  assert.match(action, /fieldErrors: result\.fieldErrors/);
   assert.match(form, /htmlFor=/);
 });
