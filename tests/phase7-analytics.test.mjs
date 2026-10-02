@@ -87,9 +87,78 @@ test("campaign attribution accepts only documented categorical values", () => {
   assert.deepEqual(campaignFromSearch("?utm_source=customer%40example.test&utm_medium=PII_PHONE_SENTINEL&utm_campaign=free-text"), {});
 });
 
-test("approved runtime analytics requires consent and stops permanently after withdrawal", () => {
-  return import("../src/lib/analytics/events.ts").then((analytics) => {
-    assert.equal(typeof analytics.createConsentAwareTagController, "function");
-    assert.equal(typeof analytics.getGtmScriptRequest, "function");
+test("approved runtime analytics requires runtime config and consent, and stops after withdrawal", async () => {
+  const analytics = await import("../src/lib/analytics/events.ts");
+  const publicConfig = { enabled: true, containerId: "GTM-ABC123" };
+  for (const config of [
+    { enabled: false, containerId: "GTM-ABC123" },
+    { enabled: true },
+    { enabled: true, containerId: "secret-looking-value" },
+    { enabled: true, containerId: "GTM-ABC123", localReview: true },
+  ]) assert.equal(analytics.getGtmScriptRequest(config), null);
+
+  const request = analytics.getGtmScriptRequest(publicConfig);
+  assert.deepEqual(request, {
+    url: "https://www.googletagmanager.com/gtm.js?id=GTM-ABC123",
+    referrerPolicy: "no-referrer",
   });
+  const loaded = [];
+  const sent = [];
+  let unloadCount = 0;
+  const controller = analytics.createConsentAwareTagController(
+    publicConfig,
+    (scriptRequest) => {
+      loaded.push(scriptRequest);
+      return () => { unloadCount += 1; };
+    },
+    (event) => sent.push(event),
+  );
+
+  const beforeConsent = { event: "contact_intent", contact_channel: "whatsapp" };
+  controller.track(beforeConsent);
+  controller.setConsent({ analytics: "unknown", advertising: "unknown" });
+  controller.setConsent({ analytics: "denied", advertising: "granted" });
+  assert.equal(loaded.length, 0);
+  assert.equal(sent.length, 0);
+
+  const consent = analytics.parseAnalyticsConsent({ analytics: "granted", advertising: "denied" });
+  assert.deepEqual(consent, { analytics: "granted", advertising: "denied" });
+  controller.setConsent(consent);
+  assert.equal(loaded.length, 1);
+  assert.deepEqual(loaded[0], request);
+  assert.equal(sent.length, 0, "pre-consent events are dropped and never replayed");
+
+  controller.track({
+    event: "contact_intent",
+    contact_channel: "whatsapp",
+    machine_reference: "HGR-900001",
+    email: "PII_EMAIL_SENTINEL",
+    phone: "PII_PHONE_SENTINEL",
+    message: "PII_MESSAGE_SENTINEL",
+    serial: "PRIVATE_SERIAL_SENTINEL",
+    page_url: "https://example.test/?email=PII_URL_SENTINEL",
+    title: "PII_TITLE_SENTINEL",
+    referrer: "PII_REFERRER_SENTINEL",
+    link_destination: "https://wa.me/?text=PII_LINK_SENTINEL",
+  });
+  assert.deepEqual(sent, [{
+    event: "contact_intent",
+    machine_reference: "HGR-900001",
+    contact_channel: "whatsapp",
+  }]);
+
+  const mockedOutbound = JSON.stringify({ requests: loaded, events: sent });
+  for (const sentinel of ["PII_EMAIL_SENTINEL", "PII_PHONE_SENTINEL", "PII_MESSAGE_SENTINEL", "PRIVATE_SERIAL_SENTINEL", "PII_URL_SENTINEL", "PII_TITLE_SENTINEL", "PII_REFERRER_SENTINEL", "PII_LINK_SENTINEL"]) {
+    assert.equal(mockedOutbound.includes(sentinel), false);
+  }
+  assert.equal(request.referrerPolicy, "no-referrer");
+
+  controller.setConsent({ analytics: "denied", advertising: "granted" });
+  assert.equal(unloadCount, 1);
+  assert.equal(controller.isActive, false);
+  controller.track({ event: "enquiry_accepted", enquiry_kind: "general" });
+  controller.setConsent({ analytics: "granted", advertising: "denied" });
+  assert.equal(loaded.length, 1, "a withdrawn provider does not automatically reactivate during this page load");
+  assert.equal(sent.length, 1, "events after withdrawal are dropped");
+  controller.dispose();
 });

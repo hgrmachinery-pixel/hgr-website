@@ -112,6 +112,106 @@ export type AcceptedEnquiryState = {
   measurementMachineReference?: unknown;
 };
 
+export type ConsentChoice = "unknown" | "granted" | "denied";
+export type AnalyticsConsent = { analytics: ConsentChoice; advertising: ConsentChoice };
+export type AnalyticsRuntimeConfig = { enabled: boolean; containerId?: unknown; localReview?: boolean };
+export type GtmScriptRequest = { url: string; referrerPolicy: "no-referrer" };
+
+const unknownConsent: AnalyticsConsent = { analytics: "unknown", advertising: "unknown" };
+
+function consentChoice(value: unknown): ConsentChoice {
+  return value === "granted" || value === "denied" ? value : "unknown";
+}
+
+export function parseAnalyticsConsent(value: unknown): AnalyticsConsent {
+  let parsed = value;
+  if (typeof value === "string") {
+    try {
+      parsed = JSON.parse(value) as unknown;
+    } catch {
+      return { ...unknownConsent };
+    }
+  }
+  if (!parsed || typeof parsed !== "object") return { ...unknownConsent };
+  const input = parsed as Record<string, unknown>;
+  return { analytics: consentChoice(input.analytics), advertising: consentChoice(input.advertising) };
+}
+
+export function isValidGtmContainerId(value: unknown): value is string {
+  return typeof value === "string" && /^GTM-[A-Z0-9]+$/.test(value);
+}
+
+export function getGtmScriptRequest(config: AnalyticsRuntimeConfig): GtmScriptRequest | null {
+  if (!config.enabled || config.localReview || !isValidGtmContainerId(config.containerId)) return null;
+  return {
+    url: "https://www.googletagmanager.com/gtm.js?id=" + config.containerId,
+    referrerPolicy: "no-referrer",
+  };
+}
+
+function sanitizeAnalyticsEvent(value: unknown): AnalyticsEvent | null {
+  if (!value || typeof value !== "object") return null;
+  const input = value as Record<string, unknown>;
+  const name = oneOf(input.event, analyticsEventNames);
+  if (!name) return null;
+  return createAnalyticsEvent({
+    name,
+    machineReference: input.machine_reference,
+    enquiryKind: input.enquiry_kind,
+    contactChannel: input.contact_channel,
+    pageGroup: input.page_group,
+    campaign: {
+      source: input.campaign_source,
+      medium: input.campaign_medium,
+      campaign: input.campaign_name,
+      content: input.campaign_content,
+    },
+  });
+}
+
+/** Small testable consent boundary. It never buffers events and a withdrawal is final for this page load. */
+export function createConsentAwareTagController(
+  config: AnalyticsRuntimeConfig,
+  loadTag: (request: GtmScriptRequest) => () => void,
+  transmit: (event: AnalyticsEvent) => void,
+) {
+  const request = getGtmScriptRequest(config);
+  let consent = { ...unknownConsent };
+  let active = false;
+  let withdrawn = false;
+  let unload: (() => void) | null = null;
+
+  function deactivate(withdrawal: boolean) {
+    if (withdrawal && active) withdrawn = true;
+    unload?.();
+    unload = null;
+    active = false;
+  }
+
+  return {
+    setConsent(next: unknown) {
+      const updated = parseAnalyticsConsent(next);
+      if (active && updated.analytics !== "granted") deactivate(true);
+      consent = updated;
+      if (request && consent.analytics === "granted" && !active && !withdrawn) {
+        unload = loadTag(request);
+        active = true;
+      }
+    },
+    track(value: unknown) {
+      if (!active || withdrawn || consent.analytics !== "granted") return;
+      const event = sanitizeAnalyticsEvent(value);
+      if (event) transmit(event);
+    },
+    dispose() {
+      deactivate(false);
+    },
+    get isActive() {
+      return active && !withdrawn;
+    },
+  };
+}
+
 export function acceptedEnquiryEvent(state: AcceptedEnquiryState, campaign?: unknown): AnalyticsEvent | null {
   if (state.status !== "accepted" || state.measurementEligible !== true) return null;
   return createAnalyticsEvent({
