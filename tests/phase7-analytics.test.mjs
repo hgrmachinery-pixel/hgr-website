@@ -173,17 +173,17 @@ test("approved runtime analytics requires runtime config and consent, and stops 
 test("public inventory, unit and contact routes wire distinct intent events", async () => {
   const inventoryPage = await readFile(new URL("../src/app/(site)/used-excavators/page.tsx", import.meta.url), "utf8");
   assert.match(inventoryPage, /name:\s*"inventory_list_view"/);
-  const [machinePage, supportingPage, analyticsProvider, enquiryForm] = await Promise.all([
+  const [machinePage, supportingPage, trackedContactLink, enquiryForm] = await Promise.all([
     readFile(new URL("../src/app/(site)/machines/[slug]/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/app/(site)/[supportingPage]/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/site/AnalyticsProvider.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/site/TrackedContactLink.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/site/EnquiryForm.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(machinePage, /name:\s*"machine_view",\s*machineReference:\s*machine\.reference/);
   assert.match(machinePage, /TrackedContactLink/);
   assert.match(supportingPage, /TrackedContactLink/);
-  assert.match(analyticsProvider, /name:\s*"contact_intent"/);
-  assert.doesNotMatch(analyticsProvider, /href:\s*href|page_url|link_destination/);
+  assert.match(trackedContactLink, /name:\s*"contact_intent"/);
+  assert.doesNotMatch(trackedContactLink, /page_url|link_destination/);
   assert.match(enquiryForm, /onFocus:\s*name === "viewingPreference" \? onViewingFocus/);
   const viewingHandler = enquiryForm.match(/const onViewingFocus = \(\) => \{([\s\S]*?)\n  \};/)?.[1] ?? "";
   assert.notEqual(viewingHandler, "");

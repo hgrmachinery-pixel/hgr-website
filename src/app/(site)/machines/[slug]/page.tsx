@@ -9,7 +9,8 @@ import { publicMachinePath } from "../../../../lib/machines/publicInventory";
 import { EnquiryForm } from "../../../../components/site/EnquiryForm";
 import { getPublicContact } from "../../../../lib/siteContent";
 import { buildMachineMetadata, buildMachineStructuredData, getIndexingPolicy, getPublicOrigin, serializeJsonLd } from "../../../../lib/siteMetadata";
-import { TrackAnalyticsEvent, TrackedContactLink } from "../../../../components/site/AnalyticsProvider";
+import { TrackAnalyticsEvent } from "../../../../components/site/AnalyticsProvider";
+import { TrackedContactLink } from "../../../../components/site/TrackedContactLink";
 import { createAnalyticsEvent } from "../../../../lib/analytics/events.ts";
 
 export const dynamic = "force-dynamic";

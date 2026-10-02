@@ -4,7 +4,7 @@ import { EnquiryForm } from "../../../components/site/EnquiryForm";
 import { getPublishedPage, getPublicContact, lexicalPlainText } from "../../../lib/siteContent";
 import type { Metadata } from "next";
 import { buildSupportingPageMetadata, getIndexingPolicy, getPublicOrigin } from "../../../lib/siteMetadata";
-import { TrackedContactLink } from "../../../components/site/AnalyticsProvider";
+import { TrackedContactLink } from "../../../components/site/TrackedContactLink";
 import type { SupportingPageGroup } from "../../../lib/analytics/events.ts";
 
 const pages = {
