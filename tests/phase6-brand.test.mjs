@@ -5,6 +5,13 @@ import { readFile } from "node:fs/promises";
 const css = await readFile(new URL("../src/app/(site)/site.css", import.meta.url), "utf8");
 const header = await readFile(new URL("../src/app/(site)/siteHeader.tsx", import.meta.url), "utf8");
 
+function declarations(selector) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const rule = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, "i"));
+  assert.ok(rule, `missing CSS rule for ${selector}`);
+  return rule[1].toLowerCase();
+}
+
 function luminance(hex) {
   const channels = hex.replace("#", "").match(/.{2}/g).map((channel) => parseInt(channel, 16) / 255);
   const linear = channels.map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
@@ -20,6 +27,10 @@ const textPairs = [
   ["#171717", "#ffffff", "primary text on paper"],
   ["#5f6368", "#ffffff", "secondary text on paper"],
   ["#5f6368", "#f5f5f5", "secondary text on soft surface"],
+  ["#171717", "#f5f5f5", "primary text on soft surface"],
+  ["#53565a", "#efefed", "machine card image fallback"],
+  ["#a12c22", "#f5f5f5", "enquiry error on form surface"],
+  ["#205c34", "#f5f5f5", "accepted enquiry notice on form surface"],
   ["#ffffff", "#151515", "dark feature text"],
   ["#d0d0d0", "#151515", "dark feature secondary text"],
   ["#205c34", "#e8f4ec", "available status"],
@@ -35,6 +46,27 @@ test("every used palette and action text pairing meets its WCAG text threshold",
     assert.ok(contrast(foreground, background) >= 4.5, `${label}: ${contrast(foreground, background).toFixed(2)}:1`);
   }
   assert.ok(contrast("#171717", "#f86c00") >= 4.5, "white text on orange is prohibited; action text stays dark");
+});
+
+test("used control boundaries meet non-text contrast and every matrix pair maps to its CSS", () => {
+  const controlPairs = [
+    ["#767676", "#ffffff", "quiet button border"],
+    ["#767676", "#ffffff", "filter and form control borders"],
+    ["#767676", "#ffffff", "gallery control borders"],
+    ["#767676", "#ffffff", "pagination borders"],
+    ["#767676", "#fff6ef", "current pagination border"],
+  ];
+  for (const [foreground, background, label] of controlPairs) {
+    assert.ok(contrast(foreground, background) >= 3, `${label}: ${contrast(foreground, background).toFixed(2)}:1`);
+  }
+
+  assert.match(declarations(".machine-card__image"), /color:\s*#53565a/);
+  assert.match(declarations(".machine-card__image"), /background:\s*#efefed/);
+  assert.match(declarations(".enquiry-form__errors"), /color:\s*#a12c22/);
+  assert.match(declarations(".enquiry-form__notice--accepted"), /color:\s*#205c34/);
+  assert.match(declarations(".button--quiet"), /border-color:\s*#767676/);
+  assert.match(declarations(".pagination [aria-current=\"page\"]"), /background:\s*#fff6ef/);
+  assert.match(css, /border:\s*1px solid #767676/);
 });
 
 test("the focus indicator contrasts on light, dark and action surfaces", () => {
