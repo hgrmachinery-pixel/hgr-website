@@ -90,6 +90,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .enquiry-form { display: grid; gap: 15px; margin-top: 20px; }
 .enquiry-form__field { display: grid; gap: 7px; color: var(--hgr-ink); font-size: 14px; font-weight: 600; }
 .enquiry-form__field input, .enquiry-form__field textarea { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #767676; border-radius: 6px; color: var(--hgr-ink); background: white; font: inherit; font-weight: 400; }
+.enquiry-form__field select { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #767676; border-radius: 6px; color: var(--hgr-ink); background: white; font: inherit; font-weight: 400; }
+.enquiry-form__field input[readonly] { background: var(--hgr-soft); }
+.enquiry-form__phone { display: flex; align-items: center; border: 1px solid #767676; border-radius: 6px; background: white; }
+.enquiry-form__phone:focus-within { outline: 3px solid var(--hgr-orange); outline-offset: 3px; }
+.enquiry-form__phone input { min-width: 0; border: 0; outline: 0; }
+.enquiry-form__country { display: flex; align-items: center; gap: 8px; padding: 0 0 0 12px; white-space: nowrap; color: var(--hgr-ink); font-weight: 500; }
+.enquiry-form__choice-group { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 0; padding: 0; border: 0; }
+.enquiry-form__choice-group legend { margin-bottom: 8px; color: var(--hgr-ink); font-size: 14px; font-weight: 600; }
+.enquiry-form__choice-group label { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+.enquiry-form__choice-group input { accent-color: var(--hgr-orange); width: 18px; height: 18px; }
+.enquiry-form__conditional { display: grid; gap: 15px; padding: 14px; border-left: 3px solid var(--hgr-orange); background: var(--hgr-soft); }
 .enquiry-form__field textarea { min-height: 130px; resize: vertical; }
 .enquiry-form__field input:focus-visible, .enquiry-form__field textarea:focus-visible { outline-offset: 3px; }
 .enquiry-form__trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }

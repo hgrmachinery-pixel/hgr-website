@@ -2,14 +2,14 @@
 gsd_state_version: "1.0"
 milestone: V1
 milestone_name: versus deferred scope
-current_phase: 6
-current_phase_name: Accessible design and inventory SEO
-current_plan: 5
-status: Phase 6 implementation is complete. Goal-backward verification found no code blockers; status is human-needed only for owner-deferred browser/device and launch-asset review. Phase 5 live contact/legal/infrastructure work remains deferred.
-stopped_at: Phase 6 implementation complete; owner-deferred human checks remain
+current_phase: 7
+current_phase_name: Measurement, privacy, security and recovery
+current_plan: 0
+status: Phase 6 implementation is complete. The requested five-form enquiry UX review and improvement pass is complete. Continue with Phase 7 planning and implementation; owner-dependent measurement, privacy and recovery decisions remain tracked in the roadmap.
+stopped_at: Pre-Phase 7 checkpoint — five-form enquiry UX pass complete
 last_updated: "2026-10-02T05:55:19.934Z"
 last_activity: 2026-10-02
-last_activity_desc: Phase 6 implementation, 43-test phase suite, typecheck, synthetic build, security audit and goal-backward verification are complete. Verification has no code gaps; browser/device and launch-asset review remain explicitly deferred. Phase 7 has not started.
+last_activity_desc: Reviewed and improved Machine Enquiry, General Contact, Rental, Machinery Service and Lubricants forms together. Focused tests, typecheck and synthetic build passed. Phase 7 planning is next; three full-suite foundation configuration tests remain blocked by the known Node child-process ENOMEM sandbox issue.
 state_head: de1611ce63751475785586e8c458be8198b6a960
 progress:
   total_phases: 8
@@ -27,18 +27,18 @@ Total Phases: 8
 See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** HGR can independently publish accurate used-excavator listings that lead customers to a direct enquiry and an arranged viewing.
-**Current focus:** Phase 6 accessible design and inventory SEO. PostgreSQL, GCS, media delivery, browser verification and deployment checks are intentionally deferred to the deployment verification milestone.
+**Current focus:** Phase 7 measurement, privacy, security and recovery, following the completed pre-Phase 7 enquiry UX review. PostgreSQL, GCS, media delivery, browser verification and deployment checks remain subject to their existing verification gates.
 
 ## Current Position
 
-Phase: 6 (Accessible design and inventory SEO) — IMPLEMENTATION COMPLETE
-Current Plan: Complete
-Total Plans in Phase: 5
-Status: Phase 6 implementation complete; verifier reports human-needed only for explicitly deferred browser/device and launch-asset rights review. No code blockers; Phase 7 not started.
-Last Activity: 2026-10-02 — Phase 6 verification complete
-Last Activity Description: All five plans are complete. The 44-test phase/security evidence, typecheck, synthetic production build, code review fix, security audit and 13/13 goal checks passed; browser/device and asset review are explicitly deferred.
+Phase: 7 (Measurement, privacy, security and recovery) — PLANNING NEXT
+Current Plan: TBD
+Total Plans in Phase: TBD
+Status: Phase 6 implementation complete; verifier reports human-needed only for explicitly deferred browser/device and launch-asset rights review. The five-form enquiry UX pass is complete; Phase 7 plan is not yet created.
+Last Activity: 2026-10-02 — five-form enquiry UX review complete
+Last Activity Description: Improved all five customer-facing enquiry forms, shared validation and CRM-ready metadata. Typecheck, focused tests and synthetic build passed. Three unrelated foundation-config subprocess checks remain blocked by the known ENOMEM sandbox issue.
 
-Progress: 18 of 18 implementation plans are complete (100%). Phase 1–4 external verification remains pending. Phase 5 implementation and Phase 6 implementation are complete; legal publication, SMTP setup, phone/WhatsApp numbers, Search Console, analytics activation, browser/device and infrastructure/deployment acceptance remain deferred. Phase 6 goal verification found no code blockers but requires the previously deferred human reviews. Phase 7 has not started.
+Progress: 18 of 18 implementation plans are complete (100%). Phase 1–4 external verification remains pending. Phase 5 implementation and Phase 6 implementation are complete; legal publication, SMTP setup, phone/WhatsApp numbers, Search Console, analytics activation, browser/device and infrastructure/deployment acceptance remain deferred. Phase 6 goal verification found no code blockers but requires the previously deferred human reviews. Phase 7 planning is next.
 
 ## Performance Metrics
 

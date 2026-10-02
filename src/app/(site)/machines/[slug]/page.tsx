@@ -66,7 +66,7 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
             {contact.phone && <a href={`tel:${contact.phone.replace(/[^+\d]/g, "")}`}>Call HGR</a>}
             {contact.whatsApp && whatsappMessage && <a href={`https://wa.me/${contact.whatsApp}?text=${encodeURIComponent(whatsappMessage)}`} target="_blank" rel="noreferrer">WhatsApp about this machine</a>}
           </div>
-          <EnquiryForm kind="machine" machineSlug={machine.slug} />
+          <EnquiryForm kind="machine" machineSlug={machine.slug} machineName={title} machineReference={machine.reference} />
           <p className="enquiry-form__hint">Please confirm this machine's current location with HGR before travelling.</p>
         </section>
       </section>

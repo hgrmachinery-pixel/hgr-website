@@ -40,6 +40,17 @@ export function createSmtpEnquiryAdapter(
       ...Object.entries(fields).filter(([key]) => !["kind", "name", "company", "phone", "email"].includes(key)).map(([key, value]) => `${key}: ${value}`),
       ...(context.machine ? [`Machine: ${context.machine.reference} — ${context.machine.title}`] : []),
       ...(context.pagePath ? [`Page: ${context.pagePath}`] : []),
+      ...(context.metadata ? [
+        `Lead source: ${context.metadata.leadSource}`,
+        `Referrer: ${context.metadata.referrer ?? ""}`,
+        `UTM source: ${context.metadata.utmSource ?? ""}`,
+        `UTM medium: ${context.metadata.utmMedium ?? ""}`,
+        `UTM campaign: ${context.metadata.utmCampaign ?? ""}`,
+        `UTM term: ${context.metadata.utmTerm ?? ""}`,
+        `UTM content: ${context.metadata.utmContent ?? ""}`,
+        `Browser: ${context.metadata.browser ?? ""}`,
+        `Timestamp: ${context.metadata.timestamp}`,
+      ] : []),
     ];
     try {
       const transport = createTransport({

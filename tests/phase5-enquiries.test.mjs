@@ -3,7 +3,7 @@ import test from "node:test";
 import { validateEnquiry, submitEnquiry } from "../src/lib/enquiries/submit.ts";
 import { createSmtpEnquiryAdapter, readEnquiryEmailConfig } from "../src/lib/email/enquiryAdapter.ts";
 
-const validGeneral = { kind: "general", name: "A Customer", phone: "+60 12 345 6789", message: "Please call me." };
+const validGeneral = { kind: "general", name: "A Customer", phone: "+60 12 345 6789", subject: "General", message: "Please call me." };
 
 test("general enquiries require name, phone and message; company and email are optional", () => {
   assert.equal(validateEnquiry(validGeneral).ok, true);
@@ -14,11 +14,35 @@ test("general enquiries require name, phone and message; company and email are o
 });
 
 test("each enquiry type enforces its own required fields", () => {
-  assert.equal(validateEnquiry({ ...validGeneral, kind: "rental", projectLocation: "Klang" }).ok, true);
+  const rental = { ...validGeneral, kind: "rental", machineRequired: "Excavator", startDate: "2027-02-01", rentalDuration: "2 months", projectLocation: "Klang", needOperator: "no" };
+  const service = { ...validGeneral, kind: "service", brand: "Komatsu", model: "PC200", problemDescription: "Hydraulic issue", machineLocation: "Klang", urgent: "no" };
+  const lubricant = { kind: "lubricant", name: "A Customer", phone: "0123456789", machineBrand: "Komatsu", machineModel: "PC200", lubricantRequired: "Hydraulic oil", quantity: "200 litres" };
+  assert.equal(validateEnquiry(rental).ok, true);
   assert.equal(validateEnquiry({ ...validGeneral, kind: "rental" }).ok, false);
-  assert.equal(validateEnquiry({ ...validGeneral, kind: "service", machineLocation: "Klang" }).ok, true);
-  assert.equal(validateEnquiry({ ...validGeneral, kind: "service" }).ok, false);
-  assert.equal(validateEnquiry({ kind: "lubricant", name: "A Customer", phone: "0123456789" }).ok, true);
+  assert.equal(validateEnquiry(service).ok, true);
+  assert.equal(validateEnquiry({ ...validGeneral, kind: "service", machineLocation: "Klang" }).ok, false);
+  assert.equal(validateEnquiry(lubricant).ok, true);
+  assert.equal(validateEnquiry({ kind: "lubricant", name: "A Customer", phone: "0123456789" }).ok, false);
+});
+
+test("enquiry normalization produces Malaysian E.164, title case and lowercase email", () => {
+  const normalized = validateEnquiry({ ...validGeneral, name: "  mOHAMAD bin O'NEIL ", phone: "(012) 345-6789", email: "  CUSTOMER@Example.COM  " });
+  assert.equal(normalized.ok, true);
+  if (normalized.ok) {
+    assert.equal(normalized.fields.name, "Mohamad Bin O'Neil");
+    assert.equal(normalized.fields.phone, "+60123456789");
+    assert.equal(normalized.fields.email, "customer@example.com");
+    assert.equal(normalized.fields.preferredContact, "whatsapp");
+  }
+  assert.equal(validateEnquiry({ ...validGeneral, phone: "03 1234 5678" }).ok, false);
+  assert.equal(validateEnquiry({ ...validGeneral, preferredContact: "email" }).ok, false);
+  assert.equal(validateEnquiry({ ...validGeneral, preferredContact: "email", email: "person@example.test" }).ok, true);
+});
+
+test("trade-in detail requirements apply only after selecting trade-in", () => {
+  assert.equal(validateEnquiry({ ...validGeneral, kind: "machine", tradeIn: "no" }).ok, true);
+  assert.equal(validateEnquiry({ ...validGeneral, kind: "machine", tradeIn: "yes" }).ok, false);
+  assert.equal(validateEnquiry({ ...validGeneral, kind: "machine", tradeIn: "yes", tradeInBrand: "Komatsu", tradeInModel: "PC100", tradeInYear: "2015" }).ok, true);
 });
 
 test("machine enquiries accept an optional viewing preference", () => {
@@ -42,9 +66,12 @@ test("server context is delivered separately from visitor-controlled fields", as
   await submitEnquiry({ ...validGeneral, machineSlug: "forged", source: "https://bad.example/?email=private" }, async (message) => {
     captured = message;
     return { accepted: true };
-  }, { machine: { reference: "HGR028", title: "2018 Komatsu PC200" }, pagePath: "/machines/hgr028" });
+  }, { machine: { reference: "HGR028", title: "2018 Komatsu PC200" }, pagePath: "/machines/hgr028", metadata: { leadSource: "website:machine", referrer: "https://search.example/find?email=private&utm_source=paid#top", utmSource: "paid", browser: "Synthetic Browser", timestamp: "2026-10-02T10:00:00.000Z" } });
   assert.equal(captured.context.machine.reference, "HGR028");
   assert.equal(captured.context.pagePath, "/machines/hgr028");
+  assert.equal(captured.context.metadata.referrer, "https://search.example/find");
+  assert.equal(captured.context.metadata.utmSource, "paid");
+  assert.equal(captured.context.metadata.timestamp, "2026-10-02T10:00:00.000Z");
   assert.equal(JSON.stringify(captured.context).includes("bad.example"), false);
 });
 
@@ -79,6 +106,16 @@ test("SMTP sends plain text to the configured fixed recipient with TLS and accep
   assert.equal(message.replyTo, "a@example.test");
   assert.equal("html" in message, false);
   assert.equal("attachments" in message, false);
+});
+
+test("CRM preparation metadata is included in the enquiry notification", async () => {
+  let message;
+  const adapter = createSmtpEnquiryAdapter(() => readEnquiryEmailConfig(mailConfig), () => ({ sendMail: async (payload) => { message = payload; return { accepted: [mailConfig.ENQUIRY_TO_EMAIL] }; } }));
+  await adapter({ fields: { kind: "general", name: "A Customer", phone: "+60123456789", preferredContact: "whatsapp" }, context: { metadata: { leadSource: "website:general", referrer: "https://search.example/", utmCampaign: "stock-listing", browser: "Synthetic Browser", timestamp: "2026-10-02T10:00:00.000Z" } } });
+  assert.match(message.text, /Lead source: website:general/);
+  assert.match(message.text, /UTM campaign: stock-listing/);
+  assert.match(message.text, /Browser: Synthetic Browser/);
+  assert.match(message.text, /Timestamp: 2026-10-02T10:00:00.000Z/);
 });
 
 test("SMTP adapter rejects unsafe recipient configuration and unaccepted delivery", async () => {
