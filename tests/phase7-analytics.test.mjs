@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   acceptedEnquiryEvent,
@@ -161,4 +162,29 @@ test("approved runtime analytics requires runtime config and consent, and stops 
   assert.equal(loaded.length, 1, "a withdrawn provider does not automatically reactivate during this page load");
   assert.equal(sent.length, 1, "events after withdrawal are dropped");
   controller.dispose();
+});
+
+test("public inventory, unit and contact routes wire distinct intent events", async () => {
+  const inventoryPage = await readFile(new URL("../src/app/(site)/used-excavators/page.tsx", import.meta.url), "utf8");
+  assert.match(inventoryPage, /name:\s*"inventory_list_view"/);
+  const [machinePage, supportingPage, contactLink] = await Promise.all([
+    readFile(new URL("../src/app/(site)/machines/[slug]/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/(site)/[supportingPage]/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/site/TrackedContactLink.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(machinePage, /name:\s*"machine_view",\s*machineReference:\s*machine\.reference/);
+  assert.match(machinePage, /TrackedContactLink/);
+  assert.match(supportingPage, /TrackedContactLink/);
+  assert.match(contactLink, /name:\s*"contact_intent"/);
+  assert.doesNotMatch(contactLink, /href:\s*href|page_url|link_destination/);
+
+  const analytics = await import("../src/lib/analytics/events.ts");
+  assert.deepEqual([
+    analytics.createAnalyticsEvent({ name: "inventory_list_view" }).event,
+    analytics.createAnalyticsEvent({ name: "machine_view", machineReference: "HGR-900001" }).event,
+    analytics.createAnalyticsEvent({ name: "contact_intent", contactChannel: "whatsapp" }).event,
+    analytics.createAnalyticsEvent({ name: "enquiry_start", enquiryKind: "machine" }).event,
+    analytics.createAnalyticsEvent({ name: "viewing_intent", machineReference: "HGR-900001" }).event,
+    analytics.createAnalyticsEvent({ name: "enquiry_accepted", enquiryKind: "machine" }).event,
+  ], ["inventory_list_view", "machine_view", "contact_intent", "enquiry_start", "viewing_intent", "enquiry_accepted"]);
 });
