@@ -46,6 +46,7 @@ test("robots builder keeps pages crawlable while withholding sitemap until index
   const enabled = buildRobotsRoute({ index: true, follow: true }, "https://hgrmachinery.com");
   assert.equal(enabled.sitemap, "https://hgrmachinery.com/sitemap.xml");
   assert.deepEqual(enabled.rules, closed.rules);
+  assert.equal(buildRobotsRoute({ index: true, follow: true }, "https://user:pass@hgrmachinery.com").sitemap, undefined);
 });
 
 test("public sitemap builder emits only fixed routes and published machine paths when indexing is enabled", async () => {
@@ -69,6 +70,10 @@ test("public sitemap builder emits only fixed routes and published machine paths
   ]);
   assert.deepEqual(buildPublicSitemap({ index: false, follow: true }, "https://hgrmachinery.com", machines), []);
   assert.deepEqual(buildPublicSitemap({ index: true, follow: true }, undefined, machines), []);
+  assert.equal(buildPublicSitemap({ index: true, follow: true }, "https://hgrmachinery.com", [
+    { slug: "invalid/slug?status=sold", stockStatus: "sold" },
+  ]).length, 7);
+  assert.equal(buildPublicSitemap({ index: true, follow: true }, "https://hgrmachinery.com", []).length, 7);
 });
 
 test("machine metadata and schema use only visible projected facts and stable slug", async () => {
