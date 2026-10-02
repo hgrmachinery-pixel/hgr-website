@@ -121,13 +121,13 @@ Each checkbox stays unchecked until the capability is built, verified and record
 
 ### Inventory-first SEO — Phase 6
 
-- [ ] **SEO-01**: Public home, inventory, unit and supporting pages have appropriate unique titles/descriptions and accurate canonical URLs.
-- [ ] **SEO-02**: Published machine pages have stable, physical-unit-specific URLs; genuine URL changes have redirects where required.
+- [x] **SEO-01**: Public home, inventory, unit and supporting pages have appropriate unique titles/descriptions and accurate canonical URLs.
+- [x] **SEO-02**: Published machine pages have stable, physical-unit-specific URLs; genuine URL changes have redirects where required.
 - [ ] **SEO-03**: A current XML sitemap lists appropriate public canonical pages and excludes drafts, private/admin and staging content.
 - [ ] **SEO-04**: Robots and indexing controls prevent staging, draft, private-document and unwanted filter/facet URLs from becoming indexable.
-- [ ] **SEO-05**: Machine structured data appears only when it accurately matches visible, verified content and never invents a hidden price, review or availability.
-- [ ] **SEO-06**: Machine cards/pages, breadcrumbs and internal links let crawlers and visitors reach inventory without infinite-scroll dependence.
-- [ ] **SEO-07**: Sold pages retain truthful metadata and stay accessible unless a documented specific reason requires removal.
+- [x] **SEO-05**: Machine structured data appears only when it accurately matches visible, verified content and never invents a hidden price, review or availability.
+- [x] **SEO-06**: Machine cards/pages, breadcrumbs and internal links let crawlers and visitors reach inventory without infinite-scroll dependence.
+- [x] **SEO-07**: Sold pages retain truthful metadata and stay accessible unless a documented specific reason requires removal.
 - [ ] **SEO-08**: Real machine photos are served at suitable responsive sizes with factual alt text and sharing imagery.
 - [ ] **SEO-09**: The site is ready for Search Console verification and appropriate GA4/GTM/Google Ads landing measurements without inventing keyword volumes or ranking claims.
 
@@ -269,13 +269,13 @@ Each V1 requirement is owned by exactly one phase. See the roadmap's phase detai
 | UX-05 | Phase 6 | Pending |
 | UX-06 | Phase 6 | Pending |
 | UX-07 | Phase 6 | Pending |
-| SEO-01 | Phase 6 | Pending |
-| SEO-02 | Phase 6 | Pending |
+| SEO-01 | Phase 6 | Complete |
+| SEO-02 | Phase 6 | Complete |
 | SEO-03 | Phase 6 | Pending |
 | SEO-04 | Phase 6 | Pending |
-| SEO-05 | Phase 6 | Pending |
-| SEO-06 | Phase 6 | Pending |
-| SEO-07 | Phase 6 | Pending |
+| SEO-05 | Phase 6 | Complete |
+| SEO-06 | Phase 6 | Complete |
+| SEO-07 | Phase 6 | Complete |
 | SEO-08 | Phase 6 | Pending |
 | SEO-09 | Phase 6 | Pending |
 | ANLY-01 | Phase 7 | Pending |

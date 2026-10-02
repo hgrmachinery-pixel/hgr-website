@@ -4,20 +4,20 @@ milestone: V1
 milestone_name: versus deferred scope
 current_phase: 6
 current_phase_name: Accessible design and inventory SEO
-status: Phase 6 plan validated; implementation starting. Phase 5 implementation is complete; legal/contact/mail and infrastructure verification are deferred to deployment
-stopped_at: Phase 6 plans validated; Wave 1 ready
-last_updated: "2026-10-02T11:34:00.000Z"
+status: Phase 6 plan 06-01 complete; plans 06-02 through 06-05 remain. Phase 5 implementation is complete; legal/contact/mail and infrastructure verification are deferred to deployment
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-10-02T03:46:18.468Z"
 last_activity: 2026-10-02
-last_activity_desc: Phase 6 plans 06-01 through 06-05 passed independent plan validation. Wave 1 implementation is starting. Phase 5 deployment configuration remains deferred.
-state_head: fadd88226e0f3de3a54c6acfc9d2845b999e918d
+last_activity_desc: Phase 6 plan 06-01 implementation and synthetic verification completed. Plans 06-02 through 06-05 remain. Phase 5 deployment configuration remains deferred.
+state_head: a1fb45ee5613ba7afc7cbb0a92085d1a05a5bad8
 progress:
   total_phases: 8
   completed_phases: 0
-  total_plans: 13
-  completed_plans: 12
+  total_plans: 18
+  completed_plans: 14
 ---
 
-Total Phases: 5
+Total Phases: 8
 
 # Project State
 
@@ -30,14 +30,14 @@ See: .planning/PROJECT.md (updated 2026-09-30)
 
 ## Current Position
 
-Phase: 6 (Accessible design and inventory SEO) — PLANNING
-Plan: 5 plans validated across two waves; Wave 1 starting
+Phase: 6 (Accessible design and inventory SEO) — IMPLEMENTATION
+Current Plan: 2
 Total Plans in Phase: 5
 Status: Phase 5 implementation checkpoint complete; Phase 6 execution active
-Last Activity: 2026-10-02 — Phase 6 planning and independent validation complete
-Last Activity Description: Phase 6 plans 06-01 through 06-05 passed independent review; context, research, UI contract and validation map are recorded. Begin Wave 1.
+Last Activity: 2026-10-02 — Phase 6 plan 06-01 implementation complete
+Last Activity Description: Plan 06-01 route metadata, canonical paths, indexing policy and structured data passed focused tests, typecheck and synthetic production build. Plans 06-02 through 06-05 remain.
 
-Progress: Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 is being planned and will proceed to implementation.
+Progress: 14 of 18 plans are complete (78%). Phase 1–4 external verification remains pending. Phase 5 implementation is complete; legal publication, SMTP setup, phone/WhatsApp numbers and infrastructure/browser/deployment acceptance remain deferred configuration work. Phase 6 plan 06-01 is complete; four plans remain.
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: Phase 1–4 external verification remains pending. Phase 5 implementat
 | Phase 3 P3 | 25min | 2 tasks | 13 files |
 | Phase 3 P4 | 25min | 1 tasks | 10 files |
 | Phase 05 P01 | 1 session | 3 tasks | 13 files |
+| Phase 6 P01 | 11 min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Current decisions are recorded in PROJECT.md. Read the approved [reconciliation]
 - [Phase 3]: Roles and staff accounts use fresh persisted Owner authority independent of Approve Public Documents; transaction mutations serialize Owner bootstrap and retention.
 - [Phase 3]: Phase 3 migration rejects unknown legacy roles and existing photos that require invented identifiers, digests, reviews or actors; rollback refuses populated/nonrepresentable history under locks.
 - [Phase 3]: Keep the migration unapplied and public media delivery denied until exact approved disposable PostgreSQL/GCS targets pass live checks.
+- [Phase 6]: Machine SEO metadata and structured data use the public machine projection and visible verified facts.
+- [Phase 6]: Indexing requires production, explicit HGR_PUBLIC_INDEXING_ENABLED opt-in, and a valid SERVER_URL origin.
 
 ### Pending Todos
 
@@ -114,6 +117,6 @@ BM/Chinese, other machinery divisions, full lubricant catalogue/admin, ecommerce
 
 ## Session Continuity
 
-Last session: 2026-10-02T01:44:20.340Z
-Stopped at: Phase 5 local implementation complete; LEAD-07 and SITE-06 owner inputs pending
-Resume file: .planning/phases/05-enquiries-and-supporting-pages/05-01-PLAN.md
+Last session: 2026-10-02T03:46:18.213Z
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None
