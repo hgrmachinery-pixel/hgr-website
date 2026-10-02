@@ -13,6 +13,9 @@ export type InventoryFilters = {
 
 export type PublicImageCandidate = {
   url: string;
+  thumbnailUrl?: string;
+  cardUrl?: string;
+  largeUrl?: string;
   altText?: string;
   category?: string;
   order?: number;
@@ -99,18 +102,35 @@ export function projectPublicImage(value: unknown, deliveryVerified = false): Pu
   if (!value || typeof value !== "object") return undefined;
   const image = value as Record<string, unknown>;
   const sizes = image.sizes && typeof image.sizes === "object" ? image.sizes as Record<string, unknown> : {};
+  const thumbnail = sizes.thumbnail && typeof sizes.thumbnail === "object" ? sizes.thumbnail as Record<string, unknown> : {};
   const card = sizes.card && typeof sizes.card === "object" ? sizes.card as Record<string, unknown> : {};
+  const large = sizes.large && typeof sizes.large === "object" ? sizes.large as Record<string, unknown> : {};
   // This helper is called only for a relationship that Payload has returned
   // through the published Machine record's media read access. Each byte request
   // is independently re-authorized by publicMachineMediaAccess.
-  const url = getPublicImageURL(card.url ?? image.url, deliveryVerified);
+  const thumbnailUrl = getPublicImageURL(thumbnail.url, deliveryVerified);
+  const cardUrl = getPublicImageURL(card.url, deliveryVerified);
+  const largeUrl = getPublicImageURL(large.url, deliveryVerified);
+  const url = cardUrl ?? largeUrl ?? thumbnailUrl;
   if (!url) return undefined;
   return {
     url,
-    ...(text(image.altText) ? { altText: text(image.altText) } : {}),
+    ...(typeof image.altText === "string" ? { altText: image.altText } : {}),
+    ...(thumbnailUrl ? { thumbnailUrl } : {}),
+    ...(cardUrl ? { cardUrl } : {}),
+    ...(largeUrl ? { largeUrl } : {}),
     ...(text(image.category) ? { category: text(image.category) } : {}),
     ...(typeof image.order === "number" && Number.isFinite(image.order) ? { order: image.order } : {}),
   };
+}
+
+export function publicImageSrcSet(image: PublicImageCandidate): string | undefined {
+  const sources = [
+    image.thumbnailUrl ? `${image.thumbnailUrl} 320w` : undefined,
+    image.cardUrl ? `${image.cardUrl} 640w` : undefined,
+    image.largeUrl ? `${image.largeUrl} 1280w` : undefined,
+  ].filter((source): source is string => Boolean(source));
+  return sources.length ? sources.join(", ") : undefined;
 }
 
 export function projectPublicMachineWithMedia(document: Record<string, unknown>, deliveryVerified: boolean) {
