@@ -278,3 +278,138 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* Wave 2: Digital Inspection presentation. Shared tokens and breakpoints above remain authoritative. */
+.machine-inspection { width: min(1360px, 100% - 2 * var(--page-gutter)); padding-top: 22px; padding-bottom: 100px; }
+.breadcrumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; padding: 0; color: var(--hgr-muted); list-style: none; font-size: 13px; }
+.breadcrumbs li + li::before { content: "/"; margin-right: 8px; color: #999; }
+.breadcrumbs a { color: inherit; }
+.inspection-hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(340px, .75fr); gap: clamp(32px, 5.5vw, 82px); align-items: center; padding: 18px 0 56px; }
+.inspection-hero__media { position: relative; min-width: 0; min-height: 360px; overflow: hidden; background: #f1f0ee; }
+.inspection-hero__media img { display: block; width: 100%; height: 100%; max-height: 620px; min-height: 360px; object-fit: cover; }
+.inspection-hero__caption { position: absolute; right: 14px; bottom: 14px; padding: 7px 10px; color: #fff; background: #171717d9; font-size: 11px; letter-spacing: .04em; }
+.inspection-hero__empty { min-height: 420px; display: grid; place-items: center; padding: 24px; color: var(--hgr-muted); }
+.inspection-hero__details { max-width: 520px; }
+.inspection-hero__details > .eyebrow { margin: 0 0 20px; }
+.inspection-hero__details .machine-status { margin-bottom: 16px; padding: 6px 11px; font-size: 13px; }
+.inspection-hero__details h1 { margin: 0; font-size: clamp(38px, 4.7vw, 62px); font-weight: 600; line-height: 1.04; letter-spacing: -.05em; }
+.inspection-hero__price { margin: 20px 0 0; font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.inspection-hero__summary { max-width: 430px; margin: 14px 0 0; color: var(--hgr-muted); line-height: 1.65; }
+.inspection-hero__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.inspection-hero__fineprint { margin: 16px 0 0; color: var(--hgr-muted); font-size: 12px; }
+.inspection-progress { margin: 0 0 76px; padding: 24px 26px; border: 1px solid var(--hgr-border); background: #fbfbfa; }
+.inspection-progress__heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; }
+.inspection-progress__heading .eyebrow { margin: 0 0 6px; font-size: 10px; }
+.inspection-progress__heading h2 { margin: 0; font-size: 21px; font-weight: 600; }
+.inspection-progress__heading > p { margin: 0; color: var(--hgr-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.inspection-progress ol { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 20px 0 0; padding: 0; list-style: none; }
+.inspection-progress li { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border: 1px solid var(--hgr-border); background: #fff; }
+.inspection-progress__link { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 10px; font-size: 12px; text-decoration: none; }
+.inspection-progress__link span:last-child { color: var(--hgr-muted); }
+.inspection-progress__link:hover span:first-child { text-decoration: underline; }
+.inspection-progress__toggle { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border: 0; border-left: 1px solid var(--hgr-border); color: #3c3c3c; background: #fafafa; font: inherit; font-size: 11px; cursor: pointer; }
+.inspection-progress__toggle[aria-pressed="true"] { color: #205c34; background: #e8f4ec; }
+.inspection-progress__mark { width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #999; border-radius: 50%; color: #205c34; font-size: 12px; font-weight: 700; }
+.inspection-progress__note { margin: 14px 0 0; color: var(--hgr-muted); font-size: 12px; }
+.machine-overview, .machine-gallery, .machine-passport, .machine-video, .machine-supporting-documents, .arrange-inspection, .related-machines { margin: 0 0 82px; scroll-margin-top: 24px; }
+.machine-overview { max-width: 850px; padding-bottom: 32px; border-bottom: 1px solid var(--hgr-border); }
+.machine-overview .eyebrow, .machine-supporting-documents > .eyebrow, .machine-video > .eyebrow { margin: 0 0 8px; font-size: 11px; }
+.machine-overview h2, .machine-gallery__header h2, .machine-video h2, .machine-supporting-documents h2, .inspection-section-heading h2, .arrange-inspection h2 { margin: 0; font-size: clamp(26px, 3vw, 36px); font-weight: 600; line-height: 1.12; letter-spacing: -.035em; }
+.machine-overview > p:last-child { max-width: 760px; margin: 14px 0 0; color: var(--hgr-muted); line-height: 1.75; white-space: pre-wrap; }
+.machine-gallery__header { display: flex; align-items: end; justify-content: space-between; gap: 28px; }
+.machine-gallery__header .eyebrow { margin: 0 0 8px; font-size: 11px; }
+.machine-gallery__header p:not(.eyebrow) { max-width: 650px; margin: 10px 0 0; color: var(--hgr-muted); font-size: 14px; }
+.machine-gallery__header > span { flex: 0 0 auto; color: var(--hgr-muted); font-size: 13px; }
+.machine-gallery__index { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 32px; }
+.machine-gallery__index a { min-height: 42px; display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid var(--hgr-border); color: var(--hgr-ink); background: white; font-size: 12px; text-decoration: none; }
+.machine-gallery__index a span { color: var(--hgr-muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.inspection-photo-group { padding-top: 20px; margin-top: 18px; border-top: 1px solid var(--hgr-border); scroll-margin-top: 24px; }
+.inspection-photo-group > header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 15px; }
+.inspection-photo-group > header h3 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -.02em; }
+.inspection-photo-group > header > span:last-child { margin-left: auto; color: var(--hgr-muted); font-size: 12px; }
+.inspection-photo-group__index { color: var(--hgr-orange); font-size: 12px; font-weight: 700; }
+.inspection-photo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.inspection-photo { min-width: 0; margin: 0; border: 1px solid var(--hgr-border); background: white; }
+.inspection-photo__frame { aspect-ratio: 4 / 3; overflow: hidden; background: var(--hgr-soft); }
+.inspection-photo__frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.inspection-photo__frame picture { display: block; width: 100%; height: 100%; }
+.inspection-photo__frame[data-media-kind="enhanced-preview"] { position: relative; }
+.inspection-photo figcaption { min-height: 40px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px; color: #424242; font-size: 11px; }
+.inspection-photo figcaption span:last-child { flex: 0 0 auto; color: #777; font-variant-numeric: tabular-nums; }
+.machine-gallery__empty { min-height: 250px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 32px; border: 1px solid var(--hgr-border); background: var(--hgr-soft); }
+.machine-gallery__empty .eyebrow { margin: 0 0 10px; }
+.machine-gallery__empty h2 { margin: 0; font-size: 24px; }
+.machine-gallery__empty p:last-child { margin: 8px 0 0; color: var(--hgr-muted); }
+.machine-passport { padding: clamp(24px, 4vw, 50px); border: 1px solid var(--hgr-border); background: #f7f6f3; }
+.machine-passport__header { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding-bottom: 22px; border-bottom: 1px solid #cfcdc7; }
+.machine-passport__header .eyebrow { margin: 0 0 8px; font-size: 10px; }
+.machine-passport__header h2 { margin: 0; font-size: clamp(28px, 3.4vw, 42px); font-weight: 600; letter-spacing: -.045em; }
+.machine-passport__header > span { color: var(--hgr-muted); font-size: 10px; letter-spacing: .12em; }
+.machine-passport__groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 44px; padding-top: 28px; }
+.machine-passport__group h3 { margin: 0 0 8px; color: var(--hgr-muted); font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+.machine-passport__group dl { margin: 0; }
+.machine-passport__group dl > div { display: grid; grid-template-columns: minmax(130px, .85fr) minmax(0, 1.15fr); gap: 14px; padding: 9px 0; border-bottom: 1px solid #dfddd8; }
+.machine-passport__group dt { color: var(--hgr-muted); font-size: 13px; }
+.machine-passport__group dd { margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.machine-passport__note { margin: 24px 0 0; padding-top: 14px; border-top: 1px solid #cfcdc7; color: var(--hgr-muted); font-size: 12px; line-height: 1.6; }
+.machine-video__placeholder { min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; margin-top: 18px; border: 1px solid var(--hgr-border); color: var(--hgr-muted); background: #f1f0ee; text-align: center; }
+.machine-video__placeholder > span { width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid #aaa; border-radius: 50%; color: var(--hgr-ink); }
+.machine-video__placeholder p { margin: 0; font-size: 13px; }
+.machine-video iframe { display: block; width: 100%; max-width: 900px; margin-top: 18px; aspect-ratio: 16 / 9; border: 0; background: var(--hgr-dark); }
+.machine-video__load { min-height: 48px; margin-top: 18px; padding: 12px 16px; border: 1px solid var(--hgr-ink); color: white; background: var(--hgr-ink); font: inherit; font-weight: 600; cursor: pointer; }
+.machine-supporting-documents { padding-bottom: 28px; border-bottom: 1px solid var(--hgr-border); }
+.machine-supporting-documents > p:last-child { color: var(--hgr-muted); font-size: 14px; }
+.machine-supporting-documents ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 20px 0 0; padding: 0; list-style: none; }
+.machine-supporting-documents li { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border: 1px solid var(--hgr-border); background: white; }
+.machine-supporting-documents li span { color: var(--hgr-muted); font-size: 11px; text-transform: capitalize; }
+.arrange-inspection { display: grid; grid-template-columns: minmax(0, .9fr) minmax(360px, 1.1fr); gap: clamp(30px, 6vw, 82px); padding: clamp(28px, 4.5vw, 56px); color: white; background: var(--hgr-dark); scroll-margin-top: 24px; }
+.arrange-inspection__intro .eyebrow { margin: 0 0 12px; color: #c8c8c8; font-size: 10px; }
+.arrange-inspection__intro > p:not(.eyebrow) { max-width: 460px; color: #d0d0d0; line-height: 1.65; }
+.arrange-inspection__intro .direct-contact { margin-top: 22px; }
+.machine-enquiry { min-width: 0; margin: 0; padding: 24px; border: 0; color: var(--hgr-ink); background: white; }
+.machine-enquiry h3 { margin: 0; font-size: 20px; }
+.machine-enquiry .enquiry-form { margin-top: 14px; }
+.related-machines { padding-top: 8px; }
+.inspection-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.inspection-section-heading .eyebrow { margin: 0 0 8px; font-size: 10px; }
+.inspection-section-heading > a { min-height: 44px; display: inline-flex; align-items: center; font-size: 13px; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .inspection-hero { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .inspection-hero__media { min-height: 0; }
+  .inspection-hero__media img { max-height: 520px; min-height: 280px; }
+  .inspection-hero__details { max-width: 680px; }
+  .inspection-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .arrange-inspection { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .machine-inspection { width: calc(100% - 32px); padding-top: 16px; padding-bottom: 68px; }
+  .breadcrumbs { margin-bottom: 16px; font-size: 11px; }
+  .inspection-hero { gap: 22px; padding: 8px 0 36px; }
+  .inspection-hero__media img { min-height: 230px; }
+  .inspection-hero__details h1 { font-size: 40px; }
+  .inspection-hero__price { font-size: 22px; }
+  .inspection-hero__actions { flex-direction: column; align-items: stretch; }
+  .inspection-hero__actions .button { width: 100%; }
+  .inspection-progress { margin-bottom: 54px; padding: 18px 16px; }
+  .inspection-progress__heading { align-items: flex-start; }
+  .inspection-progress__heading h2 { font-size: 19px; }
+  .inspection-progress ol { gap: 6px; margin-top: 14px; }
+  .inspection-progress ol { grid-template-columns: 1fr; gap: 6px; }
+  .inspection-progress__link { min-height: 44px; padding-inline: 9px; font-size: 12px; }
+  .machine-overview, .machine-gallery, .machine-passport, .machine-video, .machine-supporting-documents, .arrange-inspection, .related-machines { margin-bottom: 58px; }
+  .machine-gallery__header, .machine-passport__header, .inspection-section-heading { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .machine-gallery__index { flex-wrap: nowrap; overflow-x: auto; margin-block: 18px 24px; padding-bottom: 6px; }
+  .machine-gallery__index a { flex: 0 0 auto; }
+  .inspection-photo-grid { grid-template-columns: 1fr; gap: 12px; }
+  .inspection-photo-group > header h3 { font-size: 19px; }
+  .machine-passport { padding: 22px 17px; }
+  .machine-passport__header > span { align-self: flex-end; }
+  .machine-passport__groups { grid-template-columns: 1fr; gap: 20px; padding-top: 22px; }
+  .machine-passport__group dl > div { grid-template-columns: minmax(110px, .8fr) minmax(0, 1.2fr); gap: 10px; }
+  .machine-passport__group dt, .machine-passport__group dd { font-size: 12px; }
+  .machine-supporting-documents ul { grid-template-columns: 1fr; }
+  .arrange-inspection { gap: 24px; padding: 24px 16px; }
+  .machine-enquiry { padding: 18px 14px; }
+  .inspection-section-heading { align-items: flex-start; }
+}

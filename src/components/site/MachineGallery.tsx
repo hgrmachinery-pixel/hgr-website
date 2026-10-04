@@ -1,37 +1,37 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { PublicImageCandidate } from "../../lib/machines/publicInventory";
-import { MACHINE_PHOTO_CATEGORY_LABELS } from "../../lib/machines/media.ts";
-import { publicImageSrcSet } from "../../lib/machines/publicInventory.ts";
+import type { InspectionImageGroup } from "../../lib/machines/inspection";
+import { publicImageSrcSet } from "../../lib/machines/publicInventory";
 
-export function MachineGallery({ images }: { images: PublicImageCandidate[] }) {
-  const categories = useMemo(() => [...new Set(images.map((image) => image.category).filter((value): value is string => Boolean(value)))], [images]);
-  const [category, setCategory] = useState("all");
-  const [selected, setSelected] = useState(0);
-  const visible = category === "all" ? images : images.filter((image) => image.category === category);
-  if (visible.length === 0) return <div className="machine-gallery__empty" role="img" aria-label="Machine photos are not currently available">Machine photos are not currently available.</div>;
+export type FutureImageEnhancement = { src: string; srcSet?: string; disclosure: string };
 
-  const current = visible[Math.min(selected, visible.length - 1)];
-  const move = (delta: number) => setSelected((index) => (index + delta + visible.length) % visible.length);
-  return (
-    <section className="machine-gallery" aria-label="Machine photo gallery" onKeyDown={(event) => {
-      if (event.key === "ArrowLeft") { event.preventDefault(); move(-1); }
-      if (event.key === "ArrowRight") { event.preventDefault(); move(1); }
-    }}>
-      <div className="machine-gallery__filters" aria-label="Photo categories">
-        <button type="button" aria-pressed={category === "all"} onClick={() => { setCategory("all"); setSelected(0); }}>All photos</button>
-        {categories.map((item) => <button type="button" key={item} aria-pressed={category === item} onClick={() => { setCategory(item); setSelected(0); }}>{MACHINE_PHOTO_CATEGORY_LABELS[item as keyof typeof MACHINE_PHOTO_CATEGORY_LABELS] ?? "Other details"}</button>)}
-      </div>
-      <div className="machine-gallery__featured">
-        <button type="button" aria-label="Previous photo" onClick={() => move(-1)}>‹</button>
-        <img src={current.largeUrl ?? current.url} srcSet={publicImageSrcSet(current)} sizes="(max-width: 800px) 100vw, 70vw" alt={current.altText ?? ""} />
-        <button type="button" aria-label="Next photo" onClick={() => move(1)}>›</button>
-      </div>
-      <p aria-live="polite">Photo {selected + 1} of {visible.length}{current.category ? ` · ${MACHINE_PHOTO_CATEGORY_LABELS[current.category as keyof typeof MACHINE_PHOTO_CATEGORY_LABELS] ?? "Other details"}` : ""}</p>
-      <div className="machine-gallery__thumbs" aria-label="Choose a photo">
-        {visible.map((image, index) => <button type="button" key={`${image.url}-${index}`} aria-label={`Show photo ${index + 1}${image.altText ? `: ${image.altText}` : ""}`} aria-pressed={selected === index} onClick={() => setSelected(index)}><img src={image.thumbnailUrl ?? image.url} alt="" loading="lazy" /></button>)}
-      </div>
-    </section>
-  );
+/** A sequenced evidence gallery. Future image treatments can wrap each static image without changing its journey. */
+export function MachineGallery({ groups, enhancements = {} }: { groups: InspectionImageGroup[]; enhancements?: Record<string, FutureImageEnhancement> }) {
+  if (groups.length === 0) return <section id="machine-photos" className="machine-gallery__empty" data-inspection-area aria-labelledby="machine-photos-title">
+    <p className="eyebrow">Inspection photographs</p><h2 id="machine-photos-title">Photos for this machine</h2><p>Machine photos are not currently available.</p>
+  </section>;
+
+  const total = groups.reduce((sum, group) => sum + group.images.length, 0);
+  let photoNumber = 0;
+  return <section id="machine-photos" className="machine-gallery" data-inspection-area aria-labelledby="machine-photos-title">
+    <header className="machine-gallery__header"><div><p className="eyebrow">Inspection photographs</p><h2 id="machine-photos-title">Walk around the machine</h2><p>Move through the available views. Each photo is shown in the category recorded for it.</p></div><span>{total} {total === 1 ? "photo" : "photos"}</span></header>
+    <nav className="machine-gallery__index" aria-label="Photo sections">{groups.map((group, index) => <a key={group.id} href={`#photo-${group.id}`}><span>0{index + 1}</span>{group.title}<span>({group.images.length})</span></a>)}</nav>
+    <div className="inspection-photo-groups">{groups.map((group, groupIndex) => <section id={`photo-${group.id}`} className="inspection-photo-group" data-inspection-area key={group.id} aria-labelledby={`photo-title-${group.id}`}>
+      <header><span className="inspection-photo-group__index">0{groupIndex + 1}</span><h3 id={`photo-title-${group.id}`}>{group.title}</h3><span>{group.images.length} {group.images.length === 1 ? "view" : "views"}</span></header>
+      <div className="inspection-photo-grid">{group.images.map((image, index) => {
+        photoNumber += 1;
+        const current = image;
+        const enhancement = enhancements[image.url];
+        return <figure className="inspection-photo" key={`${group.id}-${image.url}-${index}`}>
+          <div className="inspection-photo__frame" data-media-kind={enhancement ? "enhanced-preview" : "original"}>
+            <picture>
+              {enhancement && <source srcSet={enhancement.srcSet ?? enhancement.src} sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 40vw" />}
+              <img src={image.thumbnailUrl ?? image.url} srcSet={publicImageSrcSet(current)} sizes="(max-width: 640px) 100vw, (max-width: 1000px) 50vw, 40vw" alt={current.altText ?? ""} loading={photoNumber === 1 ? "eager" : "lazy"} fetchPriority={photoNumber === 1 ? "high" : "auto"} />
+            </picture>
+          </div>
+          <figcaption><span>{enhancement?.disclosure ?? image.altText ?? `${group.title} photo`}</span><span>{String(photoNumber).padStart(2, "0")} / {String(total).padStart(2, "0")}</span></figcaption>
+        </figure>;
+      })}</div>
+    </section>)}</div>
+  </section>;
 }
