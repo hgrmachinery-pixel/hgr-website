@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { LivingMachine } from "../../components/site/LivingMachine";
 import { MachineCard } from "../../components/site/MachineCard";
-import { MotionRegion } from "../../components/site/MotionRegion";
 import { TrackedContactLink } from "../../components/site/TrackedContactLink";
 import { getAvailableHomepageMachines } from "../../lib/machines/publicInventory";
 import { getPublicMachines } from "../../lib/machines/publicQueries";
@@ -39,6 +38,8 @@ export default async function HomePage() {
     : contact.phone ? `tel:${contact.phone.replace(/[^+\d]/g, "")}` : "/contact";
 
   return <main id="main-content" className="home-page">
+    <LivingMachine presentation="backdrop" progressScope="homepage" />
+    <div className="home-content">
     <section className="home-hero" aria-labelledby="home-title">
       <div className="home-hero__copy">
         <p className="eyebrow"><span className="eyebrow__line" aria-hidden="true" />Used excavators · HGR Equipment Resources</p>
@@ -50,11 +51,6 @@ export default async function HomePage() {
         </div>
         <div className="home-hero__note"><span className="home-hero__note-mark" aria-hidden="true">H</span><span>Every listing is a specific machine.<br />Ask us for the details you need.</span></div>
       </div>
-      <MotionRegion className="home-hero__visual-wrap">
-        <div className="home-hero__visual-label"><span>THE HGR YARD</span><span>01 / MACHINES</span></div>
-        <LivingMachine />
-        <div className="home-hero__visual-foot"><span>Real machines. Direct conversations.</span><span aria-hidden="true">↘</span></div>
-      </MotionRegion>
       <a className="home-hero__scroll" href="#available"><span aria-hidden="true">↓</span>Scroll to explore</a>
     </section>
 
@@ -92,5 +88,6 @@ export default async function HomePage() {
     </section>
 
     <section className="home-last-cta" aria-labelledby="last-cta-title"><p className="eyebrow">Your next step</p><h2 id="last-cta-title">Have a machine in mind?</h2><p>Browse the current excavators, or tell HGR what you’re looking for.</p><div className="home-hero__actions"><Link className="button button--primary" href="/used-excavators">Browse excavators <span aria-hidden="true">↗</span></Link><Link className="button button--quiet" href="/contact">Send an enquiry</Link></div></section>
+    </div>
   </main>;
 }

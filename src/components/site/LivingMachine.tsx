@@ -35,12 +35,14 @@ export type LivingMachineSource =
 type LivingMachineProps = {
   source?: LivingMachineSource;
   config?: LivingMachineConfig;
+  presentation?: "scene" | "backdrop";
+  progressScope?: "scene" | "homepage";
 };
 
 const layerOrder: readonly LivingMachineLayerName[] = ["background", "ground", "shadow", "body", "boom", "stick", "bucket"];
 
 /** Scroll-linked renderer boundary. Artwork and pose configuration can change without changing the homepage. */
-export function LivingMachine({ source, config = defaultLivingMachineConfig }: LivingMachineProps) {
+export function LivingMachine({ source, config = defaultLivingMachineConfig, presentation = "scene", progressScope = "scene" }: LivingMachineProps) {
   const sceneRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneStartRef = useRef<number | null>(null);
@@ -70,8 +72,17 @@ export function LivingMachine({ source, config = defaultLivingMachineConfig }: L
         const rect = scene.getBoundingClientRect();
         sceneStartRef.current ??= rect.top + window.scrollY;
         const frameHeight = scene.querySelector<HTMLElement>(".living-machine__frame")?.clientHeight ?? window.innerHeight;
-        const travel = Math.max(1, scene.offsetHeight - frameHeight);
-        const rawProgress = Math.min(1, Math.max(0, (window.scrollY - sceneStartRef.current) / travel));
+        const scope = progressScope === "homepage" ? scene.closest<HTMLElement>(".home-page") : null;
+        const homepageStart = progressScope === "homepage" && scope
+          ? scope.getBoundingClientRect().top + window.scrollY
+          : 0;
+        const travel = progressScope === "homepage" && scope
+          ? Math.max(1, document.documentElement.scrollHeight - window.innerHeight - homepageStart)
+          : Math.max(1, scene.offsetHeight - frameHeight);
+        const start = progressScope === "homepage" && scope
+          ? homepageStart
+          : (sceneStartRef.current ?? 0);
+        const rawProgress = Math.min(1, Math.max(0, (window.scrollY - start) / travel));
         const normalized = rawProgress <= config.progress.restingUntil ? 0 : rawProgress;
         setProgress(normalized);
       });
@@ -84,7 +95,7 @@ export function LivingMachine({ source, config = defaultLivingMachineConfig }: L
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, [config.progress, staticMode]);
+  }, [config.progress, progressScope, staticMode]);
 
   useEffect(() => {
     if (!source || (source.kind !== "canvas" && source.kind !== "webgl") || !canvasRef.current) return;
@@ -102,7 +113,7 @@ export function LivingMachine({ source, config = defaultLivingMachineConfig }: L
     "--layer-pivot-y": `${config.pivots[part].y}%`,
   } as CSSProperties);
 
-  return <figure ref={sceneRef} className={`living-machine${staticMode ? " living-machine--static" : ""}`} style={{ "--scene-length": `${config.scene.scrollLengthVh}vh`, "--scene-frame": `${config.scene.frameHeightVh}vh` } as CSSProperties} aria-label={source?.alt ?? "Temporary illustrated excavator for the Living Machine prototype"}>
+  return <figure ref={sceneRef} className={`living-machine${presentation === "backdrop" ? " living-machine--backdrop" : ""}${staticMode ? " living-machine--static" : ""}`} style={{ "--scene-length": `${config.scene.scrollLengthVh}vh`, "--scene-frame": `${config.scene.frameHeightVh}vh` } as CSSProperties} aria-hidden={presentation === "backdrop" ? true : undefined} aria-label={presentation === "scene" ? source?.alt ?? "Temporary illustrated excavator for the Living Machine prototype" : undefined}>
     <div className="living-machine__frame">
     {!source && <div className="living-machine__placeholder" aria-hidden="true">
       <span className="living-machine__sun" />
@@ -118,9 +129,9 @@ export function LivingMachine({ source, config = defaultLivingMachineConfig }: L
           <path d="M0 0 20-18 43-8 156-290 112-306Z" fill="#f18318" stroke="#d76306" strokeWidth="8" strokeLinejoin="round" />
           <path d="m21-32 98-244" stroke="#ffba60" strokeWidth="10" strokeLinecap="round" />
           <g className="living-machine__stick" transform={`translate(156 -290) rotate(${staticMode ? 0 : pose("stick", config.progress.stickStarts)})`}>
-            <path d="M0 0 37 7 164 260 123 279Z" fill="#ed7a0e" stroke="#d76306" strokeWidth="8" strokeLinejoin="round" />
-            <path d="m28 34 111 214" stroke="#ffba60" strokeWidth="9" strokeLinecap="round" />
-            <g className="living-machine__bucket" transform={`translate(128 270) rotate(${staticMode ? 0 : pose("bucket", config.progress.bucketStarts)})`}>
+            <path d="M0 0 37 7 164 320 123 339Z" fill="#ed7a0e" stroke="#d76306" strokeWidth="8" strokeLinejoin="round" />
+            <path d="m28 34 111 274" stroke="#ffba60" strokeWidth="9" strokeLinecap="round" />
+            <g className="living-machine__bucket" transform={`translate(128 320) rotate(${staticMode ? 0 : pose("bucket", config.progress.bucketStarts)})`}>
               <path d="m0 0 39 12 45 55-18 68-39-5 15-53-39-28Z" fill="#48443e" stroke="#302d29" strokeWidth="7" strokeLinejoin="round" />
             </g>
           </g>
