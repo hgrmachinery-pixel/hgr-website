@@ -5,6 +5,8 @@ import { AnalyticsProvider } from "../../components/site/AnalyticsProvider";
 import { isValidGtmContainerId } from "../../lib/analytics/events.ts";
 import "./site.css";
 import { SiteHeader } from "./siteHeader";
+import { SiteFooter } from "../../components/site/SiteFooter";
+import { FloatingWhatsApp } from "../../components/site/FloatingWhatsApp";
 import { getIndexingPolicy, getSiteMetadataBase } from "../../lib/siteMetadata";
 
 export function generateMetadata(): Metadata {
@@ -23,6 +25,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
   const containerId = analyticsEnabled && isValidGtmContainerId(configuredContainerId) ? configuredContainerId : undefined;
   return <html lang="en"><body><AnalyticsProvider enabled={analyticsEnabled} containerId={containerId} localReview={localReview}>
     {localReview && <div className="review-banner" role="status">LOCAL UI REVIEW · Fictional sample content · Enquiries are not sent</div>}
-    <SiteHeader /><div className="site-main">{children}</div><footer className="site-footer"><span>HGR Equipment Resources</span><nav aria-label="Footer navigation"><a href="/privacy-policy">Privacy Policy</a><a href="/website-terms">Website Terms</a><a href="/contact">Contact</a></nav></footer>
+    <a className="skip-link" href="#main-content">Skip to content</a>
+    <SiteHeader /><div className="site-main">{children}</div><SiteFooter /><FloatingWhatsApp />
   </AnalyticsProvider></body></html>;
 }
