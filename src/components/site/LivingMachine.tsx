@@ -24,6 +24,14 @@ export const defaultLivingMachineConfig: LivingMachineConfig = {
   scene: { scrollLengthVh: 180, frameHeightVh: 80 },
 };
 
+/** Prototype-only pose/timing values for the temporary Volvo photo. */
+export const prototypeLivingMachineConfig: LivingMachineConfig = {
+  ...defaultLivingMachineConfig,
+  progress: { restingUntil: 0, boomStarts: 0, stickStarts: 0.28, bucketStarts: 0.56, finish: 0.97 },
+  poses: { resting: { boom: 0, stick: 0, bucket: 0 }, final: { boom: -7, stick: 4, bucket: -6 } },
+  pivots: { boom: { x: 42, y: 48 }, stick: { x: 77, y: 20 }, bucket: { x: 86, y: 70 } },
+};
+
 export type LivingMachineAssets = Partial<Record<LivingMachineLayerName, string>>;
 export type LivingMachineSource =
   | { kind: "static-image"; src: string; alt: string }

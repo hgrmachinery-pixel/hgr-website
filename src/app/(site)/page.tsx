@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LivingMachine } from "../../components/site/LivingMachine";
+import { LivingMachine, prototypeLivingMachineConfig } from "../../components/site/LivingMachine";
 import { MachineCard } from "../../components/site/MachineCard";
 import { TrackedContactLink } from "../../components/site/TrackedContactLink";
 import { getAvailableHomepageMachines } from "../../lib/machines/publicInventory";
@@ -25,7 +25,13 @@ const supportingAreas = [
   { slug: "lubricants", title: "Lubricants", eyebrow: "Enquiries and product information", href: "/lubricants", group: "lubricants" as const },
 ];
 
-export default async function HomePage() {
+type HomePageProps = { searchParams: Promise<{ composition?: string | string[] }> };
+
+export default async function HomePage({ searchParams }: HomePageProps) {
+  const query = await searchParams;
+  const requestedComposition = Array.isArray(query.composition) ? query.composition[0] : query.composition;
+  const localReview = process.env.HGR_LOCAL_UI_REVIEW === "true" && process.env.NODE_ENV !== "production";
+  const composition = localReview && (requestedComposition === "A" || requestedComposition === "B") ? requestedComposition : "C";
   const [inventory, contact, aboutPage, areaPages] = await Promise.all([
     getPublicMachines(),
     getPublicContact(),
@@ -36,9 +42,25 @@ export default async function HomePage() {
   const aboutCopy = lexicalPlainText(aboutPage?.body).slice(0, 2);
   const contactHref = contact.whatsApp ? `https://wa.me/${contact.whatsApp}`
     : contact.phone ? `tel:${contact.phone.replace(/[^+\d]/g, "")}` : "/contact";
+  const prototypeSource = localReview ? {
+    kind: "layered-image" as const,
+    alt: "Temporary cutout photograph of a Volvo excavator",
+    assets: {
+      body: "/living-machine/prototype-volvo-body.webp",
+      boom: "/living-machine/prototype-volvo-boom.webp",
+      stick: "/living-machine/prototype-volvo-stick.webp",
+      bucket: "/living-machine/prototype-volvo-bucket.webp",
+    },
+  } : undefined;
 
-  return <main id="main-content" className="home-page">
-    <LivingMachine presentation="backdrop" progressScope="homepage" />
+  return <main id="main-content" className={`home-page home-page--option-${composition.toLowerCase()}`}>
+    {localReview && <nav className="composition-review" aria-label="Living Machine composition options">
+      <strong>Prototype composition</strong>
+      <a aria-current={composition === "A" ? "page" : undefined} href="/?composition=A">A · Open</a>
+      <a aria-current={composition === "B" ? "page" : undefined} href="/?composition=B">B · Immersive</a>
+      <a aria-current={composition === "C" ? "page" : undefined} href="/?composition=C">C · Canvas</a>
+    </nav>}
+    <LivingMachine source={prototypeSource} config={localReview ? prototypeLivingMachineConfig : undefined} presentation="backdrop" progressScope="homepage" />
     <div className="home-content">
     <section className="home-hero" aria-labelledby="home-title">
       <div className="home-hero__copy">
