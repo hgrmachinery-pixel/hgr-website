@@ -56,7 +56,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 .living-machine--backdrop .living-machine__layer--body, .living-machine--backdrop .living-machine__layer--boom, .living-machine--backdrop .living-machine__layer--stick, .living-machine--backdrop .living-machine__layer--bucket { opacity: .93; }
 .home-page--option-a .living-machine--backdrop .living-machine__layers { width: min(83vw, 110.67vh); }
 .home-page--option-b .living-machine--backdrop .living-machine__layers { width: min(112vw, 149.33vh); left: 57%; }
-.home-page--option-c .living-machine--backdrop .living-machine__layers { width: min(100vw, 133.33vh); left: 53%; }
+.home-page--option-c .living-machine--backdrop .living-machine__layers { top: 54%; width: min(98vw, 130.67vh); left: 50%; }
+.home-page--option-c .living-machine--backdrop .living-machine__layer--body, .home-page--option-c .living-machine--backdrop .living-machine__layer--boom, .home-page--option-c .living-machine--backdrop .living-machine__layer--stick, .home-page--option-c .living-machine--backdrop .living-machine__layer--bucket { opacity: .98; }
 .home-page--option-a .home-hero__copy { max-width: 600px; }
 .home-page--option-b .living-machine--backdrop::after { background: linear-gradient(90deg,rgb(255 255 255 / 46%) 0%,rgb(255 255 255 / 24%) 50%,rgb(255 255 255 / 6%) 100%); }
 .home-page--option-c .home-content { background: rgb(255 255 255 / 17%); }
@@ -325,7 +326,7 @@ body:has(.home-page) .site-footer { position: relative; z-index: 1; background: 
   .living-machine--backdrop .living-machine__layers { top: 50%; width: min(100vw, 133.33vh); }
   .home-page--option-a .living-machine--backdrop .living-machine__layers { width: min(83vw, 110.67vh); left: 50%; }
   .home-page--option-b .living-machine--backdrop .living-machine__layers { width: min(112vw, 149.33vh); left: 57%; }
-  .home-page--option-c .living-machine--backdrop .living-machine__layers { width: min(100vw, 133.33vh); left: 53%; }
+  .home-page--option-c .living-machine--backdrop .living-machine__layers { top: 54%; width: min(98vw, 130.67vh); left: 50%; }
   .home-page--option-b .home-hero__copy { max-width: 100%; padding: 16px; }
   .composition-review { top: 76px; width: calc(100% - 24px); justify-content: center; font-size: 11px; }
   .composition-review strong { width: 100%; text-align: center; }
