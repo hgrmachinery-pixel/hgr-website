@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { AnalyticsProvider } from "../../components/site/AnalyticsProvider";
 import { isValidGtmContainerId } from "../../lib/analytics/events.ts";
 import "./site.css";
+import "./inventory.css";
 import { SiteHeader } from "./siteHeader";
 import { SiteFooter } from "../../components/site/SiteFooter";
 import { FloatingWhatsApp } from "../../components/site/FloatingWhatsApp";

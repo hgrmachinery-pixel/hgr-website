@@ -4,7 +4,7 @@ import config from "@payload-config";
 import { getPayload } from "payload";
 import { getPublicMachineForSlug } from "../../../lib/machines/publicQueries";
 import { smtpEnquiryAdapter } from "../../../lib/email/enquiryAdapter";
-import { submitEnquiry, type EnquiryFieldErrors, type EnquiryKind, type EnquiryMetadata } from "../../../lib/enquiries/submit.ts";
+import { submitEnquiry, type EnquiryFieldErrors, type EnquiryKind, type EnquiryMetadata, type InventoryIdentity } from "../../../lib/enquiries/submit.ts";
 import { isLocalReviewMode } from "../../../lib/machines/publicQueries.ts";
 import { headers } from "next/headers";
 
@@ -21,7 +21,7 @@ export type EnquiryFormState = {
 
 const publicKinds: EnquiryKind[] = ["general", "machine", "rental", "service", "lubricant"];
 
-export async function sendEnquiry(expectedKind: EnquiryKind, expectedMachineSlug: string | undefined, _previous: EnquiryFormState, formData: FormData): Promise<EnquiryFormState> {
+export async function sendEnquiry(expectedKind: EnquiryKind, expectedMachineSlug: string | undefined, expectedInventory: InventoryIdentity | undefined, _previous: EnquiryFormState, formData: FormData): Promise<EnquiryFormState> {
   const kind = publicKinds.includes(expectedKind) ? expectedKind : "general";
   const input: Record<string, unknown> = { kind };
   const submittedKeys = ["name", "company", "phone", "email", "preferredContact", "subject", "message", "machineRequired", "startDate", "rentalDuration", "needOperator", "projectLocation", "projectTiming", "viewingPreference", "machineInterest", "machineLocation", "brand", "model", "problemDescription", "urgent", "machineBrand", "machineModel", "lubricantRequired", "product", "application", "quantity", "purchaseTimeline", "budget", "tradeIn", "tradeInBrand", "tradeInModel", "tradeInYear", "referrer", "utmSource", "utmMedium", "utmCampaign", "utmTerm", "utmContent", "website"];
@@ -33,18 +33,32 @@ export async function sendEnquiry(expectedKind: EnquiryKind, expectedMachineSlug
   const values = Object.fromEntries(Object.entries(input)
     .filter(([key, value]) => key !== "kind" && key !== "website" && typeof value === "string" && key in valueLimits)
     .map(([key, value]) => [key, (value as string).slice(0, valueLimits[key])]));
-  let context: { machine?: { reference: string; title: string }; pagePath?: string; metadata?: EnquiryMetadata } = {};
+  let context: { machine?: { reference: string; title: string }; inventory?: InventoryIdentity; pagePath?: string; metadata?: EnquiryMetadata } = {};
   if (kind === "machine" && expectedMachineSlug) {
     const result = await getPublicMachineForSlug(expectedMachineSlug);
     if (result.machine) {
       context = {
         machine: { reference: result.machine.reference, title: [result.machine.year, result.machine.brand, result.machine.model].filter(Boolean).join(" ") || `Excavator ${result.machine.reference}` },
+        inventory: { name: [result.machine.year, result.machine.brand, result.machine.model].filter(Boolean).join(" ") || `Excavator ${result.machine.reference}`, type: "used-machine", referenceNumber: result.machine.reference },
         pagePath: `/machines/${result.machine.slug}`,
       };
     }
   }
   if (kind === "machine" && !context.machine) {
     return { status: "invalid", errors: ["This machine page is no longer available. Please choose another machine or send a general enquiry."], values };
+  }
+  if (!context.inventory && expectedInventory) {
+    if (expectedInventory.type === "spare-part" && expectedInventory.referenceNumber && /^PART-[A-Z0-9-]+$/.test(expectedInventory.referenceNumber)) {
+      const payload = await getPayload({ config });
+      const result = await payload.find({ collection: "spare-parts", where: { referenceNumber: { equals: expectedInventory.referenceNumber } }, limit: 1, depth: 0, overrideAccess: true });
+      const item = result.docs[0];
+      if (item && item._status === "published" && !item.archived) context.inventory = { name: item.name, type: "spare-part", referenceNumber: item.referenceNumber, canonicalURL: `/spare-parts/${item.slug}` };
+    } else if (expectedInventory.type === "lubricant" && expectedInventory.referenceNumber && /^LUBE-[A-Z0-9-]+$/.test(expectedInventory.referenceNumber)) {
+      const payload = await getPayload({ config });
+      const result = await payload.find({ collection: "lubricants", where: { referenceNumber: { equals: expectedInventory.referenceNumber } }, limit: 1, depth: 0, overrideAccess: true });
+      const item = result.docs[0];
+      if (item && item._status === "published" && !item.archived) context.inventory = { name: item.name, type: "lubricant", referenceNumber: item.referenceNumber, canonicalURL: `/lubricants/${item.slug}` };
+    }
   }
   const requestHeaders = await headers();
   context.metadata = {

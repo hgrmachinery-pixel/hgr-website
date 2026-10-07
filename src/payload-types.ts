@@ -72,6 +72,9 @@ export interface Config {
     users: User;
     machines: Machine;
     'machine-media': MachineMedia;
+    'inventory-media': InventoryMedia;
+    'spare-parts': SparePart;
+    lubricants: Lubricant;
     'machine-documents': MachineDocument;
     'asset-audit-events': AssetAuditEvent;
     pages: Page;
@@ -87,6 +90,9 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     machines: MachinesSelect<false> | MachinesSelect<true>;
     'machine-media': MachineMediaSelect<false> | MachineMediaSelect<true>;
+    'inventory-media': InventoryMediaSelect<false> | InventoryMediaSelect<true>;
+    'spare-parts': SparePartsSelect<false> | SparePartsSelect<true>;
+    lubricants: LubricantsSelect<false> | LubricantsSelect<true>;
     'machine-documents': MachineDocumentsSelect<false> | MachineDocumentsSelect<true>;
     'asset-audit-events': AssetAuditEventsSelect<false> | AssetAuditEventsSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
@@ -392,6 +398,168 @@ export interface MachineMedia {
   };
 }
 /**
+ * Product photos for spare parts and lubricants. Machine photos stay in the machine photo workflow.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inventory-media".
+ */
+export interface InventoryMedia {
+  id: number;
+  ownerType: 'spare-part' | 'lubricant';
+  /**
+   * Assigned through the inventory media workflow.
+   */
+  ownerId: string;
+  category: 'featured' | 'item' | 'label-details' | 'other';
+  assetKind: 'master' | 'derivative';
+  reviewStatus: 'needs-review' | 'approved' | 'rejected';
+  revision?: number | null;
+  contentDigest?: string | null;
+  sourceDigest?: string | null;
+  processingStatus?: ('master' | 'ready' | 'failed') | null;
+  storageProvider?: ('gcs' | 'r2') | null;
+  uploadedBy?: string | null;
+  uploadedAt?: string | null;
+  processedBy?: string | null;
+  processedAt?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  reviewHistory?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  auditHistory?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  sourceMaster?: (number | null) | InventoryMedia;
+  altText?: string | null;
+  order?: number | null;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+  sizes?: {
+    thumbnail?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    card?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+    large?: {
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+      mimeType?: string | null;
+      filesize?: number | null;
+      filename?: string | null;
+    };
+  };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spare-parts".
+ */
+export interface SparePart {
+  id: number;
+  referenceNumber: string;
+  slug: string;
+  name: string;
+  brand?: string | null;
+  referencePrefix?: string | null;
+  category?: string | null;
+  manufacturerPartNumber?: string | null;
+  compatibleMachineBrand?: string | null;
+  compatibleMachineModel?: string | null;
+  compatibilityConfirmed?: boolean | null;
+  condition?: ('new' | 'used' | 'reconditioned') | null;
+  shortDescription?: string | null;
+  description?: string | null;
+  availability: 'available' | 'reserved' | 'sold' | 'unavailable';
+  priceMode: 'contact' | 'public';
+  price?: number | null;
+  archived?: boolean | null;
+  featuredImage: number | InventoryMedia;
+  gallery?: (number | InventoryMedia)[] | null;
+  /**
+   * Optional. Otherwise the item name is used.
+   */
+  seoTitle?: string | null;
+  /**
+   * Optional. Otherwise a description is generated from visible item details.
+   */
+  seoDescription?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lubricants".
+ */
+export interface Lubricant {
+  id: number;
+  referenceNumber: string;
+  slug: string;
+  name: string;
+  brand?: string | null;
+  referencePrefix?: string | null;
+  productCode?: string | null;
+  productType?: string | null;
+  grade?: string | null;
+  packSize?: string | null;
+  compatibleMachineBrand?: string | null;
+  compatibleMachineModel?: string | null;
+  compatibilityConfirmed?: boolean | null;
+  shortDescription?: string | null;
+  description?: string | null;
+  availability: 'available' | 'unavailable' | 'enquiry-only';
+  priceMode: 'contact' | 'public';
+  price?: number | null;
+  archived?: boolean | null;
+  featuredImage: number | InventoryMedia;
+  gallery?: (number | InventoryMedia)[] | null;
+  /**
+   * Optional. Otherwise the item name is used.
+   */
+  seoTitle?: string | null;
+  /**
+   * Optional. Otherwise a description is generated from visible item details.
+   */
+  seoDescription?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
  * Private originals and separate redacted document revisions.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -484,7 +652,7 @@ export interface AssetAuditEvent {
   createdAt: string;
 }
 /**
- * Manage page copy and contact information used on the website.
+ * Manage published website copy. Only the Owner may save, publish or remove Privacy Policy and Website Terms pages; publishing confirms approval of the exact wording.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages".
@@ -557,6 +725,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'machine-media';
         value: number | MachineMedia;
+      } | null)
+    | ({
+        relationTo: 'inventory-media';
+        value: number | InventoryMedia;
+      } | null)
+    | ({
+        relationTo: 'spare-parts';
+        value: number | SparePart;
+      } | null)
+    | ({
+        relationTo: 'lubricants';
+        value: number | Lubricant;
       } | null)
     | ({
         relationTo: 'machine-documents';
@@ -808,6 +988,140 @@ export interface MachineMediaSelect<T extends boolean = true> {
               filename?: T;
             };
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inventory-media_select".
+ */
+export interface InventoryMediaSelect<T extends boolean = true> {
+  ownerType?: T;
+  ownerId?: T;
+  category?: T;
+  assetKind?: T;
+  reviewStatus?: T;
+  revision?: T;
+  contentDigest?: T;
+  sourceDigest?: T;
+  processingStatus?: T;
+  storageProvider?: T;
+  uploadedBy?: T;
+  uploadedAt?: T;
+  processedBy?: T;
+  processedAt?: T;
+  approvedBy?: T;
+  approvedAt?: T;
+  reviewHistory?: T;
+  auditHistory?: T;
+  sourceMaster?: T;
+  altText?: T;
+  order?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+  sizes?:
+    | T
+    | {
+        thumbnail?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        card?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+        large?:
+          | T
+          | {
+              url?: T;
+              width?: T;
+              height?: T;
+              mimeType?: T;
+              filesize?: T;
+              filename?: T;
+            };
+      };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spare-parts_select".
+ */
+export interface SparePartsSelect<T extends boolean = true> {
+  referenceNumber?: T;
+  slug?: T;
+  name?: T;
+  brand?: T;
+  referencePrefix?: T;
+  category?: T;
+  manufacturerPartNumber?: T;
+  compatibleMachineBrand?: T;
+  compatibleMachineModel?: T;
+  compatibilityConfirmed?: T;
+  condition?: T;
+  shortDescription?: T;
+  description?: T;
+  availability?: T;
+  priceMode?: T;
+  price?: T;
+  archived?: T;
+  featuredImage?: T;
+  gallery?: T;
+  seoTitle?: T;
+  seoDescription?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "lubricants_select".
+ */
+export interface LubricantsSelect<T extends boolean = true> {
+  referenceNumber?: T;
+  slug?: T;
+  name?: T;
+  brand?: T;
+  referencePrefix?: T;
+  productCode?: T;
+  productType?: T;
+  grade?: T;
+  packSize?: T;
+  compatibleMachineBrand?: T;
+  compatibleMachineModel?: T;
+  compatibilityConfirmed?: T;
+  shortDescription?: T;
+  description?: T;
+  availability?: T;
+  priceMode?: T;
+  price?: T;
+  archived?: T;
+  featuredImage?: T;
+  gallery?: T;
+  seoTitle?: T;
+  seoDescription?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

@@ -2,6 +2,7 @@
 
 import type { InspectionImageGroup } from "../../lib/machines/inspection";
 import { publicImageSrcSet } from "../../lib/machines/publicInventory";
+import { InventoryGallery } from "./InventoryGallery";
 
 export type FutureImageEnhancement = { src: string; srcSet?: string; disclosure: string };
 
@@ -9,6 +10,14 @@ export type FutureImageEnhancement = { src: string; srcSet?: string; disclosure:
 export function MachineGallery({ groups, enhancements = {} }: { groups: InspectionImageGroup[]; enhancements?: Record<string, FutureImageEnhancement> }) {
   if (groups.length === 0) return <section id="machine-photos" className="machine-gallery__empty" data-inspection-area aria-labelledby="machine-photos-title">
     <p className="eyebrow">Inspection photographs</p><h2 id="machine-photos-title">Photos for this machine</h2><p>Machine photos are not currently available.</p>
+  </section>;
+
+  // Keep the machine inspection navigation and evidence grouping; the shared gallery
+  // component now owns the responsive image rendering used across inventory types.
+  if (Object.keys(enhancements).length === 0) return <section id="machine-photos" data-inspection-area>
+    <header className="machine-gallery__header"><div><p className="eyebrow">Inspection photographs</p><h2 id="machine-photos-title">Walk around the machine</h2><p>Move through the available views. Each photo is shown in the category recorded for it.</p></div><span>{groups.reduce((sum, group) => sum + group.images.length, 0)} photos</span></header>
+    <nav className="machine-gallery__index" aria-label="Photo sections">{groups.map((group, index) => <a key={group.id} href={`#photo-${group.id}`}><span>0{index + 1}</span>{group.title}<span>({group.images.length})</span></a>)}</nav>
+    {groups.map((group) => <section id={`photo-${group.id}`} className="inspection-photo-group" data-inspection-area key={group.id} aria-label={group.title}><h3>{group.title}</h3><InventoryGallery images={group.images.map((image) => ({ id: image.url, url: image.url, cardUrl: image.thumbnailUrl ?? image.url, thumbnailUrl: image.thumbnailUrl, largeUrl: image.url, srcSet: publicImageSrcSet(image), altText: image.altText ?? "", order: 0 }))} title={group.title} variant="machine" /></section>)}
   </section>;
 
   const total = groups.reduce((sum, group) => sum + group.images.length, 0);

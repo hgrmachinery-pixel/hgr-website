@@ -37,6 +37,7 @@ export function createSmtpEnquiryAdapter(
     const lines = [
       `Enquiry type: ${fields.kind}`, `Name: ${fields.name ?? ""}`, `Company: ${fields.company ?? ""}`,
       `Phone: ${fields.phone ?? ""}`, `Email: ${fields.email ?? ""}`,
+      ...(context.inventory ? [`Inventory name: ${context.inventory.name}`, `Inventory type: ${context.inventory.type}`, `Reference number: ${context.inventory.referenceNumber ?? "Not supplied"}`, `Canonical URL: ${context.inventory.canonicalURL ?? "Not supplied"}`] : []),
       ...Object.entries(fields).filter(([key]) => !["kind", "name", "company", "phone", "email"].includes(key)).map(([key, value]) => `${key}: ${value}`),
       ...(context.machine ? [`Machine: ${context.machine.reference} — ${context.machine.title}`] : []),
       ...(context.pagePath ? [`Page: ${context.pagePath}`] : []),

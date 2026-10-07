@@ -1,4 +1,4 @@
-export const publicPageSlugs = ["rental", "machinery-services", "lubricants", "about", "contact", "privacy-policy", "website-terms"] as const;
+export const publicPageSlugs = ["rental", "machinery-services", "spare-parts", "lubricants", "about", "contact", "privacy-policy", "website-terms"] as const;
 export type PublicPageSlug = (typeof publicPageSlugs)[number];
 
 export function isPublicPageSlug(slug: string): slug is PublicPageSlug {

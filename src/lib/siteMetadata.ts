@@ -62,6 +62,7 @@ const publicSitemapPaths = [
   "/contact",
   "/rental",
   "/machinery-services",
+  "/spare-parts",
   "/lubricants",
 ] as const;
 
@@ -94,6 +95,17 @@ export function buildPublicSitemap(
     entries.push({ url: new URL(publicMachinePath(machine.slug), safeOrigin).toString() });
   }
   return entries;
+}
+
+export function buildInventorySitemapEntries(
+  policy: PublicIndexingPolicy,
+  origin: string | undefined,
+  items: readonly { kind: "spare-part" | "lubricant"; slug: string }[],
+): MetadataRoute.Sitemap {
+  const safeOrigin = getPublicOrigin(origin);
+  if (!policy.index || !safeOrigin) return [];
+  return items.filter(({ kind, slug }) => (kind === "spare-part" || kind === "lubricant") && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
+    .map(({ kind, slug }) => ({ url: new URL(`/${kind === "spare-part" ? "spare-parts" : "lubricants"}/${slug}`, safeOrigin).toString() }));
 }
 
 export function buildRouteMetadata({

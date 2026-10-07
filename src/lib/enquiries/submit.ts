@@ -1,4 +1,6 @@
 export type EnquiryKind = "general" | "machine" | "rental" | "service" | "lubricant";
+export type InventoryType = "used-machine" | "spare-part" | "lubricant" | "rental-machine" | "attachment";
+export type InventoryIdentity = { name: string; type: InventoryType; referenceNumber?: string; canonicalURL?: string };
 
 export type EnquiryInput = {
   kind: EnquiryKind;
@@ -49,7 +51,7 @@ export type EnquiryMetadata = {
   browser?: string;
   timestamp: string;
 };
-type EnquiryContext = { machine?: { reference: string; title: string }; pagePath?: string; metadata?: EnquiryMetadata };
+type EnquiryContext = { machine?: { reference: string; title: string }; inventory?: InventoryIdentity; pagePath?: string; metadata?: EnquiryMetadata };
 export type EnquiryField = keyof Omit<EnquiryInput, "kind" | "website">;
 export type EnquiryFieldErrors = Partial<Record<EnquiryField, string>>;
 export type DeliveryResult = { status: "accepted" | "unavailable" | "failed" | "invalid"; errors?: string[]; fieldErrors?: EnquiryFieldErrors };
@@ -68,7 +70,7 @@ const requiredByKind: Record<EnquiryKind, string[]> = {
   general: ["name", "phone", "message", "subject"], machine: ["name", "phone", "message"],
   rental: ["name", "phone", "machineRequired", "startDate", "rentalDuration", "projectLocation", "needOperator"],
   service: ["name", "phone", "brand", "model", "problemDescription", "machineLocation", "urgent"],
-  lubricant: ["name", "phone", "machineBrand", "machineModel", "lubricantRequired", "quantity"],
+  lubricant: ["name", "phone", "machineBrand", "lubricantRequired", "quantity"],
 };
 
 export function validateEnquiry(input: EnquiryInput): { ok: true; fields: CleanEnquiry } | { ok: false; errors: string[]; fieldErrors?: EnquiryFieldErrors } {
