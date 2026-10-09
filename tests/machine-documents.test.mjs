@@ -16,9 +16,12 @@ test("Payload registers machine documents only on private object storage", async
     readFile(new URL("../src/app/api/machine-documents/[action]/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../src/components/payload/SubmitDocumentForReview.tsx", import.meta.url), "utf8"),
   ]);
-  assert.match(config, /collections:\s*\[[^\]]*MachineDocuments/s);
-  assert.match(config, /"machine-documents":\s*true/);
-  assert.match(config, /acl:\s*["']Private["']/);
+  const registeredCollections = config.match(/collections:\s*\[([\s\S]*?)\],\s*\n\s*globals:/)?.[1];
+  assert.ok(registeredCollections);
+  assert.match(registeredCollections, /MachineDocuments/);
+  assert.match(config, /"machine-documents":\s*\{\s*prefix:\s*["']machine-documents["']\s*\}/);
+  assert.match(config, /R2_BUCKET/);
+  assert.match(config, /R2 does not support x-amz-acl/);
   assert.match(outerRoute, /machine-documents\/file/);
   assert.match(outerRoute, /private, no-store/);
   assert.ok(submitRoute.indexOf("isSameOriginDocumentPost") < submitRoute.indexOf("request.json()"));

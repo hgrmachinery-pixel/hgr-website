@@ -26,6 +26,52 @@ let payload:
 let failure: unknown;
 let stage = "local-service-setup";
 
+type SmokeFixtureRecord = {
+  id: string | number;
+  title: string;
+  filename?: string | null;
+  sizes?: {
+    card?: {
+      filename?: string | null;
+      url?: string | null;
+      width?: number | null;
+      height?: number | null;
+    };
+  };
+};
+
+type SmokeFixtureAPI = {
+  create(options: {
+    collection: "foundation-fixtures";
+    data: { title: string };
+    overrideAccess: true;
+    file: { data: Buffer; name: string; mimetype: string; size: number };
+  }): Promise<SmokeFixtureRecord>;
+  findByID(options: {
+    collection: "foundation-fixtures";
+    id: string | number;
+    depth: 0;
+    overrideAccess: boolean;
+  }): Promise<SmokeFixtureRecord>;
+  find(options: {
+    collection: "foundation-fixtures";
+    where: { title: { equals: string } };
+    limit: number;
+    depth: 0;
+    overrideAccess: true;
+  }): Promise<{ docs: SmokeFixtureRecord[] }>;
+  delete(options: {
+    collection: "foundation-fixtures";
+    id: string | number;
+    overrideAccess: true;
+  }): Promise<unknown>;
+};
+
+function fixtureAPI(): SmokeFixtureAPI {
+  assert.ok(payload, "Payload must be initialized before fixture access");
+  return payload as unknown as SmokeFixtureAPI;
+}
+
 async function localFetch(url: string, init?: RequestInit) {
   const target = new URL(url);
   assert.ok(
@@ -203,7 +249,7 @@ try {
     .toBuffer();
   assert.ok(png.length < 5 * 1024 * 1024);
   stage = "database-and-external-upload";
-  const fixture = await payload.create({
+  const fixture = await fixtureAPI().create({
     collection: "foundation-fixtures",
     data: { title },
     overrideAccess: true,
@@ -215,7 +261,7 @@ try {
     },
   });
   fixtureID = fixture.id;
-  const persisted = await payload.findByID({
+  const persisted = await fixtureAPI().findByID({
     collection: "foundation-fixtures",
     id: fixtureID,
     depth: 0,
@@ -291,7 +337,7 @@ try {
   if (payload) {
     try {
       // An upload hook can fail after record creation, before create returns its ID.
-      const { docs } = await payload.find({
+      const { docs } = await fixtureAPI().find({
         collection: "foundation-fixtures",
         where: { title: { equals: title } },
         limit: 2,
@@ -303,7 +349,7 @@ try {
         assert.equal(record.title, title, "Cleanup marker mismatch");
         if (fixtureID !== undefined)
           assert.equal(record.id, fixtureID, "Cleanup ID mismatch");
-        await payload.delete({
+        await fixtureAPI().delete({
           collection: "foundation-fixtures",
           id: record.id,
           overrideAccess: true,

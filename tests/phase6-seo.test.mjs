@@ -64,6 +64,7 @@ test("public sitemap builder emits only fixed routes and published machine paths
     "https://hgrmachinery.com/contact",
     "https://hgrmachinery.com/rental",
     "https://hgrmachinery.com/machinery-services",
+    "https://hgrmachinery.com/spare-parts",
     "https://hgrmachinery.com/lubricants",
     "https://hgrmachinery.com/machines/sold-pc200",
     "https://hgrmachinery.com/machines/available-pc210",
@@ -72,8 +73,8 @@ test("public sitemap builder emits only fixed routes and published machine paths
   assert.deepEqual(buildPublicSitemap({ index: true, follow: true }, undefined, machines), []);
   assert.equal(buildPublicSitemap({ index: true, follow: true }, "https://hgrmachinery.com", [
     { slug: "invalid/slug?status=sold", stockStatus: "sold" },
-  ]).length, 7);
-  assert.equal(buildPublicSitemap({ index: true, follow: true }, "https://hgrmachinery.com", []).length, 7);
+  ]).length, 8);
+  assert.equal(buildPublicSitemap({ index: true, follow: true }, "https://hgrmachinery.com", []).length, 8);
 });
 
 test("machine metadata and schema use only visible projected facts and stable slug", async () => {

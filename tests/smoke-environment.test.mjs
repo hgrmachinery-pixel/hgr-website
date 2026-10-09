@@ -59,6 +59,9 @@ test("accepts explicitly disposable local services and creates an isolated child
   assert.equal(result.child.DATABASE_URL, env.SMOKE_DATABASE_URL);
   assert.equal(result.child.GCS_ENDPOINT, "http://127.0.0.1:4443");
   assert.equal(result.child.GCS_BUCKET, "hgr-foundation-smoke");
+  assert.equal(result.child.R2_BUCKET, "hgr-foundation-smoke-r2-unused");
+  assert.equal(result.child.R2_ENDPOINT, "https://local-smoke-account.r2.cloudflarestorage.com");
+  assert.equal(result.child.R2_ACCESS_KEY_ID, "local-smoke-unused-access-key");
   assert.equal(result.child.SERVER_URL, "http://127.0.0.1:3107");
   assert.equal(result.child.CI, "true");
   assert.equal(result.child.PAYLOAD_MIGRATING, "true");

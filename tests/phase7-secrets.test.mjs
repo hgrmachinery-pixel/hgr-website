@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -59,7 +59,9 @@ test("tracked source has no common credential material and reports names/categor
   const findings = [];
   for (const file of trackedFiles()) {
     if (file.startsWith("node_modules/") || file === ".env.example") continue;
-    const content = readFileSync(join(root, file), "utf8");
+    const path = join(root, file);
+    if (!existsSync(path)) continue;
+    const content = readFileSync(path, "utf8");
     for (const [category, pattern] of rules) {
       const match = content.match(pattern);
       if (!match) continue;

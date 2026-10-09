@@ -184,7 +184,7 @@ test("public inventory, unit and contact routes wire distinct intent events", as
     readFile(new URL("../src/app/(site)/machines/[slug]/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/app/(site)/[supportingPage]/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/site/TrackedContactLink.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../src/components/site/EnquiryForm.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/site/InventoryEnquiry.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(machinePage, /name:\s*"machine_view",\s*machineReference:\s*machine\.reference/);
   assert.match(machinePage, /TrackedContactLink/);

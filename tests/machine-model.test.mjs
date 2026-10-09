@@ -128,7 +128,9 @@ test("machine facts keep separate dates and the CMS contact values blank until v
   assert.match(pages, /name: "seoDescription"/);
   assert.match(pages, /name: "body"[\s\S]*type: "richText"/);
   assert.match(config, /editor: lexicalEditor\(\{\}\)/);
-  assert.match(config, /collections: \[[^\]]*Pages/s);
+  const registeredCollections = config.match(/collections:\s*\[([\s\S]*?)\],\s*\n\s*globals:/)?.[1];
+  assert.ok(registeredCollections);
+  assert.match(registeredCollections, /Pages/);
   assert.match(config, /globals: \[SiteContact\]/);
 });
 

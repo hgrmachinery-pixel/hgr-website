@@ -70,7 +70,7 @@ test("used control boundaries meet non-text contrast and every matrix pair maps 
     [".inventory-filters input, .inventory-filters select, .copy-machine-link input", /border:\s*1px solid #767676/],
     [".pagination a, .pagination span", /border:\s*1px solid #767676/],
     [".machine-gallery__filters button, .machine-gallery__thumbs button, .machine-gallery__featured button", /border:\s*1px solid #767676/],
-    [".enquiry-form__field input, .enquiry-form__field textarea", /border:\s*1px solid #767676/],
+    [".enquiry-form__field input, .enquiry-form__field textarea, .enquiry-form__field select", /border:\s*1px solid #767676/],
   ];
   for (const [selector, border] of controlSelectors) assert.match(declarations(selector), border, `${selector} must retain its tested control boundary`);
   const currentPage = declarations(".pagination [aria-current=\"page\"]");

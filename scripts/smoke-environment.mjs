@@ -104,6 +104,11 @@ export function smokeEnvironment(source = process.env) {
     GOOGLE_APPLICATION_CREDENTIALS: "",
     GOOGLE_CLOUD_PROJECT: "hgr-foundation-smoke",
     GOOGLE_CLOUD_QUOTA_PROJECT: "",
+    // R2 settings are synthetic: this smoke only exercises the local GCS fixture.
+    R2_ENDPOINT: "https://local-smoke-account.r2.cloudflarestorage.com",
+    R2_BUCKET: "hgr-foundation-smoke-r2-unused",
+    R2_ACCESS_KEY_ID: "local-smoke-unused-access-key",
+    R2_SECRET_ACCESS_KEY: "local-smoke-unused-secret-key-not-for-cloud",
     CI: "true",
     PAYLOAD_MIGRATING: "true",
     NEXT_TELEMETRY_DISABLED: "1",
