@@ -4,14 +4,14 @@ import type { Metadata } from "next";
 import { MachineGallery } from "../../../../components/site/MachineGallery";
 import { MachineVideo } from "../../../../components/site/MachineVideo";
 import { MachineOverview } from "../../../../components/site/MachineOverview";
-import { MachinePassport } from "../../../../components/site/MachinePassport";
+import { MachineDetails } from "../../../../components/site/MachineDetails";
 import { MachineSupportingDocuments } from "../../../../components/site/MachineSupportingDocuments";
 import { InspectionProgress } from "../../../../components/site/InspectionProgress";
 import { RelatedMachines } from "../../../../components/site/RelatedMachines";
 import { buildInspectionImageGroups, buildPassportGroups } from "../../../../lib/machines/inspection";
 import { getPublicMachineForSlug, getPublicMachines } from "../../../../lib/machines/publicQueries";
 import { publicImageSrcSet, publicMachinePath } from "../../../../lib/machines/publicInventory";
-import { EnquiryForm } from "../../../../components/site/EnquiryForm";
+import { InventoryEnquiry } from "../../../../components/site/InventoryEnquiry";
 import { getPublicContact } from "../../../../lib/siteContent";
 import { buildMachineMetadata, buildMachineStructuredData, getIndexingPolicy, getPublicOrigin, serializeJsonLd } from "../../../../lib/siteMetadata";
 import { TrackAnalyticsEvent } from "../../../../components/site/AnalyticsProvider";
@@ -39,7 +39,7 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
   const images = machine.images;
   const available = inventory.machines.filter((item) => item.stockStatus === "available" && item.hgrId !== machine.hgrId).slice(0, 3);
   const imageGroups = buildInspectionImageGroups(images);
-  const passportGroups = buildPassportGroups(machine);
+  const detailGroups = buildPassportGroups(machine);
   const title = [machine.year, machine.brand, machine.model].filter(Boolean).join(" ") || `Excavator ${machine.reference}`;
   const contact = await getPublicContact();
   const origin = getPublicOrigin();
@@ -47,7 +47,7 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
   const inspectionAreas = [
     { id: "machine-overview", label: "Overview" },
     ...(imageGroups.length ? imageGroups.map((group) => ({ id: `photo-${group.id}`, label: group.title })) : [{ id: "machine-photos", label: "Photos" }]),
-    { id: "machine-passport", label: "Machine passport" },
+    { id: "machine-details", label: "Machine Details" },
     { id: "machine-video", label: "Video walkthrough" },
     { id: "supporting-documents", label: "Documents" },
     { id: "arrange-inspection", label: "Contact HGR" },
@@ -81,7 +81,7 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
     <InspectionProgress areas={inspectionAreas} />
     <MachineOverview description={machine.description} />
     <MachineGallery groups={imageGroups} />
-    <MachinePassport groups={passportGroups} />
+    <MachineDetails groups={detailGroups} />
     <MachineVideo src={machine.videoUrl} title={title} />
     <MachineSupportingDocuments />
     <section id="arrange-inspection" className="arrange-inspection" data-inspection-area aria-labelledby="arrange-inspection-title">
@@ -91,7 +91,7 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
           {contact.whatsApp && viewingMessage && <TrackedContactLink className="button button--quiet" href={`https://wa.me/${contact.whatsApp}?text=${encodeURIComponent(viewingMessage)}`} channel="whatsapp" machineReference={machine.reference} target="_blank" rel="noreferrer">WhatsApp about this machine</TrackedContactLink>}
         </div>
       </div>
-      <div className="machine-enquiry"><h3>Send a machine enquiry</h3><EnquiryForm kind="machine" machineSlug={machine.slug} machineName={title} machineReference={machine.reference} /></div>
+      <div className="machine-enquiry"><h3>Send a machine enquiry</h3><InventoryEnquiry kind="machine" machineSlug={machine.slug} inventory={{ name: title, type: "used-machine", referenceNumber: machine.reference }} /></div>
     </section>
     <RelatedMachines items={available.map((item) => ({ machine: item, image: item.featuredImage }))} />
   </main>;
