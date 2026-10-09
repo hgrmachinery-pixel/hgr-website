@@ -1,8 +1,6 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { Storage } from "@google-cloud/storage";
 import { buildStoragePathData } from "@payloadcms/plugin-cloud-storage/utilities";
 
-export type InventoryStorageProvider = "gcs" | "r2";
 export type InventoryStoredFile = {
   filename: string;
   prefix?: string | null;
@@ -21,7 +19,7 @@ function objectKey(file: InventoryStoredFile) {
 class R2InventoryStorage implements InventoryObjectStorageProvider {
   async read(file: InventoryStoredFile) {
     const endpoint = process.env.R2_ENDPOINT;
-    const bucket = process.env.R2_INVENTORY_BUCKET;
+    const bucket = process.env.R2_BUCKET;
     const accessKeyId = process.env.R2_ACCESS_KEY_ID;
     const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
     if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) throw new Error("R2 inventory storage is not configured");
@@ -32,16 +30,6 @@ class R2InventoryStorage implements InventoryObjectStorageProvider {
   }
 }
 
-class GCSInventoryStorage implements InventoryObjectStorageProvider {
-  async read(file: InventoryStoredFile) {
-    const bucket = process.env.GCS_BUCKET;
-    if (!bucket) throw new Error("GCS inventory storage is not configured");
-    const storage = new Storage({ projectId: process.env.GCS_PROJECT_ID, keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS, apiEndpoint: process.env.GCS_ENDPOINT || undefined });
-    const [bytes] = await storage.bucket(bucket).file(objectKey(file)).download();
-    return bytes;
-  }
-}
-
-export function inventoryObjectStorage(provider: InventoryStorageProvider): InventoryObjectStorageProvider {
-  return provider === "r2" ? new R2InventoryStorage() : new GCSInventoryStorage();
+export function inventoryObjectStorage(): InventoryObjectStorageProvider {
+  return new R2InventoryStorage();
 }

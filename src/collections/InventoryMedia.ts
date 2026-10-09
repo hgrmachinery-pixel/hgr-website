@@ -55,7 +55,7 @@ export const InventoryMedia: CollectionConfig = {
           data.uploadedBy = req.user?.id;
           data.uploadedAt = new Date().toISOString();
         }
-        data.storageProvider = process.env.INVENTORY_MEDIA_STORAGE === "r2" ? "r2" : "gcs";
+        data.storageProvider = "r2";
         data.auditHistory = [{ event: context.inventoryMediaWorkflow === true ? "processed" : "uploaded", actor: req.user?.id, at: new Date().toISOString(), digest: data.contentDigest }];
         return data;
       }
@@ -102,7 +102,7 @@ export const InventoryMedia: CollectionConfig = {
     { name: "contentDigest", type: "text", admin: { hidden: true, readOnly: true } },
     { name: "sourceDigest", type: "text", admin: { hidden: true, readOnly: true } },
     { name: "processingStatus", type: "select", options: ["master", "ready", "failed"].map((value) => ({ label: value, value })), admin: { hidden: true, readOnly: true } },
-    { name: "storageProvider", type: "select", options: ["gcs", "r2"].map((value) => ({ label: value.toUpperCase(), value })), admin: { hidden: true, readOnly: true } },
+    { name: "storageProvider", type: "select", options: [{ label: "R2", value: "r2" }], admin: { hidden: true, readOnly: true } },
     { name: "uploadedBy", type: "text", admin: { hidden: true, readOnly: true } },
     { name: "uploadedAt", type: "date", admin: { hidden: true, readOnly: true } },
     { name: "processedBy", type: "text", admin: { hidden: true, readOnly: true } },

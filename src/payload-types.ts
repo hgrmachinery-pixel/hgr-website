@@ -67,7 +67,6 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    'foundation-fixtures': FoundationFixture;
     roles: Role;
     users: User;
     machines: Machine;
@@ -85,7 +84,6 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    'foundation-fixtures': FoundationFixturesSelect<false> | FoundationFixturesSelect<true>;
     roles: RolesSelect<false> | RolesSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     machines: MachinesSelect<false> | MachinesSelect<true>;
@@ -137,38 +135,6 @@ export interface UserAuthOperations {
   unlock: {
     email: string;
     password: string;
-  };
-}
-/**
- * Fake, disposable test content only. Never upload business or customer documents.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "foundation-fixtures".
- */
-export interface FoundationFixture {
-  id: number;
-  title: string;
-  _objectKey?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-  sizes?: {
-    card?: {
-      url?: string | null;
-      width?: number | null;
-      height?: number | null;
-      mimeType?: string | null;
-      filesize?: number | null;
-      filename?: string | null;
-    };
   };
 }
 /**
@@ -358,6 +324,7 @@ export interface MachineMedia {
   lastModifiedAt?: string | null;
   altText?: string | null;
   order?: number | null;
+  prefix?: string | null;
   _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -417,7 +384,7 @@ export interface InventoryMedia {
   contentDigest?: string | null;
   sourceDigest?: string | null;
   processingStatus?: ('master' | 'ready' | 'failed') | null;
-  storageProvider?: ('gcs' | 'r2') | null;
+  storageProvider?: 'r2' | null;
   uploadedBy?: string | null;
   uploadedAt?: string | null;
   processedBy?: string | null;
@@ -445,6 +412,7 @@ export interface InventoryMedia {
   sourceMaster?: (number | null) | InventoryMedia;
   altText?: string | null;
   order?: number | null;
+  prefix?: string | null;
   _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -611,6 +579,7 @@ export interface MachineDocument {
     | number
     | boolean
     | null;
+  prefix?: string | null;
   _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -707,10 +676,6 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'foundation-fixtures';
-        value: number | FoundationFixture;
-      } | null)
-    | ({
         relationTo: 'roles';
         value: number | Role;
       } | null)
@@ -791,39 +756,6 @@ export interface PayloadMigration {
   batch?: number | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "foundation-fixtures_select".
- */
-export interface FoundationFixturesSelect<T extends boolean = true> {
-  title?: T;
-  _objectKey?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
-  sizes?:
-    | T
-    | {
-        card?:
-          | T
-          | {
-              url?: T;
-              width?: T;
-              height?: T;
-              mimeType?: T;
-              filesize?: T;
-              filename?: T;
-            };
-      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -942,6 +874,7 @@ export interface MachineMediaSelect<T extends boolean = true> {
   lastModifiedAt?: T;
   altText?: T;
   order?: T;
+  prefix?: T;
   _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1015,6 +948,7 @@ export interface InventoryMediaSelect<T extends boolean = true> {
   sourceMaster?: T;
   altText?: T;
   order?: T;
+  prefix?: T;
   _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -1158,6 +1092,7 @@ export interface MachineDocumentsSelect<T extends boolean = true> {
   lastModifiedBy?: T;
   lastModifiedAt?: T;
   auditHistory?: T;
+  prefix?: T;
   _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;

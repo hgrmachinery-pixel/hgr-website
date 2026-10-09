@@ -1,6 +1,6 @@
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
-import { gcsStorage } from "@payloadcms/storage-gcs";
+import { gcsStorage, type GcsStorageOptions } from "@payloadcms/storage-gcs";
 import { s3Storage } from "@payloadcms/storage-s3";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,12 +24,42 @@ import { configuredImageLimits } from "./lib/machines/media.ts";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 
-const useR2ForInventoryMedia = process.env.INVENTORY_MEDIA_STORAGE === "r2";
 function r2Environment(name: string): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`Missing required server environment variable: ${name}`);
   return value;
 }
+
+function hasLoopbackSmokeDatabase(): boolean {
+  const value = process.env.DATABASE_URL;
+  if (!value || value !== process.env.SMOKE_DATABASE_URL) return false;
+  try {
+    const url = new URL(value);
+    return ["postgres:", "postgresql:"].includes(url.protocol) &&
+      url.hostname === "127.0.0.1" && Boolean(url.port) && Boolean(url.username) && Boolean(url.password) &&
+      url.pathname === "/hgr_foundation_smoke" && !url.search && !url.hash;
+  } catch {
+    return false;
+  }
+}
+
+function hasLoopbackSmokeStorage(): boolean {
+  const endpoint = process.env.GCS_ENDPOINT;
+  if (!endpoint || endpoint !== process.env.SMOKE_GCS_ENDPOINT || process.env.GCS_BUCKET !== "hgr-foundation-smoke" ||
+    process.env.SMOKE_GCS_BUCKET !== "hgr-foundation-smoke" || process.env.GCS_PROJECT_ID !== "hgr-foundation-smoke") return false;
+  try {
+    const url = new URL(endpoint);
+    return url.protocol === "http:" && url.hostname === "127.0.0.1" && Boolean(url.port) &&
+      url.pathname === "/" && !url.username && !url.password && !url.search && !url.hash;
+  } catch {
+    return false;
+  }
+}
+
+// The foundation fixture exists only inside the guarded, disposable local smoke
+// process. The smoke coordinator independently validates loopback targets.
+const useFoundationSmokeFixture = process.env.HGR_SMOKE_DISPOSABLE === "yes" &&
+  hasLoopbackSmokeDatabase() && hasLoopbackSmokeStorage();
 function r2Endpoint(): string {
   const value = r2Environment("R2_ENDPOINT");
   let endpoint: URL;
@@ -79,7 +109,7 @@ export default buildConfig({
   editor: lexicalEditor({}),
   serverURL: origin.origin,
   csrf: [origin.origin],
-  collections: [FoundationFixture, Roles, Users, Machines, MachineMedia, InventoryMedia, SpareParts, Lubricants, MachineDocuments, AssetAuditEvents, Pages],
+  collections: [...(useFoundationSmokeFixture ? [FoundationFixture] : []), Roles, Users, Machines, MachineMedia, InventoryMedia, SpareParts, Lubricants, MachineDocuments, AssetAuditEvents, Pages],
   globals: [SiteContact],
   email: noDeliveryEmailAdapter,
   admin: { user: "users" },
@@ -93,26 +123,32 @@ export default buildConfig({
     migrationDir: path.resolve(configDirectory, "migrations"),
   }),
   plugins: [
-    gcsStorage({
-      collections: { "foundation-fixtures": true, "machine-media": true, ...(!useR2ForInventoryMedia ? { "inventory-media": true } : {}), "machine-documents": true },
-      bucket: requiredEnvironment("GCS_BUCKET"),
-      // Objects remain private in GCS; every public derivative requires an app authorization check.
-      acl: "Private",
-      options: {
-        projectId: requiredEnvironment("GCS_PROJECT_ID"),
-        apiEndpoint: process.env.GCS_ENDPOINT || undefined,
-        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
+    s3Storage({
+      collections: {
+        "machine-media": { prefix: "machine-media" },
+        "inventory-media": { prefix: "inventory-media" },
+        "machine-documents": { prefix: "machine-documents" },
       },
-    }),
-    ...(useR2ForInventoryMedia ? [s3Storage({
-      collections: { "inventory-media": true },
-      bucket: r2Environment("R2_INVENTORY_BUCKET"),
-      acl: "private",
+      bucket: r2Environment("R2_BUCKET"),
+      // R2 does not support x-amz-acl. Keep the bucket private and serve files
+      // only through the existing Payload and application authorization paths.
       config: {
         credentials: { accessKeyId: r2Environment("R2_ACCESS_KEY_ID"), secretAccessKey: r2Environment("R2_SECRET_ACCESS_KEY") },
         endpoint: r2Endpoint(),
         region: "auto",
         forcePathStyle: true,
+      },
+    }),
+    ...(useFoundationSmokeFixture ? [gcsStorage({
+      // This collection is registered only in the guarded smoke config, so it
+      // is intentionally absent from the generated production collection types.
+      collections: { "foundation-fixtures": true } as GcsStorageOptions["collections"],
+      bucket: requiredEnvironment("GCS_BUCKET"),
+      acl: "Private",
+      options: {
+        projectId: requiredEnvironment("GCS_PROJECT_ID"),
+        apiEndpoint: process.env.GCS_ENDPOINT,
+        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS || undefined,
       },
     })] : []),
   ],
