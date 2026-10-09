@@ -18,11 +18,11 @@ Check these before deploying:
 
 - Node.js **22.23.3 or later in the 22.x line, or 24.x**, npm and a full Next.js Node server lifecycle. The committed [package.json](../../package.json) allows both runtime lines. Official [Next.js](https://nextjs.org/docs/app/getting-started/installation), [Payload](https://payloadcms.com/docs/getting-started/installation) and [Sharp](https://sharp.pixelplumbing.com/install/) requirements are Node 20.9+; the selected framework and image-processing dependencies therefore do not require Node 24. Node 24 remains locally tested; Node 22.23.3 is allowed by the reviewed package engine ranges but this project has not yet been built/run under Node 22. Confirm the destination OS/architecture has a Sharp binary supported by Sharp's platform list.
 - Build support and a maintained running process for `npm run start`, with host-provided port/restart management and HTTPS routing. PHP/static-only hosting cannot run this retained Admin/API application. [Next.js self-hosting](https://nextjs.org/docs/app/guides/self-hosting) describes the Node server and reverse proxy requirements.
-- Network access to the chosen **PostgreSQL** service and **GCS** bucket from the application and migration runner. Database/user and bucket must already exist; the app disables database creation and automatic schema push. PostgreSQL 17 is the local test configuration, not evidence of a destination server version.
+- Network access to the chosen **PostgreSQL** service and **Cloudflare R2** bucket from the application and migration runner. Database/user and bucket must already exist; the app disables database creation and automatic schema push. PostgreSQL 17 is the local test configuration, not evidence of a destination server version.
 - Native Sharp support for the destination OS/architecture, writable temporary/build/cache space and sufficient observed upload-processing memory/time. The foundation limits uploads to 5 MiB and creates a 640-pixel-wide card derivative; these are test settings, not approved production photo capacity. Verify proxy/request limits and image processing on the actual host.
 - Protected server environment injection for build, migration and runtime; private credential mounting or suitable existing Google authentication; least-privilege database and bucket permissions. Inspect settings/logs without recording secret values.
 
-Payload's [deployment guidance](https://payloadcms.com/docs/production/deployment) treats the app, database and permanent files as separate deployment needs. This project retains PostgreSQL and the official [GCS adapter](https://payloadcms.com/docs/upload/storage-adapters); the existing Exabytes MariaDB is not a substitute.
+Payload's [deployment guidance](https://payloadcms.com/docs/production/deployment) treats the app, database and permanent files as separate deployment needs. This project retains PostgreSQL and Payload's S3-compatible [storage adapter](https://payloadcms.com/docs/upload/storage-adapters) configured for Cloudflare R2; the existing Exabytes MariaDB is not a substitute. The synthetic `foundation-fixtures` collection is excluded from production and uses the GCS adapter only inside the guarded local smoke process.
 
 ## Destination environment
 
@@ -32,15 +32,20 @@ Use the host's protected environment/secret settings. [`.env.example`](../../.en
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection URL for the approved destination database; configure connection security to the service's requirements. |
 | `PAYLOAD_SECRET` | Unpredictable secret of at least 32 characters. For an existing instance retain its approved secret; changing it affects authentication. |
+| `PREVIEW_SECRET` | Separate unpredictable secret of at least 32 characters. Required while building and running because the preview route validates it at module load; changing it invalidates outstanding preview links. |
 | `SERVER_URL` | Destination HTTP(S) origin without credentials; use HTTPS for remote deployment. Drives Payload server URL and CSRF origin. |
-| `GCS_PROJECT_ID`, `GCS_BUCKET` | Existing approved GCS project and bucket accessible to this instance. |
-| `GCS_ENDPOINT` | Normally unset for real GCS; custom API endpoint only when an explicitly approved compatible test service requires it. |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Optional path to a securely mounted private Google credential file outside tracked source; otherwise use the destination's existing [Google Application Default Credentials](https://docs.cloud.google.com/docs/authentication/application-default-credentials) setup. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS` | Reserved for later mail integration. No email adapter uses them yet; setting them does not enable delivery or account recovery email. |
+| `R2_ENDPOINT` | Cloudflare account's S3 API endpoint using HTTPS, without embedded credentials. |
+| `R2_BUCKET` | Existing private R2 bucket used by machine photos, inventory photos, and machine documents. Collection prefixes keep their stored objects separated. |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Least-privilege R2 S3 credentials supplied through protected host settings. Never expose them in logs or client-side variables. |
+| `HGR_MACHINE_PHOTO_MAX_FILE_BYTES`, `HGR_MACHINE_PHOTO_MAX_BATCH_BYTES` | Positive per-file and batch limits. Set only after confirming host proxy limits and image processing capacity; without valid configured limits, inventory photo processing fails closed. |
+| `HGR_PUBLIC_MEDIA_DELIVERY_VERIFIED`, `HGR_INVENTORY_MEDIA_DELIVERY_VERIFIED` | Keep unset/false until their respective real R2 delivery, privacy, and authorization acceptance checks pass on the destination. |
+| `HGR_PUBLIC_INDEXING_ENABLED` | Keep unset/false for staging; enable only for an approved public launch. |
+| `HGR_ANALYTICS_ENABLED`, `HGR_GTM_CONTAINER_ID` | Optional; keep analytics disabled until measurement, privacy and any required consent setup are approved. Container ID is embedded at build time. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS`, `ENQUIRY_TO_EMAIL`, `ENQUIRY_EMAIL_ENABLED` | Optional website enquiry delivery settings. Delivery requires complete valid values and explicit `ENQUIRY_EMAIL_ENABLED=true`; no settings means enquiry email is unavailable. Payload account recovery email remains separately disabled. |
 
-Keep the real bucket private. The fixture collection is publicly readable through Payload's file route, with authentication required for writes; it accepts synthetic test images only and is unsuitable for private originals. Future JPJ/inventory rules belong to later phases. The foundation's storage adapter disables local upload storage, so app replacement must preserve the external database and objects.
+Keep the R2 bucket private and do not attach a public domain. Cloudflare R2 does not support S3 object ACL headers, so the adapter intentionally omits the ACL option; the application streams files through Payload's authorization-aware handlers. Do not enable signed downloads or bypass Payload access control. Machine originals and documents remain staff-only; only the existing approved image-derivative path may serve public photos after its R2 delivery verification is enabled. Published redacted machine documents remain staff-only in the current implementation. The fixture collection accepts synthetic images only and is not included in production configuration.
 
-The smoke-only names `HGR_SMOKE_DISPOSABLE`, `SMOKE_DATABASE_URL`, `SMOKE_GCS_ENDPOINT`, `SMOKE_GCS_BUCKET`, `SMOKE_APP_PORT`, `SMOKE_PG_USER`, `SMOKE_PG_PASSWORD`, `SMOKE_PG_PORT`, `SMOKE_GCS_PORT` and `SMOKE_GCS_IMAGE` belong exclusively to the [local procedure](../../README.md#configure-locally). Leave them out of remote deployments. Likewise `STORAGE_EMULATOR_HOST` is for emulator use only. An app host's `PORT` can set Next.js's listening port; it is process configuration, not the public domain.
+The smoke-only names `HGR_SMOKE_DISPOSABLE`, `SMOKE_DATABASE_URL`, `SMOKE_GCS_ENDPOINT`, `SMOKE_GCS_BUCKET`, `SMOKE_APP_PORT`, `SMOKE_PG_USER`, `SMOKE_PG_PASSWORD`, `SMOKE_PG_PORT`, `SMOKE_GCS_PORT` and `SMOKE_GCS_IMAGE` belong exclusively to the [local procedure](../../README.md#configure-locally). Leave them out of remote deployments. The smoke runner maps them to a guarded local GCS-compatible fixture service and injects inert R2 settings; it never uses production R2 credentials. Production has no `GCS_PROJECT_ID`, `GCS_BUCKET`, `GCS_ENDPOINT`, `GOOGLE_APPLICATION_CREDENTIALS`, or `INVENTORY_MEDIA_STORAGE` setting. Likewise `STORAGE_EMULATOR_HOST` is for emulator use only. An app host's `PORT` can set Next.js's listening port; it is process configuration, not the public domain.
 
 ## Rebuild and start
 
@@ -81,7 +86,7 @@ The smoke-only names `HGR_SMOKE_DISPOSABLE`, `SMOKE_DATABASE_URL`, `SMOKE_GCS_EN
 
 ## Prove the destination separately
 
-`npm run smoke:foundation` is intentionally loopback-only, launches its own app and applies migrations to `hgr_foundation_smoke`. It cannot test remote Exabytes or another remote host simply by changing a URL. Do not weaken its guard or point it at live data. First prove the disposable local path with the [README](../../README.md#local-migration-and-verification).
+`npm run smoke:foundation` is intentionally loopback-only, launches its own app and applies migrations to `hgr_foundation_smoke`. It tests the local GCS-compatible fixture adapter, not a real R2 bucket. Its synthetic R2 settings only prove configuration loads; they do not establish Cloudflare upload, download, privacy, or recovery behavior. It cannot test remote Exabytes or another remote host simply by changing a URL. Do not weaken its guard or point it at live data. First prove the disposable local path with the [README](../../README.md#local-migration-and-verification).
 
 For an approved destination test, the maintainer must establish a separately authorized fake-data procedure and record actual startup, PostgreSQL read/write, external object upload/read, derivative output, public/Admin access and persistence after app restart. Observe upload size, limits, elapsed time and failures on that account. Remove only the exact synthetic records/objects authorized for cleanup; do not delete a bucket, database, shared volume or production data.
 
@@ -91,7 +96,8 @@ For any move, preserve or separately authorize transfer of database content, obj
 |---|---|
 | Source/configuration and command review | Repeatable procedure exists; no host has been proven. |
 | Local build/configuration tests | The reviewed tuple compiles and safety settings pass locally. |
-| Completed local integration | The disposable local database/storage/public/Admin/restart path works. Currently pending. |
+| Completed local integration | The disposable local database/GCS-fixture/public/Admin/restart path works. It does not prove R2 behavior. Currently pending. |
+| Approved R2 acceptance | Synthetic upload, generated-size delivery, private-original denial, authorized private preview, public approved-derivative access, withdrawal behavior, restart persistence, and backup/restore on the approved private R2 bucket. Currently pending. |
 | Account-specific Exabytes test | That account supports the tested workload. Currently pending. |
 | Real second-host deployment | The same revision rebuilt and passed on a second approved compatible destination. Currently pending. |
 

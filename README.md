@@ -1,16 +1,16 @@
 # HGR website foundation
 
-Retained Next.js + Payload CMS foundation using PostgreSQL and external Google Cloud Storage (GCS). Phase 1 contains a synthetic upload collection and public test page; real inventory, staff workflows and launch features belong to later phases.
+Next.js + Payload CMS application using PostgreSQL and Cloudflare R2 for production media. The synthetic foundation upload collection is available only inside the guarded local smoke process and uses a GCS-compatible emulator; it is not part of the production Payload runtime.
 
 These instructions are for the technical maintainer. HGR staff will manage ordinary inventory and content through Payload CMS as those workflows are delivered.
 
 ## Prerequisites and current evidence
 
 - Node.js 22.23.3 or later in the 22.x line, or Node.js 24.x (see the `package.json` engine range), npm and Git. Install from the committed `package-lock.json`; see [dependency review](docs/development/dependency-review.md).
-- Disposable PostgreSQL and a compatible GCS JSON API emulator on literal `127.0.0.1`, with three distinct explicit ports for database, storage and app. The local compose file uses PostgreSQL 17.
+- Disposable PostgreSQL and a compatible GCS JSON API emulator on literal `127.0.0.1` for the guarded local fixture smoke only, with three distinct explicit ports for database, storage and app. The local compose file uses PostgreSQL 17. The smoke process does not contact Cloudflare R2.
 - Docker with Compose is one local service option. `SMOKE_GCS_IMAGE` must identify a maintainer-reviewed `fsouza/fake-gcs-server` tag/digest before pulling it. No image version has been selected or proven compatible with this adapter yet.
 
-Production build, type checks and the 11 configuration/safety tests passed during Phase 1. The generated migration has not been applied; full PostgreSQL/storage/upload/public/Admin/restart smoke and live responsive checks remain pending because disposable services are unavailable in the current environment. Docker is absent from PATH. Neither Exabytes nor a second host has passed a deployment test.
+Production build, type checks, and the automated test suite were rerun for the current release candidate; see the deployment readiness documents for remaining host and live-service checks. The local disposable PostgreSQL/GCS-emulator upload/Admin/restart smoke and live responsive checks remain pending because the required services are unavailable in the current environment. Neither Exabytes nor a second host has passed a deployment test.
 
 ## Configure locally
 
@@ -46,11 +46,14 @@ On POSIX use `cp .env.example .env` for the copy. Fill `.env` locally; it is ign
 | `SMOKE_GCS_ENDPOINT` | HTTP origin with literal `127.0.0.1` and the explicit storage port; no credentials, extra path, query or fragment. |
 | `SMOKE_GCS_BUCKET`, `HGR_SMOKE_DISPOSABLE` | Set exactly `hgr-foundation-smoke` and `yes`, respectively, only for disposable local services. |
 | `SMOKE_GCS_IMAGE` | Reviewed emulator image tag/digest; compatibility still needs testing. |
-| `DATABASE_URL`, `GCS_ENDPOINT`, `GCS_BUCKET` | For manual local app commands, use the same disposable database URL, emulator endpoint and smoke bucket. |
-| `GCS_PROJECT_ID` | Use fictional project ID `hgr-foundation-smoke` locally. |
-| `PAYLOAD_SECRET`, `SERVER_URL` | Locally generated random secret of at least 32 characters; HTTP origin using `127.0.0.1` and the chosen app port. |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Leave empty for the emulator. Set `STORAGE_EMULATOR_HOST` to the same emulator origin in the local shell for manual app commands. No real cloud credentials. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS` | Reserved names only; leave empty. No mail adapter/delivery is configured. |
+| `PAYLOAD_SECRET`, `PREVIEW_SECRET` | Separate locally generated random secrets of at least 32 characters. Keep each stable for the environment; preview links become invalid when `PREVIEW_SECRET` changes. |
+| `SERVER_URL` | HTTP origin using `127.0.0.1` and the chosen app port. |
+| `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | Required only when running Payload collections backed by R2. Do not use real R2 credentials in the disposable foundation smoke; that command supplies inert synthetic R2 settings in its isolated child process. |
+| `HGR_MACHINE_PHOTO_MAX_FILE_BYTES`, `HGR_MACHINE_PHOTO_MAX_BATCH_BYTES` | Positive photo upload limits. Required for inventory photo processing; choose them based on the actual destination host. |
+| `HGR_PUBLIC_MEDIA_DELIVERY_VERIFIED`, `HGR_INVENTORY_MEDIA_DELIVERY_VERIFIED`, `HGR_PUBLIC_INDEXING_ENABLED` | Leave unset/false locally or on staging unless completing the specific approved acceptance/launch step. |
+| `HGR_ANALYTICS_ENABLED`, `HGR_GTM_CONTAINER_ID` | Optional analytics; keep disabled until approved. |
+| `STORAGE_EMULATOR_HOST` | Set by the guarded smoke runner for its local GCS-compatible fixture emulator; it is not a production setting. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS`, `ENQUIRY_TO_EMAIL`, `ENQUIRY_EMAIL_ENABLED` | Optional website enquiry mail. Keep disabled unless all settings are valid and HGR has approved end-to-end delivery testing. |
 
 `STORAGE_EMULATOR_HOST` is a Google client setting used automatically by the guarded smoke runner; it is not an extra required host setting. Next.js and the Payload CLI load local environment files; the plain Node smoke entry point requires explicit loading or shell-exported values.
 
