@@ -28,7 +28,8 @@ test("navigation and 404 recovery expose only the fixed routes", async () => {
   const notFound = await readFile(new URL("../src/app/not-found.tsx", import.meta.url), "utf8");
   assert.match(header, /href="\/used-excavators"/);
   assert.doesNotMatch(header, />Home<\/Link>/);
-  for (const route of ["rental", "machinery-services", "lubricants", "about", "contact"]) assert.ok(header.includes(`/${route}`));
+  for (const route of ["rental", "repair-services", "spare-parts", "lubricants", "about", "contact"]) assert.ok(header.includes(`/${route}`));
+  assert.match(header, /href="\/repair-services">Repair &amp; Services<\/Link><Link href="\/spare-parts">Spare Parts/);
   assert.match(notFound, /\/contact/);
   assert.match(notFound, /\/used-excavators/);
 });

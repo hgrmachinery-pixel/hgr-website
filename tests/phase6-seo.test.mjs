@@ -63,7 +63,7 @@ test("public sitemap builder emits only fixed routes and published machine paths
     "https://hgrmachinery.com/about",
     "https://hgrmachinery.com/contact",
     "https://hgrmachinery.com/rental",
-    "https://hgrmachinery.com/machinery-services",
+    "https://hgrmachinery.com/repair-services",
     "https://hgrmachinery.com/spare-parts",
     "https://hgrmachinery.com/lubricants",
     "https://hgrmachinery.com/machines/sold-pc200",
@@ -129,6 +129,10 @@ test("inventory query variants remain canonical to the base route and noindex", 
 
 test("supporting page metadata follows visible content and withholds empty legal pages", async () => {
   const { buildSupportingPageMetadata } = await import("../src/lib/siteMetadata.ts");
+  const repairs = buildSupportingPageMetadata({ slug: "repair-services", title: "Repair & Services", visibleText: "", fallbackDescription: "Send a request with the machine location and issue so HGR can review your repair and service enquiry.", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
+  assert.equal(repairs.title, "Repair & Services");
+  assert.equal(repairs.alternates.canonical, "https://hgrmachinery.com/repair-services");
+  assert.match(repairs.description, /repair and service enquiry/);
   const about = buildSupportingPageMetadata({ slug: "about", title: "About HGR", visibleText: "HGR Equipment Resources is a Malaysian used heavy machinery business.", fallbackDescription: "About HGR.", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
   assert.equal(about.alternates.canonical, "https://hgrmachinery.com/about");
   assert.match(about.description, /Malaysian used heavy machinery business/);

@@ -20,7 +20,7 @@ export function generateMetadata() {
 
 const supportingAreas = [
   { slug: "rental", title: "Rental", eyebrow: "When the right opportunity comes up", href: "/rental", group: "rental" as const },
-  { slug: "machinery-services", title: "Machine Repair & Refurbishment", eyebrow: "Talk with HGR about your machine", href: "/machinery-services", group: "machinery-services" as const },
+  { slug: "machinery-services", title: "Repair & Services", eyebrow: "Talk with HGR about your machine", href: "/repair-services", group: "machinery-services" as const },
   { slug: "lubricants", title: "Lubricants", eyebrow: "Enquiries and product information", href: "/lubricants", group: "lubricants" as const },
 ];
 

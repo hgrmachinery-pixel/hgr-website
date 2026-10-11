@@ -1,16 +1,16 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { InventoryEnquiry } from "../../../components/site/InventoryEnquiry";
 import { getPublishedPage, getPublicContact, lexicalPlainText } from "../../../lib/siteContent";
 import type { Metadata } from "next";
-import { buildSupportingPageMetadata, getIndexingPolicy, getPublicOrigin } from "../../../lib/siteMetadata";
+import { buildSupportingPageMetadata, getIndexingPolicy, getPublicOrigin, serializeJsonLd } from "../../../lib/siteMetadata";
 import { TrackedContactLink } from "../../../components/site/TrackedContactLink";
 import type { SupportingPageGroup } from "../../../lib/analytics/events.ts";
 import { redirect } from "next/navigation";
 
 const pages = {
   rental: { title: "Rental enquiries", intro: "Tell us about your project. Availability and suitability are confirmed by HGR; this form does not make a booking.", kind: "rental" },
-  "machinery-services": { title: "Machine Repair & Refurbishment", intro: "Send a request with the machine location and issue so HGR can review your enquiry.", kind: "service" },
+  "repair-services": { title: "Repair & Services", intro: "Send a request with the machine location and issue so HGR can review your repair and service enquiry.", kind: "service" },
   "spare-parts": { title: "Spare Parts", intro: "Contact HGR to ask about parts for your machinery.", kind: null },
   lubricants: { title: "Lubricants", intro: "Ask HGR about a lubricant product or application.", kind: "lubricant" },
   about: { title: "About HGR", intro: "HGR Equipment Resources is a Malaysian used heavy machinery business focused primarily on used excavators.", kind: null },
@@ -23,15 +23,17 @@ export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ supportingPage: string }> }): Promise<Metadata> {
   const { supportingPage } = await params;
+  if (supportingPage === "machinery-services") return { robots: { index: false, follow: true } };
   if (!Object.prototype.hasOwnProperty.call(pages, supportingPage)) return { robots: { index: false, follow: true } };
   const key = supportingPage as keyof typeof pages;
   const definition = pages[key];
-  const page = await getPublishedPage(key);
+  const contentSlug = key === "repair-services" ? "machinery-services" : key;
+  const page = await getPublishedPage(contentSlug);
   const visibleText = lexicalPlainText(page?.body).join(" ");
   const metadata = buildSupportingPageMetadata({
     slug: key,
-    title: typeof page?.title === "string" ? page.title : definition.title,
-    visibleText,
+    title: key === "repair-services" ? definition.title : typeof page?.seoTitle === "string" && page.seoTitle.trim() ? page.seoTitle : typeof page?.title === "string" ? page.title : definition.title,
+    visibleText: key === "repair-services" ? "" : visibleText,
     fallbackDescription: definition.intro,
     origin: getPublicOrigin(),
     robots: getIndexingPolicy(),
@@ -41,22 +43,31 @@ export async function generateMetadata({ params }: { params: Promise<{ supportin
 
 export default async function SupportingPage({ params }: { params: Promise<{ supportingPage: string }> }) {
   const { supportingPage } = await params;
+  if (supportingPage === "machinery-services") permanentRedirect("/repair-services");
   if (supportingPage === "spare-parts" || supportingPage === "lubricants") redirect(`/${supportingPage}`);
   if (!Object.prototype.hasOwnProperty.call(pages, supportingPage)) notFound();
   const key = supportingPage as keyof typeof pages;
   const definition = pages[key];
   const pageGroup: SupportingPageGroup | undefined = key === "contact" ? "contact"
     : key === "rental" ? "rental"
-      : key === "machinery-services" ? "machinery-services"
+      : key === "repair-services" ? "machinery-services"
         : key === "lubricants" ? "lubricants"
           : key === "about" ? "about" : undefined;
-  const page = await getPublishedPage(key);
+  const contentSlug = key === "repair-services" ? "machinery-services" : key;
+  const page = await getPublishedPage(contentSlug);
   const legal = key === "privacy-policy" || key === "website-terms";
   const body = lexicalPlainText(page?.body);
   if (legal && (!page || body.length === 0)) notFound();
   const contact = await getPublicContact();
-  const title = typeof page?.title === "string" ? page.title : definition.title;
+  const title = key === "repair-services" ? definition.title : typeof page?.title === "string" ? page.title : definition.title;
+  const origin = getPublicOrigin();
+  const breadcrumbData = origin ? { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Home", item: new URL("/", origin).toString() },
+    { "@type": "ListItem", position: 2, name: definition.title, item: new URL(`/${key}`, origin).toString() },
+  ] } : undefined;
   return <main className="page-shell">
+    <nav aria-label="Breadcrumb"><ol className="breadcrumbs"><li><Link href="/">Home</Link></li><li aria-current="page">{definition.title}</li></ol></nav>
+    {breadcrumbData && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbData) }} />}
     <p className="eyebrow">HGR Equipment Resources</p>
     <h1 className="page-title">{title}</h1>
     {key === "spare-parts" ? <SparePartsContent copy={body} /> : page ? <div className="supporting-page__copy">{body.map((line, index) => <p key={`${index}-${line.slice(0, 24)}`}>{line}</p>)}</div> : <p className="page-intro">{definition.intro}</p>}

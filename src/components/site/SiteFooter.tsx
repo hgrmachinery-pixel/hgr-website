@@ -3,7 +3,7 @@ import Link from "next/link";
 const links = [
   ["Used Excavators", "/used-excavators"],
   ["Rental", "/rental"],
-  ["Machine Repair & Refurbishment", "/machinery-services"],
+  ["Repair & Services", "/repair-services"],
   ["Spare Parts", "/spare-parts"],
   ["Lubricants", "/lubricants"],
   ["About", "/about"],

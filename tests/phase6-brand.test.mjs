@@ -98,8 +98,8 @@ test("shared styles provide the approved type scale and minimum interactive targ
   assert.match(css, /prefers-reduced-motion/);
 });
 
-test("navigation keeps six destinations in order and the logo is the only home link", () => {
-  const routes = ["/used-excavators", "/rental", "/machinery-services", "/lubricants", "/about", "/contact"];
+test("navigation keeps seven destinations in order and the logo is the only home link", () => {
+  const routes = ["/used-excavators", "/rental", "/repair-services", "/spare-parts", "/lubricants", "/about", "/contact"];
   const nav = header.slice(header.indexOf("<nav"), header.indexOf("</nav>"));
   const actual = [...nav.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(actual, routes);

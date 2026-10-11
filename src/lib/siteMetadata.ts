@@ -61,7 +61,7 @@ const publicSitemapPaths = [
   "/about",
   "/contact",
   "/rental",
-  "/machinery-services",
+  "/repair-services",
   "/spare-parts",
   "/lubricants",
 ] as const;
