@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: hgr-website
+    runtime: node
+    buildCommand: npm ci && npm run build
+    preDeployCommand: npm run migrate:production
+    startCommand: npm run start

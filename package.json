@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "migrate:production": "payload migrate",
     "smoke:foundation": "node scripts/smoke-foundation.mjs",
     "migrate:local": "node scripts/smoke-foundation.mjs --migrate-only"
   },
