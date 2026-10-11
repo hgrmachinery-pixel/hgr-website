@@ -1,4 +1,4 @@
-export const publicPageSlugs = ["rental", "machinery-services", "spare-parts", "lubricants", "about", "contact", "privacy-policy", "website-terms"] as const;
+export const publicPageSlugs = ["rental", "repair-services", "machinery-services", "spare-parts", "lubricants", "about", "contact", "privacy-policy", "website-terms"] as const;
 export type PublicPageSlug = (typeof publicPageSlugs)[number];
 
 export function isPublicPageSlug(slug: string): slug is PublicPageSlug {
@@ -21,22 +21,18 @@ export async function getPublishedPage(slug: string) {
   }
 }
 
-export async function getPublicContact() {
+export async function getPublicContact(): Promise<import("./siteContact").PublicContact> {
+  const { projectPublicContact } = await import("./siteContact");
   if (process.env.HGR_LOCAL_UI_REVIEW === "true" && process.env.NODE_ENV !== "production") {
-    return { phone: "+60 00-000 0000", whatsApp: "60000000000", email: "review@example.invalid", yardLocation: "Fictional local-review location — not a real HGR contact" };
+    return projectPublicContact({ phone: "+60 00-000 0000", whatsApp: "60000000000", email: "review@example.invalid", yardLocation: "Fictional local-review location — not a real HGR contact" });
   }
   try {
     const [{ default: config }, { getPayload }] = await Promise.all([import("@payload-config"), import("payload")]);
     const payload = await getPayload({ config });
     const contact = await payload.findGlobal({ slug: "site-contact", depth: 0, overrideAccess: false }) as unknown as Record<string, unknown>;
-    return {
-      phone: safePhone(contact.phone),
-      whatsApp: safeWhatsApp(contact.whatsApp),
-      email: typeof contact.email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email) ? contact.email : undefined,
-      yardLocation: typeof contact.yardLocation === "string" && contact.yardLocation.trim() ? contact.yardLocation.trim() : undefined,
-    };
+    return projectPublicContact(contact);
   } catch {
-    return {};
+    return projectPublicContact({});
   }
 }
 

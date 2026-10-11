@@ -7,6 +7,7 @@ import { buildSupportingPageMetadata, getIndexingPolicy, getPublicOrigin, serial
 import { TrackedContactLink } from "../../../components/site/TrackedContactLink";
 import type { SupportingPageGroup } from "../../../lib/analytics/events.ts";
 import { redirect } from "next/navigation";
+import { safeGoogleMapsEmbedURL } from "../../../lib/siteContact";
 
 const pages = {
   rental: { title: "Rental enquiries", intro: "Tell us about your project. Availability and suitability are confirmed by HGR; this form does not make a booking.", kind: "rental" },
@@ -72,8 +73,10 @@ export default async function SupportingPage({ params }: { params: Promise<{ sup
     <h1 className="page-title">{title}</h1>
     {key === "spare-parts" ? <SparePartsContent copy={body} /> : page ? <div className="supporting-page__copy">{body.map((line, index) => <p key={`${index}-${line.slice(0, 24)}`}>{line}</p>)}</div> : <p className="page-intro">{definition.intro}</p>}
     {!page && !legal && <div className="supporting-page__editable-note"><p>Page information can be updated by HGR in the website content manager.</p></div>}
+    {key === "contact" && <OrganizationStructuredData contact={contact} origin={origin} />}
+    {key === "contact" && <ContactLocation contact={contact} />}
     {definition.kind && <section className="supporting-page__form"><h2>{definition.kind === "general" ? "Send an enquiry" : "Tell us what you need"}</h2><InventoryEnquiry kind={definition.kind} inventory={key === "lubricants" ? { name: title, type: "lubricant" } : undefined} />
-      <DirectContact phone={contact.phone} whatsApp={contact.whatsApp} email={contact.email} location={contact.yardLocation} pageGroup={pageGroup} />
+      <DirectContact phone={contact.phone} whatsApp={contact.whatsApp} email={contact.email} supportEmail={contact.supportEmail} location={contact.yardAddress} directionsURL={contact.directionsURL} pageGroup={pageGroup} />
     </section>}
     {!definition.kind && !legal && <p className="supporting-page__cta"><Link className="button button--primary" href="/contact">Contact HGR</Link></p>}
   </main>;
@@ -91,12 +94,48 @@ function SparePartsContent({ copy }: { copy: string[] }) {
   </div>;
 }
 
-function DirectContact({ phone, whatsApp, email, location, pageGroup }: { phone?: string; whatsApp?: string; email?: string; location?: string; pageGroup?: SupportingPageGroup }) {
-  if (!phone && !whatsApp && !email && !location) return null;
+function DirectContact({ phone, whatsApp, email, supportEmail, location, directionsURL, pageGroup }: { phone?: string; whatsApp?: string; email?: string; supportEmail?: string; location?: string; directionsURL?: string; pageGroup?: SupportingPageGroup }) {
+  if (!phone && !whatsApp && !email && !supportEmail && !location && !directionsURL) return null;
   return <div className="direct-contact" aria-label="Other contact options">
     {phone && <TrackedContactLink href={`tel:${phone.replace(/[^+\d]/g, "")}`} channel="phone" pageGroup={pageGroup}>Call HGR</TrackedContactLink>}
     {whatsApp && <TrackedContactLink href={`https://wa.me/${whatsApp}`} channel="whatsapp" pageGroup={pageGroup} target="_blank" rel="noreferrer">WhatsApp HGR</TrackedContactLink>}
     {email && <TrackedContactLink href={`mailto:${email}`} channel="email" pageGroup={pageGroup}>{email}</TrackedContactLink>}
+    {supportEmail && supportEmail !== email && <TrackedContactLink href={`mailto:${supportEmail}`} channel="email" pageGroup={pageGroup}>Support: {supportEmail}</TrackedContactLink>}
     {location && <p>{location}</p>}
+    {directionsURL && <a className="button button--quiet" href={directionsURL} target="_blank" rel="noreferrer">Google Maps directions</a>}
   </div>;
+}
+
+function ContactLocation({ contact }: { contact: Awaited<ReturnType<typeof getPublicContact>> }) {
+  const embedURL = safeGoogleMapsEmbedURL(contact.googleMapsEmbedURL);
+  if (!contact.officeAddress && !contact.yardAddress && !embedURL && !contact.appointmentOnly && contact.weeklyHours.length === 0 && !contact.socials.length) return null;
+  const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const hours = [...contact.weeklyHours].sort((a, b) => days.indexOf(a.day) - days.indexOf(b.day));
+  return <section className="contact-details" aria-label="Business contact details">
+    <div>
+      {contact.officeAddress && <p><strong>Office</strong><br />{contact.officeAddress}</p>}
+      {contact.yardAddress && <p><strong>Yard</strong><br />{contact.yardAddress}</p>}
+      {contact.appointmentOnly && <p>Visits are by appointment.</p>}
+      {hours.length > 0 && <div><h2>Operating hours</h2><dl className="contact-details__hours">{hours.map(({ day, opens, closes }) => <div key={day}><dt>{day[0].toUpperCase() + day.slice(1)}</dt><dd>{opens}–{closes}</dd></div>)}</dl></div>}
+      {contact.directionsURL && <a className="button button--quiet" href={contact.directionsURL} target="_blank" rel="noreferrer">Get directions</a>}
+      {contact.socials.length > 0 && <nav aria-label="Social media">{contact.socials.map(({ label, url }) => <a key={label} href={url} target="_blank" rel="noreferrer">{label}</a>)}</nav>}
+    </div>
+    {embedURL && <iframe className="contact-details__map" src={embedURL} title="HGR location on Google Maps" loading="lazy" referrerPolicy="no-referrer-when-downgrade" allowFullScreen />}
+  </section>;
+}
+
+function OrganizationStructuredData({ contact, origin }: { contact: Awaited<ReturnType<typeof getPublicContact>>; origin?: string }) {
+  if (!origin) return null;
+  const schema: Record<string, unknown> = { "@context": "https://schema.org", "@type": "Organization", url: new URL("/", origin).toString() };
+  if (contact.companyName) schema.name = contact.companyName;
+  if (contact.registrationNumber) schema.identifier = { "@type": "PropertyValue", propertyID: "Business registration number", value: contact.registrationNumber };
+  if (contact.salesEmail) schema.email = contact.salesEmail;
+  if (contact.phone) schema.telephone = contact.phone;
+  if (contact.socials.length) schema.sameAs = contact.socials.map(({ url }) => url);
+  const addresses = [contact.officeAddress, contact.yardAddress].filter(Boolean);
+  if (addresses.length) schema.address = addresses.map((streetAddress) => ({ "@type": "PostalAddress", streetAddress, addressCountry: "MY" }));
+  if (contact.weeklyHours.length) schema.openingHoursSpecification = contact.weeklyHours.map(({ day, opens, closes }) => ({
+    "@type": "OpeningHoursSpecification", dayOfWeek: `https://schema.org/${day[0].toUpperCase() + day.slice(1)}`, opens, closes,
+  }));
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />;
 }

@@ -1192,10 +1192,36 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
  */
 export interface SiteContact {
   id: number;
+  companyName?: string | null;
+  registrationNumber?: string | null;
   phone?: string | null;
   whatsApp?: string | null;
+  /**
+   * Controls the public email contact links. Form delivery remains configured separately by the site administrator.
+   */
   email?: string | null;
+  supportEmail?: string | null;
+  officeAddress?: string | null;
   yardLocation?: string | null;
+  googleMapsURL?: string | null;
+  googleMapsEmbedURL?: string | null;
+  weeklyHours?:
+    | {
+        day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+        opens: string;
+        closes: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Select only if visits require an appointment. Leave weekdays without verified hours blank.
+   */
+  appointmentOnly?: boolean | null;
+  facebook?: string | null;
+  instagram?: string | null;
+  linkedin?: string | null;
+  youtube?: string | null;
+  tiktok?: string | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -1204,10 +1230,30 @@ export interface SiteContact {
  * via the `definition` "site-contact_select".
  */
 export interface SiteContactSelect<T extends boolean = true> {
+  companyName?: T;
+  registrationNumber?: T;
   phone?: T;
   whatsApp?: T;
   email?: T;
+  supportEmail?: T;
+  officeAddress?: T;
   yardLocation?: T;
+  googleMapsURL?: T;
+  googleMapsEmbedURL?: T;
+  weeklyHours?:
+    | T
+    | {
+        day?: T;
+        opens?: T;
+        closes?: T;
+        id?: T;
+      };
+  appointmentOnly?: T;
+  facebook?: T;
+  instagram?: T;
+  linkedin?: T;
+  youtube?: T;
+  tiktok?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;
