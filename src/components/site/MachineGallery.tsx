@@ -3,11 +3,14 @@
 import type { InspectionImageGroup } from "../../lib/machines/inspection";
 import { publicImageSrcSet } from "../../lib/machines/publicInventory";
 import { InventoryGallery } from "./InventoryGallery";
+import { MachineHeroGallery } from "./MachineHeroGallery";
 
 export type FutureImageEnhancement = { src: string; srcSet?: string; disclosure: string };
 
 /** A sequenced evidence gallery. Future image treatments can wrap each static image without changing its journey. */
 export function MachineGallery({ groups, enhancements = {} }: { groups: InspectionImageGroup[]; enhancements?: Record<string, FutureImageEnhancement> }) {
+  const allImages = groups.flatMap((group) => group.images.map((image) => ({ ...image, category: image.category ?? group.title })));
+  if (allImages.length > 0) return <MachineHeroGallery images={allImages} />;
   if (groups.length === 0) return <section id="machine-photos" className="machine-gallery__empty" data-inspection-area aria-labelledby="machine-photos-title">
     <p className="eyebrow">Inspection photographs</p><h2 id="machine-photos-title">Photos for this machine</h2><p>Machine photos are not currently available.</p>
   </section>;

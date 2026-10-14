@@ -10,7 +10,7 @@ import { InspectionProgress } from "../../../../components/site/InspectionProgre
 import { RelatedMachines } from "../../../../components/site/RelatedMachines";
 import { buildInspectionImageGroups, buildPassportGroups } from "../../../../lib/machines/inspection";
 import { getPublicMachineForSlug, getPublicMachines } from "../../../../lib/machines/publicQueries";
-import { publicImageSrcSet, publicMachinePath } from "../../../../lib/machines/publicInventory";
+import { publicMachinePath } from "../../../../lib/machines/publicInventory";
 import { InventoryEnquiry } from "../../../../components/site/InventoryEnquiry";
 import { getPublicContact } from "../../../../lib/siteContent";
 import { buildMachineMetadata, buildMachineStructuredData, getIndexingPolicy, getPublicOrigin, serializeJsonLd } from "../../../../lib/siteMetadata";
@@ -54,35 +54,36 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
     { id: "related-machines", label: "Related machines" },
   ];
   const isAvailable = machine.stockStatus === "available";
-  const viewingMessage = canonicalURL ? `Hello HGR, I would like to arrange an inspection of ${title} (${machine.reference}): ${canonicalURL}` : undefined;
+  const viewingMessage = canonicalURL ? `Hello HGR, I would like to enquire about ${machine.reference} — ${machine.brand ?? ""} ${machine.model ?? ""}${machine.year ? ` ${machine.year}` : ""}: ${canonicalURL}`.replace(/\s+/g, " ").trim() : undefined;
 
   return <main id="main-content" className="machine-inspection page-shell">
     <TrackAnalyticsEvent event={createAnalyticsEvent({ name: "machine_view", machineReference: machine.reference })} />
     {origin && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildMachineStructuredData(machine, origin)) }} />}
     <nav aria-label="Breadcrumb"><ol className="breadcrumbs"><li><Link href="/">Home</Link></li><li><Link href="/used-excavators">Used Excavators</Link></li><li aria-current="page">{title} ({machine.reference})</li></ol></nav>
-    <header className="inspection-hero" aria-labelledby="machine-title">
-      <div className="inspection-hero__media">
-        {machine.featuredImage ? <img src={machine.featuredImage.largeUrl ?? machine.featuredImage.cardUrl ?? machine.featuredImage.url} srcSet={publicImageSrcSet(machine.featuredImage)} sizes="(max-width: 800px) 100vw, 60vw" alt={machine.featuredImage.altText ?? ""} fetchPriority="high" /> : <div className="inspection-hero__empty" role="img" aria-label="Featured machine photo is not available">Featured machine photo not available</div>}
-        {machine.featuredImage?.category && <span className="inspection-hero__caption">{photoCategoryTitle(machine.featuredImage.category)}</span>}
-      </div>
+    <header className="inspection-hero inspection-hero--detail" aria-labelledby="machine-title">
       <div className="inspection-hero__details">
         <p className="eyebrow">HGR machine reference · {machine.reference}</p>
         <p className={`machine-status machine-status--${machine.stockStatus}`}>{statusLabel(machine.stockStatus)}</p>
         <h1 id="machine-title">{title}</h1>
         {machine.price && <p className="inspection-hero__price">{machine.price.mode === "public" ? `RM ${machine.price.amount.toLocaleString("en-MY")}` : "Contact for Price"}</p>}
-        <p className="inspection-hero__summary">Review the machine details and available photographs, then contact HGR to discuss this specific unit.</p>
+        <p className="inspection-hero__summary">Explore the photos and specifications for this machine, then contact HGR to arrange a viewing at our Klang yard.</p>
+        <dl className="machine-quick-specs">{[
+          ["Year", machine.year?.toString()], ["Hours", machine.hours?.toLocaleString("en-MY")], ["Condition", machine.condition?.replaceAll("-", " ")], ["Weight", machine.operatingWeight],
+        ].filter((entry): entry is [string, string] => Boolean(entry[1])).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
         <div className="inspection-hero__actions">
           <a className="button button--primary" href="#arrange-inspection">{isAvailable ? "Arrange Inspection" : "Ask HGR about this machine"}<span aria-hidden="true">↗</span></a>
-          {contact.whatsApp && viewingMessage && <TrackedContactLink className="button button--quiet" href={`https://wa.me/${contact.whatsApp}?text=${encodeURIComponent(viewingMessage)}`} channel="whatsapp" machineReference={machine.reference} target="_blank" rel="noreferrer">WhatsApp HGR</TrackedContactLink>}
+          {contact.whatsApp && viewingMessage && <TrackedContactLink className="button button--whatsapp" href={`https://wa.me/${contact.whatsApp}?text=${encodeURIComponent(viewingMessage)}`} channel="whatsapp" machineReference={machine.reference} target="_blank" rel="noreferrer"><span aria-hidden="true">◉</span> WhatsApp about this machine</TrackedContactLink>}
         </div>
         <p className="inspection-hero__fineprint">Availability can change. Confirm current details with HGR.</p>
+        <div className="machine-trust-badges" aria-label="HGR service commitments"><span>✓ Direct contact with HGR</span><span>✓ Klang yard viewing by appointment</span><span>✓ Machine specific enquiry</span></div>
       </div>
     </header>
     <InspectionProgress areas={inspectionAreas} />
-    <MachineOverview description={machine.description} />
     <MachineGallery groups={imageGroups} />
+    {machine.videoUrl && <MachineVideo src={machine.videoUrl} title={title} />}
+    <section className="machine-financing" aria-labelledby="machine-financing-title"><div><p className="eyebrow">Flexible purchase options</p><h2 id="machine-financing-title">Financing available</h2><p>Ask HGR whether financing options are available for this machine. Terms and eligibility are confirmed individually.</p></div><a href="#arrange-inspection">Enquire about financing <span aria-hidden="true">↗</span></a></section>
+    <MachineOverview description={machine.description} />
     <MachineDetails groups={detailGroups} />
-    <MachineVideo src={machine.videoUrl} title={title} />
     <MachineSupportingDocuments />
     <section id="arrange-inspection" className="arrange-inspection" data-inspection-area aria-labelledby="arrange-inspection-title">
       <div className="arrange-inspection__intro"><p className="eyebrow">Next step · {machine.reference}</p><h2 id="arrange-inspection-title">{isAvailable ? "Arrange an inspection" : `Ask HGR about this ${statusLabel(machine.stockStatus).toLowerCase()} machine`}</h2><p>{isAvailable ? "Send an enquiry about this machine or contact HGR directly." : "This page records one specific machine. Contact HGR if you have a question or want to discuss other available excavators."}</p>
@@ -94,6 +95,7 @@ export default async function MachineDetailPage({ params }: { params: Promise<{ 
       <div className="machine-enquiry"><h3>Send a machine enquiry</h3><InventoryEnquiry kind="machine" machineSlug={machine.slug} inventory={{ name: title, type: "used-machine", referenceNumber: machine.reference }} /></div>
     </section>
     <RelatedMachines items={available.map((item) => ({ machine: item, image: item.featuredImage }))} />
+    {contact.whatsApp && viewingMessage && <TrackedContactLink className="machine-mobile-whatsapp" href={`https://wa.me/${contact.whatsApp}?text=${encodeURIComponent(viewingMessage)}`} channel="whatsapp" machineReference={machine.reference} target="_blank" rel="noreferrer"><span aria-hidden="true">◉</span> WhatsApp about this machine</TrackedContactLink>}
   </main>;
 }
 
@@ -101,7 +103,3 @@ function statusLabel(status: "available" | "reserved" | "sold") {
   return status[0].toUpperCase() + status.slice(1);
 }
 
-function photoCategoryTitle(category: string) {
-  const labels: Record<string, string> = { "general-exterior": "General / Exterior", "side-view-1": "Side View 1", "side-view-2": "Side View 2", "front-view": "Front View", "rear-view": "Rear View", "cabin-interior": "Cabin / Interior", "hour-meter": "Hour Meter", "chassis-serial-number": "Chassis / Serial Number", engine: "Engine", "undercarriage-tracks": "Undercarriage / Tracks", "boom-arm-bucket": "Boom / Arm / Bucket", "other-details": "Other / Details" };
-  return labels[category] ?? "Machine photograph";
-}
