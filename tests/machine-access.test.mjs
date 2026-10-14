@@ -346,6 +346,14 @@ test("phase 2 config registers protected users, recovery stub, preview secret, a
   assert.match(await readFile(new URL("../src/collections/Users.ts", import.meta.url), "utf8"), /secure: process\.env\.SERVER_URL\?\.startsWith\("https:\/\/"\)/);
 });
 
+test("draft preview route builds without optional runtime configuration", async () => {
+  const route = await readFile(new URL("../src/app/api/preview/route.ts", import.meta.url), "utf8");
+  assert.doesNotMatch(route, /throw new Error\("Draft preview requires/);
+  assert.match(route, /serverURL && previewSecret && previewSecret\.length >= 32/);
+  assert.match(route, /status: 503/);
+  assert.match(route, /createPreviewHandler\(/);
+});
+
 test("phase 2 migration extends foundation users safely and adds the permanent ID sequence", async () => {
   const migration = await readFile(
     new URL("../src/migrations/20261001_080057_phase2_machines.ts", import.meta.url),
