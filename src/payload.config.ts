@@ -120,7 +120,10 @@ export default buildConfig({
     disableCreateDatabase: true,
     // Schema changes are explicit migrations in every environment.
     push: false,
-    migrationDir: path.resolve(configDirectory, "migrations"),
+    migrationDir: path.resolve(
+      configDirectory,
+      process.env.NODE_ENV === "production" ? "migrations-compiled" : "migrations",
+    ),
   }),
   plugins: [
     s3Storage({

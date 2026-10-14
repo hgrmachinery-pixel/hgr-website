@@ -8,10 +8,11 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run migrations:build && next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "migrate:production": "payload migrate",
+    "migrations:build": "node scripts/build-migrations.mjs",
     "smoke:foundation": "node scripts/smoke-foundation.mjs",
     "migrate:local": "node scripts/smoke-foundation.mjs --migrate-only"
   },
