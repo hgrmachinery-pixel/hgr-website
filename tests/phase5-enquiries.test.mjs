@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { validateEnquiry, submitEnquiry } from "../src/lib/enquiries/submit.ts";
-import { createSmtpEnquiryAdapter, readEnquiryEmailConfig } from "../src/lib/email/enquiryAdapter.ts";
+import { createResendEnquiryAdapter, readEnquiryEmailConfig } from "../src/lib/email/enquiryAdapter.ts";
 
 const validGeneral = { kind: "general", name: "A Customer", phone: "+60 12 345 6789", subject: "General", message: "Please call me." };
 
@@ -76,113 +76,90 @@ test("server context is delivered separately from visitor-controlled fields", as
 });
 
 const mailConfig = {
-  ENQUIRY_EMAIL_ENABLED: "true", SMTP_HOST: "smtp.example.test", SMTP_PORT: "587",
-  SMTP_USER: "user", SMTP_PASSWORD: "secret", MAIL_FROM_NAME: "HGR Website",
-  MAIL_FROM_ADDRESS: "website@example.test", ENQUIRY_TO_EMAIL: "sales@example.test",
+  ENQUIRY_EMAIL_ENABLED: "true", RESEND_API_KEY: "synthetic-resend-api-key", MAIL_FROM_NAME: "HGR Website",
+  MAIL_FROM_ADDRESS: "enquiries@notify.hgrmachinery.com", ENQUIRY_TO_EMAIL: "hgrmachinery@gmail.com",
 };
 
-test("SMTP adapter is disabled until explicitly enabled with complete configuration", async () => {
+function makeResponse(status, body) {
+  return { ok: status >= 200 && status < 300, status, json: async () => body };
+}
+
+test("Resend config is disabled until explicitly enabled with complete valid configuration", async () => {
   assert.equal(readEnquiryEmailConfig({ ...mailConfig, ENQUIRY_EMAIL_ENABLED: "" }), null);
-  assert.equal(readEnquiryEmailConfig({ ...mailConfig, ENQUIRY_EMAIL_ENABLED: " true " })?.enabled, true);
+  assert.equal(readEnquiryEmailConfig({ ...mailConfig, ENQUIRY_EMAIL_ENABLED: " true " })?.apiKey, mailConfig.RESEND_API_KEY);
   assert.equal(readEnquiryEmailConfig({ ...mailConfig, ENQUIRY_EMAIL_ENABLED: "TRUE" }), null);
-  assert.equal(readEnquiryEmailConfig({ ...mailConfig, SMTP_PASSWORD: "" }), null);
-  assert.equal(readEnquiryEmailConfig({ ...mailConfig, SMTP_PORT: "25" }), null);
-  let created = false;
-  const adapter = createSmtpEnquiryAdapter(() => null, () => { created = true; throw new Error("must not create"); });
-  assert.deepEqual(await adapter({ fields: { kind: "general", name: "A", phone: "0123456", message: "Hello" }, context: {} }), { accepted: false });
-  assert.equal(created, false);
+  assert.equal(readEnquiryEmailConfig({ ...mailConfig, RESEND_API_KEY: "" }), null);
+  assert.equal(readEnquiryEmailConfig({ ...mailConfig, MAIL_FROM_ADDRESS: "invalid" }), null);
+  assert.equal(readEnquiryEmailConfig({ ...mailConfig, RESEND_API_KEY: "secret\nforged" }), null);
 });
 
-test("email diagnostics distinguish configuration problems without exposing values", async () => {
+test("Resend HTTPS adapter sends fixed destination, plain text, and validated Reply-To", async () => {
+  let request;
   const events = [];
-  const withLogs = createSmtpEnquiryAdapter(
-    () => null,
-    () => { throw new Error("must not connect"); },
+  const adapter = createResendEnquiryAdapter(
+    () => readEnquiryEmailConfig(mailConfig),
+    async (url, init) => { request = { url: String(url), init }; return makeResponse(200, { id: "email-id" }); },
     (event, details) => events.push({ event, details }),
-    () => "missing_smtp_password",
   );
-  assert.deepEqual(await withLogs({ fields: { kind: "general", name: "Private Name", phone: "+60123456789", message: "Private message" }, context: {} }), { accepted: false });
-  assert.deepEqual(events, [{ event: "configuration_unavailable", details: { reason: "missing_smtp_password" } }]);
-  assert.equal(JSON.stringify(events).includes("Private"), false);
-  assert.equal(JSON.stringify(events).includes(mailConfig.SMTP_USER), false);
+  assert.deepEqual(await adapter({ fields: { kind: "general", name: "A Customer", phone: "+60123456789", message: "Interested", email: "a@example.test" }, context: {} }), { accepted: true });
+  assert.equal(request.url, "https://api.resend.com/emails");
+  assert.equal(request.init.method, "POST");
+  assert.equal(request.init.headers.Authorization, `Bearer ${mailConfig.RESEND_API_KEY}`);
+  assert.equal(request.init.cache, "no-store");
+  const payload = JSON.parse(request.init.body);
+  assert.equal(payload.from, "HGR Website <enquiries@notify.hgrmachinery.com>");
+  assert.deepEqual(payload.to, ["hgrmachinery@gmail.com"]);
+  assert.equal(payload.reply_to, "a@example.test");
+  assert.equal(payload.subject, "Website general enquiry");
+  assert.match(payload.text, /Name: A Customer/);
+  assert.equal("html" in payload, false);
+  assert.deepEqual(events, [{ event: "provider_accepted", details: { status: 200 } }]);
 });
 
-test("email diagnostics distinguish authentication and connection failures without logging error text", async () => {
-  for (const [error, event] of [
-    [{ code: "EAUTH", responseCode: 535, command: "AUTH PLAIN", message: "secret-bearing provider response" }, "authentication_failure"],
-    [{ code: "ECONNECTION", command: "CONN", message: "secret-bearing provider response" }, "connection_or_smtp_failure"],
+test("Resend configuration failure is diagnosed without exposing credentials or enquiry data", async () => {
+  const events = [];
+  const adapter = createResendEnquiryAdapter(() => null, async () => { throw new Error("must not request"); }, (event, details) => events.push({ event, details }), () => "missing_resend_api_key");
+  assert.deepEqual(await adapter({ fields: { kind: "general", name: "Private Name", phone: "+60123456789", message: "Private message" }, context: {} }), { accepted: false });
+  assert.deepEqual(events, [{ event: "configuration_unavailable", details: { reason: "missing_resend_api_key" } }]);
+  assert.equal(JSON.stringify(events).includes(mailConfig.RESEND_API_KEY), false);
+  assert.equal(JSON.stringify(events).includes("Private"), false);
+});
+
+test("Resend authentication and provider rejection failures are safe and diagnostic", async () => {
+  for (const [status, body, event] of [
+    [401, { name: "invalid_api_key", message: "private provider details" }, "authentication_failure"],
+    [422, { name: "validation_error", message: "private provider details" }, "provider_rejected"],
   ]) {
     const events = [];
-    const adapter = createSmtpEnquiryAdapter(
-      () => readEnquiryEmailConfig({ ...mailConfig, SMTP_PORT: "465" }),
-      () => ({ sendMail: async () => { throw error; } }),
-      (name, details) => events.push({ event: name, details }),
-    );
+    const adapter = createResendEnquiryAdapter(() => readEnquiryEmailConfig(mailConfig), async () => makeResponse(status, body), (name, details) => events.push({ event: name, details }));
     assert.deepEqual(await adapter({ fields: { kind: "general", name: "Private Name", phone: "+60123456789", message: "Private message" }, context: {} }), { accepted: false });
-    assert.equal(events[0].event, event);
-    assert.deepEqual(events[0].details, { code: error.code, command: event === "authentication_failure" ? "UNKNOWN" : "CONN", responseCode: error.responseCode ?? 0, port: 465 });
-    assert.equal(JSON.stringify(events).includes("secret-bearing"), false);
+    assert.deepEqual(events, [{ event, details: { status } }]);
+    assert.equal(JSON.stringify(events).includes("private provider"), false);
+    assert.equal(JSON.stringify(events).includes(mailConfig.RESEND_API_KEY), false);
     assert.equal(JSON.stringify(events).includes("Private"), false);
   }
 });
 
-test("email diagnostics distinguish provider rejection without logging recipient or message", async () => {
-  const events = [];
-  const adapter = createSmtpEnquiryAdapter(
-    () => readEnquiryEmailConfig(mailConfig),
-    () => ({ sendMail: async () => ({ accepted: [], rejected: [mailConfig.ENQUIRY_TO_EMAIL] }) }),
-    (event, details) => events.push({ event, details }),
-  );
-  assert.deepEqual(await adapter({ fields: { kind: "general", name: "Private Name", phone: "+60123456789", message: "Private message" }, context: {} }), { accepted: false });
-  assert.deepEqual(events, [{ event: "provider_rejected", details: { acceptedCount: 0, rejectedCount: 1, port: 587 } }]);
-  assert.equal(JSON.stringify(events).includes(mailConfig.ENQUIRY_TO_EMAIL), false);
-  assert.equal(JSON.stringify(events).includes("Private"), false);
-});
-
-test("SMTP sends plain text to the configured fixed recipient with TLS and accepts only that recipient", async () => {
-  let options; let message;
-  const adapter = createSmtpEnquiryAdapter(() => readEnquiryEmailConfig(mailConfig), (value) => {
-    options = value;
-    return { sendMail: async (payload) => { message = payload; return { accepted: [mailConfig.ENQUIRY_TO_EMAIL] }; } };
-  });
-  assert.deepEqual(await adapter({ fields: { kind: "general", name: "A Customer", phone: "0123456", message: "Interested", email: "a@example.test" }, context: {} }), { accepted: true });
-  assert.equal(options.secure, false);
-  assert.equal(options.requireTLS, true);
-  assert.equal(options.tls.rejectUnauthorized, true);
-  assert.equal(message.to, mailConfig.ENQUIRY_TO_EMAIL);
-  assert.deepEqual(message.envelope.to, [mailConfig.ENQUIRY_TO_EMAIL]);
-  assert.equal(message.replyTo, "a@example.test");
-  assert.equal("html" in message, false);
-  assert.equal("attachments" in message, false);
+test("Resend network and timeout failures do not expose raw errors", async () => {
+  for (const error of [
+    Object.assign(new Error("private socket details"), { cause: { code: "ETIMEDOUT" } }),
+    Object.assign(new Error("private timeout details"), { name: "TimeoutError" }),
+  ]) {
+    const events = [];
+    const adapter = createResendEnquiryAdapter(() => readEnquiryEmailConfig(mailConfig), async () => { throw error; }, (event, details) => events.push({ event, details }));
+    assert.deepEqual(await adapter({ fields: { kind: "general", name: "Private Name", phone: "+60123456789", message: "Private message" }, context: {} }), { accepted: false });
+    assert.equal(events[0].event, "provider_timeout");
+    assert.equal(JSON.stringify(events).includes("private"), false);
+    assert.equal(JSON.stringify(events).includes(mailConfig.RESEND_API_KEY), false);
+  }
 });
 
 test("CRM preparation metadata is included in the enquiry notification", async () => {
-  let message;
-  const adapter = createSmtpEnquiryAdapter(() => readEnquiryEmailConfig(mailConfig), () => ({ sendMail: async (payload) => { message = payload; return { accepted: [mailConfig.ENQUIRY_TO_EMAIL] }; } }));
+  let payload;
+  const adapter = createResendEnquiryAdapter(() => readEnquiryEmailConfig(mailConfig), async (_url, init) => { payload = JSON.parse(init.body); return makeResponse(200, { id: "email-id" }); });
   await adapter({ fields: { kind: "general", name: "A Customer", phone: "+60123456789", preferredContact: "whatsapp" }, context: { metadata: { leadSource: "website:general", referrer: "https://search.example/", utmCampaign: "stock-listing", browser: "Synthetic Browser", timestamp: "2026-10-02T10:00:00.000Z" } } });
-  assert.match(message.text, /Lead source: website:general/);
-  assert.match(message.text, /UTM campaign: stock-listing/);
-  assert.match(message.text, /Browser: Synthetic Browser/);
-  assert.match(message.text, /Timestamp: 2026-10-02T10:00:00.000Z/);
-});
-
-test("SMTP adapter rejects unsafe recipient configuration and unaccepted delivery", async () => {
-  assert.equal(readEnquiryEmailConfig({ ...mailConfig, ENQUIRY_TO_EMAIL: "sales@example.test,attacker@example.test" }), null);
-  assert.equal(readEnquiryEmailConfig({ ...mailConfig, ENQUIRY_TO_EMAIL: "sales@example.test\r\nBcc: attacker@example.test" }), null);
-  assert.equal(readEnquiryEmailConfig({ ...mailConfig, SMTP_HOST: "smtp.example.test\u0000.evil" }), null);
-  assert.equal(readEnquiryEmailConfig({ ...mailConfig, SMTP_PASSWORD: "secret\nother" }), null);
-  const adapter = createSmtpEnquiryAdapter(() => readEnquiryEmailConfig(mailConfig), () => ({ sendMail: async () => ({ accepted: ["other@example.test"] }) }));
-  assert.deepEqual(await adapter({ fields: { kind: "general", name: "A", phone: "0123456", message: "Hello" }, context: {} }), { accepted: false });
-});
-
-test("SMTP adapter uses implicit TLS on port 465 and safely handles transport exceptions", async () => {
-  let options;
-  const config = { ...mailConfig, SMTP_PORT: "465" };
-  const adapter = createSmtpEnquiryAdapter(() => readEnquiryEmailConfig(config), (value) => {
-    options = value;
-    return { sendMail: async () => { throw new Error("private transport details"); } };
-  });
-  assert.deepEqual(await adapter({ fields: { kind: "general", name: "A", phone: "0123456", message: "Hello" }, context: {} }), { accepted: false });
-  assert.equal(options.secure, true);
-  assert.equal(options.requireTLS, false);
+  assert.match(payload.text, /Lead source: website:general/);
+  assert.match(payload.text, /UTM campaign: stock-listing/);
+  assert.match(payload.text, /Browser: Synthetic Browser/);
+  assert.match(payload.text, /Timestamp: 2026-10-02T10:00:00.000Z/);
 });

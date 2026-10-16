@@ -3,7 +3,7 @@
 import config from "@payload-config";
 import { getPayload } from "payload";
 import { getPublicMachineForSlug } from "../../../lib/machines/publicQueries";
-import { smtpEnquiryAdapter } from "../../../lib/email/enquiryAdapter";
+import { resendEnquiryAdapter } from "../../../lib/email/enquiryAdapter";
 import { submitEnquiry, type EnquiryFieldErrors, type EnquiryKind, type EnquiryMetadata, type InventoryIdentity } from "../../../lib/enquiries/submit.ts";
 import { isLocalReviewMode } from "../../../lib/machines/publicQueries.ts";
 import { headers } from "next/headers";
@@ -78,7 +78,7 @@ export async function sendEnquiry(expectedKind: EnquiryKind, expectedMachineSlug
     if (validation.status === "invalid") return { status: "invalid", errors: validation.errors, fieldErrors: validation.fieldErrors, values };
     return { status: "unavailable", message: "Local review only: no enquiry was sent or saved.", values };
   }
-  const result = await submitEnquiry(input as never, smtpEnquiryAdapter, context);
+  const result = await submitEnquiry(input as never, resendEnquiryAdapter, context);
   if (result.status === "accepted") return {
     status: "accepted",
     measurementEligible: true,

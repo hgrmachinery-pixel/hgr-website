@@ -59,7 +59,7 @@ Only set these after the related feature is configured and accepted:
 - `HGR_PUBLIC_MEDIA_DELIVERY_VERIFIED`, `HGR_INVENTORY_MEDIA_DELIVERY_VERIFIED`: keep unset/false until R2 delivery, privacy, and authorization checks pass.
 - `HGR_PUBLIC_INDEXING_ENABLED`: keep unset/false on staging; enable only for an approved public launch.
 - `HGR_ANALYTICS_ENABLED`, `HGR_GTM_CONTAINER_ID`: optional; enable only after analytics/privacy approval. The container ID is embedded at build time.
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS`, `ENQUIRY_TO_EMAIL`, `ENQUIRY_EMAIL_ENABLED`: optional enquiry mail. Enable only after complete configuration and an approved delivery check. Payload account recovery mail is separate and disabled by the current adapter.
+- `RESEND_API_KEY`, `MAIL_FROM_NAME`, `MAIL_FROM_ADDRESS`, `ENQUIRY_TO_EMAIL`, `ENQUIRY_EMAIL_ENABLED`: optional website enquiry delivery through the Resend HTTPS API. Keep the API key in Railway's protected service variables; never expose it to browser code or logs. Use the verified sender and approved recipient. Enable only after complete configuration and an approved delivery check. Payload account recovery mail is separate and disabled by the current adapter.
 
 Do not configure local-only `HGR_SMOKE_DISPOSABLE`, `SMOKE_DATABASE_URL`, `SMOKE_GCS_ENDPOINT`, `SMOKE_GCS_BUCKET`, `SMOKE_APP_PORT`, `SMOKE_PG_USER`, `SMOKE_PG_PASSWORD`, `SMOKE_PG_PORT`, `SMOKE_GCS_PORT`, `SMOKE_GCS_IMAGE`, or `STORAGE_EMULATOR_HOST`. `GCS_PROJECT_ID`, `GCS_BUCKET`, `GCS_ENDPOINT`, and `GOOGLE_APPLICATION_CREDENTIALS` are also not production settings.
 

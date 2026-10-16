@@ -17,7 +17,7 @@ function trackedRealEnvironmentFiles(files) {
 }
 
 function credentialAssignmentFindings(content) {
-  const names = new Set(["DATABASE_URL", "PAYLOAD_SECRET", "PREVIEW_SECRET", "SMTP_PASSWORD", "GOOGLE_APPLICATION_CREDENTIALS"]);
+  const names = new Set(["DATABASE_URL", "PAYLOAD_SECRET", "PREVIEW_SECRET", "SMTP_PASSWORD", "RESEND_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"]);
   const findings = [];
   for (const line of content.split(/\r?\n/)) {
     const match = line.match(/^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)[ \t]*=[ \t]*(.*?)[ \t]*$/);
@@ -55,6 +55,8 @@ test("tracked source has no common credential material and reports names/categor
   ];
   assert.deepEqual(credentialAssignmentFindings('DATABASE_URL="nonempty-fixture"\nSMTP_PASSWORD=\'quoted-fixture\''), ["credential-assignment", "credential-assignment"]);
   assert.deepEqual(credentialAssignmentFindings('SMTP_PASSWORD="fixture@localhost"\nPAYLOAD_SECRET=fixture@127.0.0.1'), ["credential-assignment", "credential-assignment"]);
+  assert.deepEqual(credentialAssignmentFindings('RESEND_API_KEY="synthetic-test-only-key"'), []);
+  assert.deepEqual(credentialAssignmentFindings('RESEND_API_KEY="fixture-key-value"'), ["credential-assignment"]);
   assert.deepEqual(credentialAssignmentFindings("DATABASE_URL=\nPAYLOAD_SECRET=your-payload-secret-here\nSMTP_PASSWORD=placeholder"), []);
   const findings = [];
   for (const file of trackedFiles()) {
