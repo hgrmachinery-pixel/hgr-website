@@ -52,7 +52,20 @@ test("each D-10 checklist must be explicitly clear before human approval", () =>
   assert.equal(media.isPhotoReviewComplete(clear), true);
   assert.equal(media.isPhotoReviewComplete({ ...clear, qrCodes: "found" }), false);
   assert.equal(media.isPhotoReviewComplete({ ...clear, personalInformation: "uncertain" }), false);
-  assert.deepEqual(media.initialPhotoReview(2), { status: "needs-review", revision: 2 });
+  assert.deepEqual(media.initialPhotoReview(2), { status: "needs-review", revision: 2, serialPolicyRevision: 1 });
+});
+
+test("initial photo review stamps a valid server-selected serial policy revision", () => {
+  assert.deepEqual(media.initialPhotoReview(2, 4), { status: "needs-review", revision: 2, serialPolicyRevision: 4 });
+  assert.deepEqual(media.initialPhotoReview(), { status: "needs-review", revision: 1, serialPolicyRevision: 1 });
+});
+
+test("master upload carries its database-read serial policy revision through required-field validation", async () => {
+  const collection = await readFile(new URL("../src/collections/MachineMedia.ts", import.meta.url), "utf8");
+  assert.match(collection, /machine\.serialVisibilityRevision[\s\S]*context\.machinePhotoPolicyRevision\s*=\s*serialPolicyRevision/);
+  assert.match(collection, /data\.review\s*=\s*initialPhotoReview\(1, serialPolicyRevision\)/);
+  assert.match(collection, /name: "serialPolicyRevision", type: "number", required: true/);
+  assert.match(collection, /Number\(\(data\.review as Record<string, unknown>\)\.serialPolicyRevision\) !== Number\(machine\.serialVisibilityRevision \?\? 1\)/);
 });
 
 test("serial visibility changes revoke all existing machine photo reviews", async () => {
@@ -149,16 +162,68 @@ test("measured progress stays indeterminate until computable and below 100 until
   assert.equal(media.measuredUploadProgress(10, 10, true), 99);
 });
 
-test("bounded batch work never exceeds its configured concurrent worker count", async () => {
+test("master upload reports bounded client errors but hides server response internals", () => {
+  assert.equal(
+    media.machinePhotoUploadFailure(400, JSON.stringify({ errors: [{ message: "Choose a machine before uploading its photo" }] })),
+    "Master photo upload failed (HTTP 400). Choose a machine before uploading its photo",
+  );
+  assert.equal(
+    media.machinePhotoUploadFailure(500, JSON.stringify({ message: "secret database connection string" })),
+    "Master photo upload failed (HTTP 500). Check sanitized server logs before retrying.",
+  );
+  assert.equal(
+    media.machinePhotoUploadFailure(502, "proxy internal detail"),
+    "Master photo upload failed (HTTP 502). Check sanitized server logs before retrying.",
+  );
+  assert.equal(media.machinePhotoUploadFailure(403, "not-json"), "Master photo upload failed (HTTP 403).");
+  assert.equal(media.machinePhotoUploadFailure(201, "{}"), "Master photo upload failed (HTTP 201).");
+});
+
+test("machine photo pixel limit is configurable and validated", () => {
+  assert.equal(image.configuredMachinePhotoMaxPixels({}), 20_000_000);
+  assert.equal(image.configuredMachinePhotoMaxPixels({ HGR_MACHINE_PHOTO_MAX_PIXELS: "12000000" }), 12_000_000);
+  assert.throws(() => image.configuredMachinePhotoMaxPixels({ HGR_MACHINE_PHOTO_MAX_PIXELS: "0" }), /positive whole number/i);
+  assert.throws(() => image.configuredMachinePhotoMaxPixels({ HGR_MACHINE_PHOTO_MAX_PIXELS: "12.5" }), /positive whole number/i);
+});
+
+test("machine photo processing resizes large images proportionally without upscaling", async () => {
+  const landscape = await sharp({ create: { width: 4000, height: 2000, channels: 3, background: "#cc5500" } }).jpeg().toBuffer();
+  const landscapeOutput = await image.createResponsiveMachineImage(landscape);
+  assert.deepEqual(await sharp(landscapeOutput).metadata().then(({ width, height, format }) => ({ width, height, format })), { width: 1600, height: 800, format: "webp" });
+
+  const portrait = await sharp({ create: { width: 1200, height: 2400, channels: 3, background: "#cc5500" } }).jpeg().toBuffer();
+  const portraitOutput = await image.createResponsiveMachineImage(portrait);
+  assert.deepEqual(await sharp(portraitOutput).metadata().then(({ width, height }) => ({ width, height })), { width: 800, height: 1600 });
+
+  const small = await sharp({ create: { width: 240, height: 120, channels: 3, background: "#cc5500" } }).jpeg().toBuffer();
+  const smallOutput = await image.createResponsiveMachineImage(small);
+  assert.deepEqual(await sharp(smallOutput).metadata().then(({ width, height }) => ({ width, height })), { width: 240, height: 120 });
+});
+
+test("machine photo processing applies EXIF orientation and rejects excessive or malformed images", async () => {
+  const rotated = await sharp({ create: { width: 400, height: 200, channels: 3, background: "#cc5500" } }).jpeg().withMetadata({ orientation: 6 }).toBuffer();
+  const rotatedMetadata = await image.inspectMachinePhoto(rotated);
+  assert.equal(rotatedMetadata.width, 400);
+  assert.equal(rotatedMetadata.height, 200);
+  const rotatedOutput = await image.createResponsiveMachineImage(rotated);
+  assert.deepEqual(await sharp(rotatedOutput).metadata().then(({ width, height }) => ({ width, height })), { width: 200, height: 400 });
+
+  const tooLarge = await sharp({ create: { width: 200, height: 100, channels: 3, background: "#cc5500" } }).png().toBuffer();
+  await assert.rejects(() => image.inspectMachinePhoto(tooLarge, 10_000), image.MachinePhotoPixelLimitError);
+  await assert.rejects(() => image.createResponsiveMachineImage(tooLarge, 10_000), image.MachinePhotoPixelLimitError);
+  await assert.rejects(() => image.inspectMachinePhoto(Buffer.from("not an image")), /decode|unsupported|input/i);
+});
+
+test("bounded photo batch work never exceeds one concurrent upload", async () => {
   let active = 0;
   let peak = 0;
-  await media.runBounded(Array.from({ length: 30 }, (_, index) => index), 3, async () => {
+  await media.runBounded(Array.from({ length: 30 }, (_, index) => index), 1, async () => {
     active += 1;
     peak = Math.max(peak, active);
     await new Promise((resolve) => setTimeout(resolve, 1));
     active -= 1;
   });
-  assert.equal(peak, 3);
+  assert.equal(peak, 1);
 });
 
 test("photo processing rejects a cross-origin request before authenticating or reading its body", async () => {
@@ -177,7 +242,7 @@ test("photo processing rejects a cross-origin request before authenticating or r
   else process.env.SERVER_URL = prior;
 });
 
-test("responsive Sharp variants use synthetic source and preserve its bytes", async () => {
+test("separate responsive Sharp variants use synthetic source and preserve its bytes", async () => {
   const source = await sharp({ create: { width: 1800, height: 900, channels: 3, background: "#cc5500" } }).jpeg().toBuffer();
   const original = Buffer.from(source);
   const outputs = await image.createResponsiveMachineImages(source);
@@ -197,7 +262,7 @@ test("blurred revisions are separate outputs, and redaction coordinates must be 
   assert.equal(media.validateRedactions([{ left: 0.9, top: 0.9, width: 0.2, height: 0.2 }]), undefined);
 });
 
-test("Sharp creates an oriented WebP derivative without mutating source bytes", async () => {
+test("Sharp creates a bounded oriented WebP derivative without mutating source bytes", async () => {
   const source = await sharp({ create: { width: 80, height: 40, channels: 3, background: "#cc5500" } }).jpeg().toBuffer();
   const original = Buffer.from(source);
   const derivative = await image.createResponsiveMachineImage(source);

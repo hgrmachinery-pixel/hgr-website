@@ -73,8 +73,8 @@ export function generatedMachinePhotoFilename(
   return `${machineReference.toLowerCase()}-${category}-${String(sequence).padStart(6, "0")}.${extension}`;
 }
 
-export function initialPhotoReview(revision = 1) {
-  return { status: "needs-review" as const, revision };
+export function initialPhotoReview(revision = 1, serialPolicyRevision = 1) {
+  return { status: "needs-review" as const, revision, serialPolicyRevision };
 }
 
 export function serialVisibilityPolicyChanged(
@@ -235,6 +235,33 @@ export function measuredUploadProgress(loaded: number, total: number, lengthComp
   return Math.max(0, Math.min(99, Math.floor(loaded / total * 100)));
 }
 
+/** Show bounded Payload validation messages to staff, but never surface 5xx internals. */
+export function machinePhotoUploadFailure(status: number, responseText: string): string {
+  const fallback = `Master photo upload failed (HTTP ${status}).`;
+  if (status >= 500) return `${fallback} Check sanitized server logs before retrying.`;
+  if (status < 400 || status >= 500) return fallback;
+
+  try {
+    const body = JSON.parse(responseText) as { errors?: unknown; message?: unknown };
+    const nested = Array.isArray(body.errors)
+      ? body.errors.map((entry) => entry && typeof entry === "object" ? (entry as { message?: unknown }).message : undefined)
+      : [];
+    const candidate = [...nested, body.message].find((value): value is string => typeof value === "string" && value.trim().length > 0);
+    if (candidate) return `${fallback} ${candidate.trim().slice(0, 240)}`;
+  } catch {
+    // A proxy or framework may return a non-JSON error page; do not surface its body.
+  }
+  return fallback;
+}
+
+/** Map Sharp's container/codec metadata to the browser MIME type we accepted. */
+export function machinePhotoMimeType(metadata: { format?: string; compression?: string }): string | undefined {
+  if (metadata.format === "heif") return metadata.compression === "av1" ? "image/avif" : undefined;
+  if (metadata.format === "jpeg") return "image/jpeg";
+  if (metadata.format === "png" || metadata.format === "webp") return `image/${metadata.format}`;
+  return undefined;
+}
+
 export async function runBounded<T>(items: T[], concurrency: number, worker: (item: T) => Promise<void>): Promise<void> {
   if (!Number.isSafeInteger(concurrency) || concurrency < 1) throw new Error("Concurrency must be a positive whole number");
   let index = 0;
@@ -244,6 +271,26 @@ export async function runBounded<T>(items: T[], concurrency: number, worker: (it
 }
 
 export type NormalizedRedaction = { left: number; top: number; width: number; height: number };
+
+export type ImageDimensions = {
+  width: number;
+  height: number;
+  autoOrient?: { width: number; height: number };
+};
+
+/** Convert displayed-image coordinates using EXIF-oriented dimensions when available. */
+export function redactionPixelBounds(box: NormalizedRedaction, dimensions: ImageDimensions) {
+  const width = dimensions.autoOrient?.width ?? dimensions.width;
+  const height = dimensions.autoOrient?.height ?? dimensions.height;
+  if (!Number.isSafeInteger(width) || width < 1 || !Number.isSafeInteger(height) || height < 1) {
+    throw new Error("Image dimensions are invalid");
+  }
+  const left = Math.floor(box.left * width);
+  const top = Math.floor(box.top * height);
+  const regionWidth = Math.max(1, Math.min(width - left, Math.ceil(box.width * width)));
+  const regionHeight = Math.max(1, Math.min(height - top, Math.ceil(box.height * height)));
+  return { left, top, width: regionWidth, height: regionHeight };
+}
 
 export function validateRedactions(value: unknown): NormalizedRedaction[] | undefined {
   if (!Array.isArray(value) || value.length < 1 || value.length > 20) return undefined;

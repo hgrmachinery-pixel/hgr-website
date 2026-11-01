@@ -27,7 +27,21 @@ type MachineIdentity = {
   previousSlugs?: string[];
   showSerialPublicly?: boolean | null;
   serialVisibilityRevision?: number | null;
+  currentPhotoRevisions?: unknown;
 };
+
+function sameCurrentPhotoRevisions(next: unknown, previous: unknown): boolean {
+  if (!next || typeof next !== "object" || Array.isArray(next)) return false;
+  const nextMap = next as Record<string, unknown>;
+  const previousMap = previous && typeof previous === "object" && !Array.isArray(previous)
+    ? previous as Record<string, unknown>
+    : {};
+  const nextKeys = Object.keys(nextMap);
+  const previousKeys = Object.keys(previousMap);
+  return nextKeys.length === previousKeys.length && nextKeys.every((key) =>
+    Object.prototype.hasOwnProperty.call(previousMap, key) && Object.is(nextMap[key], previousMap[key]),
+  );
+}
 
 function relationIds(value: unknown): Array<string | number> {
   const entries = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value];
@@ -90,7 +104,7 @@ export const Machines: CollectionConfig = {
     description: "Manage one record for each physical machine.",
     listSearchableFields: ["hgrId", "brand", "model"],
     enableRichTextRelationship: false,
-    components: { edit: { beforeDocumentControls: ["@/components/payload/MachinePhotoUploader#MachinePhotoUploader", "@/components/payload/CopyMachineLink#CopyMachineLink"] } },
+    components: { edit: { beforeDocumentControls: ["@/components/payload/CopyMachineLink#CopyMachineLink"] } },
     preview: (doc) => {
       const baseURL = process.env.SERVER_URL;
       const secret = process.env.PREVIEW_SECRET;
@@ -165,7 +179,11 @@ export const Machines: CollectionConfig = {
         if (data.hgrId !== identity.hgrId) {
           throw new Error("A machine reference cannot be changed");
         }
-        if (data.currentPhotoRevisions !== undefined && context.machinePhotoProcessing !== true) {
+        if (
+          data.currentPhotoRevisions !== undefined &&
+          context.machinePhotoProcessing !== true &&
+          !sameCurrentPhotoRevisions(data.currentPhotoRevisions, identity.currentPhotoRevisions)
+        ) {
           throw new Error("Current photo revisions can only be updated by the protected photo processor");
         }
       }
@@ -331,7 +349,12 @@ export const Machines: CollectionConfig = {
     { name: "year", label: "Year of Manufacture", type: "number", min: 1900 },
     { name: "hours", type: "number", min: 0 },
     { name: "engine", type: "text" },
-    { name: "operatingWeight", label: "Operating Weight", type: "text" },
+    {
+      name: "operatingWeight",
+      label: "Operating Weight",
+      type: "text",
+      admin: { description: "Enter the verified operating weight with its unit, exactly as approved for display." },
+    },
     {
       name: "condition",
       type: "select",
@@ -409,6 +432,11 @@ export const Machines: CollectionConfig = {
       access: { read: ({ req }) => Boolean(req.user) },
     },
     { name: "serialVisibilityRevision", type: "number", defaultValue: 1, admin: { hidden: true, readOnly: true }, access: { read: ({ req }) => Boolean(req.user), update: () => false } },
+    {
+      type: "ui",
+      name: "machinePhotosManager",
+      admin: { components: { Field: "@/components/payload/MachinePhotoUploader#MachinePhotoUploader" }, disableListColumn: true },
+    },
     {
       name: "featuredImage",
       label: "Featured Image",

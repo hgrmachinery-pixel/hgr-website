@@ -2,10 +2,9 @@ import { createHash } from "node:crypto";
 import { createLocalReq, type Payload } from "payload";
 
 import { isStaffUser } from "./access.ts";
-import { generatedMachinePhotoFilename, isPhotoReviewComplete, validateRedactions } from "./media.ts";
-import { blurSensitiveAreas, applyWatermark, createResponsiveMachineImage, DEFAULT_WATERMARK_OPTIONS, photoContentDigest } from "./media-image.ts";
+import { generatedMachinePhotoFilename, isPhotoReviewComplete, machinePhotoMimeType, validateRedactions } from "./media.ts";
+import { blurSensitiveAreas, applyWatermark, createResponsiveMachineImage, DEFAULT_WATERMARK_OPTIONS, inspectMachinePhoto, MachinePhotoPixelLimitError, photoContentDigest } from "./media-image.ts";
 
-const allowedFormats = new Set(["jpeg", "png", "webp", "avif"]);
 const processingLocks = new Set<string>();
 
 function relationId(value: unknown): string | number | undefined {
@@ -73,8 +72,14 @@ export async function processMachinePhoto({
     if (typeof category !== "string" || typeof master.photoIdentity !== "string" || !Number.isSafeInteger(master.photoSequence)) {
       return { status: 422, error: "The master photo is missing its stable identity" };
     }
-    const metadata = await import("sharp").then(({ default: sharp }) => sharp(bytes, { failOn: "error", limitInputPixels: 100_000_000 }).metadata());
-    if (!metadata.format || !allowedFormats.has(metadata.format) || `image/${metadata.format === "jpeg" ? "jpeg" : metadata.format}` !== mimeType) {
+    let metadata: Awaited<ReturnType<typeof inspectMachinePhoto>>;
+    try {
+      metadata = await inspectMachinePhoto(bytes);
+    } catch (error) {
+      if (error instanceof MachinePhotoPixelLimitError) return { status: 413, error: error.message };
+      return { status: 415, error: "Photo could not be decoded as a supported image" };
+    }
+    if (machinePhotoMimeType(metadata) !== mimeType) {
       return { status: 415, error: "Photo contents do not match the supported image format" };
     }
     const redactionsHeader = request.headers.get("x-hgr-redactions");

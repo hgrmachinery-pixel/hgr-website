@@ -163,6 +163,13 @@ test("Payload access keeps drafts, archives, and private facts behind server rul
   assert.match(pagesSource, /versions: \{ drafts: true/);
 });
 
+test("machine Save Draft remains enabled and publication checks are published-only", async () => {
+  const machineSource = await readFile(new URL("../src/collections/Machines.ts", import.meta.url), "utf8");
+
+  assert.match(machineSource, /versions:\s*\{\s*drafts:\s*true/);
+  assert.match(machineSource, /if \(data\._status === "published"\)/);
+});
+
 test("public projection excludes drafts, archived records, hidden price, and private serial", () => {
   const base = {
     hgrId: "HGR-000001",

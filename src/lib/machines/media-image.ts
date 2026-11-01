@@ -1,34 +1,71 @@
 import { createHash } from "node:crypto";
 import sharp from "sharp";
 
-import { validateRedactions, type NormalizedRedaction } from "./media.ts";
+import { redactionPixelBounds, validateRedactions, type NormalizedRedaction } from "./media.ts";
+
+export const DEFAULT_MACHINE_PHOTO_MAX_PIXELS = 20_000_000;
+export const MACHINE_PHOTO_MAX_DIMENSION = 1600;
+
+export function configuredMachinePhotoMaxPixels(environment: Record<string, string | undefined> = process.env): number {
+  const raw = environment.HGR_MACHINE_PHOTO_MAX_PIXELS?.trim();
+  if (!raw) return DEFAULT_MACHINE_PHOTO_MAX_PIXELS;
+  if (!/^[1-9][0-9]*$/.test(raw)) throw new Error("HGR_MACHINE_PHOTO_MAX_PIXELS must be a positive whole number");
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value)) throw new Error("HGR_MACHINE_PHOTO_MAX_PIXELS is outside the supported range");
+  return value;
+}
+
+export class MachinePhotoPixelLimitError extends Error {
+  constructor() {
+    super("Photo dimensions exceed the configured pixel limit");
+    this.name = "MachinePhotoPixelLimitError";
+  }
+}
+
+/** Reads image headers only, then rejects excessive dimensions before pixel decoding. */
+export async function inspectMachinePhoto(input: Buffer, maxPixels = configuredMachinePhotoMaxPixels()) {
+  if (!Buffer.isBuffer(input) || input.length === 0) throw new Error("A non-empty image buffer is required");
+  // Metadata reads the encoded header; keeping this unrestricted lets us return
+  // our own limit error before any pixel decode while the decode pipeline below
+  // still enforces Sharp's hard limit.
+  const metadata = await sharp(input, { failOn: "error" }).metadata();
+  if (!metadata.width || !metadata.height) throw new Error("Image dimensions are unavailable");
+  if (metadata.width * metadata.height > maxPixels) throw new MachinePhotoPixelLimitError();
+  return metadata;
+}
 
 export function photoContentDigest(buffer: Buffer): string {
   return `sha256:${createHash("sha256").update(buffer).digest("hex")}`;
 }
 
-export async function createResponsiveMachineImage(input: Buffer): Promise<Buffer> {
+export async function createResponsiveMachineImage(input: Buffer, maxPixels = configuredMachinePhotoMaxPixels()): Promise<Buffer> {
   if (!Buffer.isBuffer(input) || input.length === 0) throw new Error("A non-empty image buffer is required");
-  return sharp(input, { failOn: "error", limitInputPixels: 100_000_000 })
+  await inspectMachinePhoto(input, maxPixels);
+  return sharp(input, { failOn: "error", limitInputPixels: maxPixels })
     .rotate()
+    .resize({ width: MACHINE_PHOTO_MAX_DIMENSION, height: MACHINE_PHOTO_MAX_DIMENSION, fit: "inside", withoutEnlargement: true })
     .webp({ quality: 84, effort: 4 })
     .toBuffer();
 }
 
-export async function blurSensitiveAreas(input: Buffer, redactions: NormalizedRedaction[]): Promise<Buffer> {
+export async function blurSensitiveAreas(input: Buffer, redactions: NormalizedRedaction[], maxPixels = configuredMachinePhotoMaxPixels()): Promise<Buffer> {
   if (!validateRedactions(redactions)) throw new Error("One or more blur regions are invalid");
-  const source = sharp(input, { failOn: "error", limitInputPixels: 100_000_000 }).rotate();
-  const { width, height } = await source.metadata();
+  await inspectMachinePhoto(input, maxPixels);
+  const source = sharp(input, { failOn: "error", limitInputPixels: maxPixels }).rotate();
+  const dimensions = await source.metadata();
+  const { width, height } = dimensions.autoOrient;
   if (!width || !height) throw new Error("Image dimensions are unavailable");
   const composites = await Promise.all(redactions.map(async (box) => {
-    const left = Math.floor(box.left * width);
-    const top = Math.floor(box.top * height);
-    const regionWidth = Math.max(1, Math.min(width - left, Math.ceil(box.width * width)));
-    const regionHeight = Math.max(1, Math.min(height - top, Math.ceil(box.height * height)));
+    const { left, top, width: regionWidth, height: regionHeight } = redactionPixelBounds(box, dimensions);
     const region = await source.clone().extract({ left, top, width: regionWidth, height: regionHeight }).blur(Math.max(10, Math.min(80, Math.round(Math.min(regionWidth, regionHeight) / 5)))).png().toBuffer();
     return { input: region, left, top };
   }));
-  return source.composite(composites).webp({ quality: 84, effort: 4 }).toBuffer();
+  // Sharp resizes before compositing within one pipeline. Finish redaction at
+  // the oriented source dimensions before a separate pipeline scales the result.
+  const redacted = await source.composite(composites).png().toBuffer();
+  return sharp(redacted, { failOn: "error", limitInputPixels: maxPixels })
+    .resize({ width: MACHINE_PHOTO_MAX_DIMENSION, height: MACHINE_PHOTO_MAX_DIMENSION, fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 84, effort: 4 }).toBuffer();
 }
 
 export async function createResponsiveMachineImages(input: Buffer) {

@@ -3,7 +3,7 @@
 import { useDocumentInfo } from "@payloadcms/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { MACHINE_PHOTO_CATEGORIES, MACHINE_PHOTO_CATEGORY_LABELS, PHOTO_REVIEW_CHECKLIST, measuredUploadProgress, planImageBatch, runBounded, type MachinePhotoCategory, type PhotoReviewChecklist } from "@/lib/machines/media";
+import { MACHINE_PHOTO_CATEGORIES, MACHINE_PHOTO_CATEGORY_LABELS, PHOTO_REVIEW_CHECKLIST, machinePhotoUploadFailure, measuredUploadProgress, planImageBatch, runBounded, type MachinePhotoCategory, type PhotoReviewChecklist } from "@/lib/machines/media";
 
 type ReviewAnswer = "clear" | "found" | "uncertain" | "";
 type Status = "queued" | "uploading" | "processing" | "needs-review" | "approved" | "failed";
@@ -20,6 +20,7 @@ type QueueItem = {
   derivativeFilename?: string;
   digest?: string;
   error?: string;
+  failureStage?: "upload" | "processing";
   review: Partial<Record<keyof PhotoReviewChecklist, ReviewAnswer>>;
   redactions: Array<{ left: number; top: number; width: number; height: number }>;
   dragStart?: { x: number; y: number };
@@ -52,6 +53,15 @@ function PreviewImage({ file, alt, style }: { file: File; alt: string; style?: R
   }, [file]);
   return url ? <img src={url} alt={alt} style={style} /> : <span aria-hidden="true">Preparing preview…</span>;
 }
+
+const statusLabel: Record<Status, string> = {
+  queued: "Queued",
+  uploading: "Uploading",
+  processing: "Processing",
+  "needs-review": "Needs review",
+  approved: "Approved",
+  failed: "Failed",
+};
 
 export function MachinePhotoUploader() {
   const { id: machineId, collectionSlug } = useDocumentInfo();
@@ -93,14 +103,16 @@ export function MachinePhotoUploader() {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Image processing failed");
-    update(item.id, { derivativeId: result.derivativeId, derivativeFilename: result.filename, digest: result.digest, status: "needs-review", progress: 100, progressKnown: true, error: undefined, review: {}, redactions: [] });
+    update(item.id, { derivativeId: result.derivativeId, derivativeFilename: result.filename, digest: result.digest, status: "needs-review", progress: 100, progressKnown: true, error: undefined, failureStage: undefined, review: {}, redactions: [] });
   }, [update]);
 
   const upload = useCallback(async (item: QueueItem, retry = false) => {
+    let failureStage: QueueItem["failureStage"] = "upload";
     try {
       if (retry && item.masterId) {
+        failureStage = "processing";
         update(item.id, { status: "processing", error: undefined });
-        await process(item);
+        await process(item, item.redactions);
         return;
       }
       update(item.id, { status: "uploading", progress: 0, error: undefined });
@@ -116,7 +128,7 @@ export function MachinePhotoUploader() {
           if (progress !== undefined) update(item.id, { progress, progressKnown: true });
         });
         xhr.addEventListener("load", () => {
-          if (xhr.status < 200 || xhr.status >= 300) return reject(new Error(`Master upload failed (${xhr.status})`));
+          if (xhr.status < 200 || xhr.status >= 300) return reject(new Error(machinePhotoUploadFailure(xhr.status, xhr.responseText)));
           try {
             const json = JSON.parse(xhr.responseText);
             const doc = json.doc ?? json;
@@ -129,9 +141,10 @@ export function MachinePhotoUploader() {
         xhr.send(form);
       });
       update(item.id, { masterId: created.id, status: "processing", progress: 99, progressKnown: true });
+      failureStage = "processing";
       await process({ ...item, masterId: created.id });
     } catch (error) {
-      update(item.id, { status: "failed", error: humanError(error) });
+      update(item.id, { status: "failed", error: humanError(error), failureStage });
     }
   }, [machineId, process, update]);
 
@@ -139,7 +152,7 @@ export function MachinePhotoUploader() {
     if (!files || !limits || !machineId) return;
     const selected = Array.from(files);
     try {
-      planImageBatch(selected, 3, {
+      planImageBatch(selected, 1, {
         HGR_MACHINE_PHOTO_MAX_FILE_BYTES: String(limits.perFileBytes),
         HGR_MACHINE_PHOTO_MAX_BATCH_BYTES: String(limits.batchBytes),
       });
@@ -152,7 +165,7 @@ export function MachinePhotoUploader() {
       id: crypto.randomUUID(), file, status: "queued", progress: 0, progressKnown: false, category, altText: "", review: {}, redactions: [],
     }));
     setQueue((current) => [...current, ...rows]);
-    await runBounded(rows, 3, (item) => upload(item));
+    await runBounded(rows, 1, (item) => upload(item));
     if (inputRef.current) inputRef.current.value = "";
   };
 
@@ -167,7 +180,7 @@ export function MachinePhotoUploader() {
     if (found) {
       if (!item.redactions.length) return update(item.id, { error: "Add a blur area around every sensitive identifier, then process a new revision." });
       update(item.id, { status: "processing", error: undefined });
-      return process(item, item.redactions).catch((error) => update(item.id, { status: "failed", error: humanError(error) }));
+      return process(item, item.redactions).catch((error) => update(item.id, { status: "failed", error: humanError(error), failureStage: "processing" }));
     }
     if (PHOTO_REVIEW_CHECKLIST.some((key) => checklist[key] !== "clear")) return update(item.id, { error: "Complete every review item before approval." });
     const response = await fetch("/api/machine-media/review", {
@@ -214,62 +227,92 @@ export function MachinePhotoUploader() {
     else update(item.id, { draftRegion: undefined, dragStart: undefined });
   };
 
+  const busy = queue.some((item) => item.status === "uploading" || item.status === "processing");
+
   if (collectionSlug !== "machines" || !machineId) return null;
   return (
-    <section style={{ border: "1px solid #E2E2E2", borderRadius: 8, padding: 16, margin: "12px 0", color: "#171717" }} aria-label="Machine photo uploader">
-      <h3 style={{ margin: "0 0 8px" }}>Machine photos</h3>
-      <p>Each photo is saved as a private master, processed separately, and begins as Needs Review.</p>
-      <label style={{ display: "block", marginBottom: 8 }}>
-        Photo category
-        <select value={category} onChange={(event) => setCategory(event.target.value as MachinePhotoCategory)} style={{ display: "block", minHeight: 40, width: "100%", marginTop: 4 }}>
-          {MACHINE_PHOTO_CATEGORIES.map((value) => <option key={value} value={value}>{MACHINE_PHOTO_CATEGORY_LABELS[value]}</option>)}
-        </select>
-      </label>
-      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple onChange={(event) => void addFiles(event.currentTarget.files)} />
-      {limitError && <p role="alert">{limitError}</p>}
-      <ol style={{ listStyle: "none", padding: 0, display: "grid", gap: 16 }}>
-        {queue.map((item) => <li key={item.id} style={{ borderTop: "1px solid #E2E2E2", paddingTop: 12 }}>
-          <div style={{ display: "flex", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
-            <PreviewImage file={item.file} alt="Local photo preview" style={{ width: 140, height: 100, objectFit: "cover", borderRadius: 4 }} />
-            <div style={{ flex: "1 1 220px" }}>
-              <strong>{item.file.name}</strong>
-              <p>{MACHINE_PHOTO_CATEGORY_LABELS[item.category]} · {item.status === "needs-review" ? "Needs Review" : item.status}</p>
-              {(item.status === "uploading" || item.status === "processing") && <progress aria-label={`Upload progress for ${item.file.name}`} max={100} value={item.progressKnown ? item.progress : undefined} style={{ width: "100%" }} />}
-              {item.status === "uploading" && item.progress === 0 && <span>Uploading…</span>}
-              {item.status === "processing" && <span>Processing image…</span>}
-              {item.status === "failed" && <><p role="alert">{item.error}</p><button type="button" onClick={() => void upload(item, true)}>Retry this photo</button></>}
+    <section className="hgr-photo-manager" aria-label="Machine photo manager">
+      <header className="hgr-photo-manager__header">
+        <div>
+          <p className="hgr-photo-manager__eyebrow">Inventory photos</p>
+          <h3>Machine photos</h3>
+          <p>Uploads are kept as private originals. Processed versions stay private until human review and machine publication.</p>
+        </div>
+        <span className="hgr-photo-manager__count" aria-live="polite">{queue.length} {queue.length === 1 ? "photo" : "photos"}</span>
+      </header>
+      <div className="hgr-photo-manager__controls">
+        <label className="hgr-photo-manager__field">
+          <span>Category for new photos</span>
+          <select value={category} onChange={(event) => setCategory(event.target.value as MachinePhotoCategory)}>
+            {MACHINE_PHOTO_CATEGORIES.map((value) => <option key={value} value={value}>{MACHINE_PHOTO_CATEGORY_LABELS[value]}</option>)}
+          </select>
+        </label>
+        <label className="hgr-photo-manager__picker">
+          <span>Add photos</span>
+          <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple disabled={!limits || busy} onChange={(event) => void addFiles(event.currentTarget.files)} />
+          {!limits && !limitError && <small>Checking upload limits…</small>}
+          {busy && <small>Wait for the current photo to finish before adding another batch.</small>}
+        </label>
+      </div>
+      {limitError && <p className="hgr-photo-manager__alert" role="alert">{limitError}</p>}
+      {queue.length === 0 ? <div className="hgr-photo-manager__empty">Choose a category, then add the machine photos you want to prepare.</div> :
+      <ol className="hgr-photo-queue" tabIndex={0} aria-label="Machine photo queue. Scroll to review all photos.">
+        {queue.map((item) => <li key={item.id} className="hgr-photo-card">
+          <div className="hgr-photo-card__preview">
+            <PreviewImage file={item.file} alt={`Local preview of ${item.file.name}`} />
+          </div>
+          <div className="hgr-photo-card__body">
+            <div className="hgr-photo-card__topline">
+              <div className="hgr-photo-card__identity">
+                <strong title={item.file.name}>{item.file.name}</strong>
+                <span className="hgr-photo-category">{MACHINE_PHOTO_CATEGORY_LABELS[item.category]}</span>
+              </div>
+              <span className={`hgr-photo-status hgr-photo-status--${item.status}`} role="status" aria-live="polite">{statusLabel[item.status]}</span>
+            </div>
+            {(item.status === "uploading" || item.status === "processing") && <div className="hgr-photo-progress">
+              <progress aria-label={`${statusLabel[item.status]} ${item.file.name}`} max={100} value={item.status === "processing" ? undefined : item.progressKnown ? item.progress : undefined} />
+              <span>{item.status === "processing" ? "Preparing a review copy…" : item.progressKnown ? `${item.progress}% uploaded` : "Uploading photo…"}</span>
+            </div>}
+            {item.status === "failed" && <div className="hgr-photo-card__error" role="alert">
+              <strong>{item.failureStage === "processing" ? "Image processing failed" : "Master photo upload failed"}</strong>
+              <p>{item.error || "The request failed without an explanation."}</p>
+              <button type="button" onClick={() => void upload(item, true)}>{item.masterId ? "Retry processing" : "Retry upload"}</button>
+            </div>}
               {item.status === "needs-review" && <>
-                {item.derivativeFilename && <figure style={{ margin: "12px 0" }}>
-                  <img src={`/api/machine-media/file/${encodeURIComponent(item.derivativeFilename)}`} alt="Processed photo for human review" style={{ display: "block", width: "100%", maxWidth: 480, height: "auto" }} />
-                  <figcaption>Review this processed version. It is private until approved and published.</figcaption>
+                {item.derivativeFilename && <figure className="hgr-photo-review-preview">
+                  <img src={`/api/machine-media/file/${encodeURIComponent(item.derivativeFilename)}`} alt="Processed photo for human review" />
+                  <figcaption>Review copy · private pending approval</figcaption>
                 </figure>}
-                <p>Review the exact photo for every item below. Sensitive details must be blurred and reviewed again.</p>
-                <label style={{ display: "block", marginBottom: 8 }}>Factual alternative text
-                  <input value={item.altText} maxLength={250} onChange={(event) => update(item.id, { altText: event.target.value })} placeholder="Describe only what is visible" style={{ display: "block", width: "100%", minHeight: 40 }} />
+                <details className="hgr-photo-review">
+                  <summary>Review image and approval checklist</summary>
+                  <p>Check the exact processed photo. Sensitive details must be blurred and reviewed again.</p>
+                  <label className="hgr-photo-manager__field">Factual alternative text
+                  <input value={item.altText} maxLength={250} onChange={(event) => update(item.id, { altText: event.target.value })} placeholder="Describe only what is visible" />
                   <small>Do not infer machine specifications or identifiers.</small>
-                </label>
-                <button type="button" onClick={() => void saveAltText(item)}>Save alternative text</button>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 6 }}>
-                  {PHOTO_REVIEW_CHECKLIST.map((key) => <label key={key}>{checklistLabel[key]} <select value={item.review[key] ?? ""} onChange={(event) => setReviewAnswer(item, key, event.target.value as ReviewAnswer)}>
-                    <option value="">Choose…</option><option value="clear">Checked — clear</option><option value="found">Sensitive item found</option><option value="uncertain">Uncertain — ask Owner</option>
-                  </select></label>)}
-                </div>
+                  </label>
+                  <button type="button" onClick={() => void saveAltText(item)}>Save alternative text</button>
+                  <div className="hgr-photo-review__checklist">
+                    {PHOTO_REVIEW_CHECKLIST.map((key) => <label key={key}>{checklistLabel[key]} <select value={item.review[key] ?? ""} onChange={(event) => setReviewAnswer(item, key, event.target.value as ReviewAnswer)}>
+                      <option value="">Choose…</option><option value="clear">Checked — clear</option><option value="found">Sensitive item found</option><option value="uncertain">Uncertain — ask Owner</option>
+                    </select></label>)}
+                  </div>
                 {PHOTO_REVIEW_CHECKLIST.some((key) => item.review[key] === "found") && <>
                   <p>Drag over each sensitive identifier to blur it, then process a new revision.</p>
-                  <div onPointerDown={(event) => beginRedaction(item, event)} onPointerMove={(event) => moveRedaction(item, event)} onPointerUp={() => endRedaction(item)} style={{ position: "relative", maxWidth: 480, touchAction: "none", cursor: "crosshair" }}>
-                    <PreviewImage file={item.file} alt="Photo to redact; drag over sensitive information" style={{ display: "block", width: "100%", height: "auto" }} />
+                  <div className="hgr-photo-redaction" onPointerDown={(event) => beginRedaction(item, event)} onPointerMove={(event) => moveRedaction(item, event)} onPointerUp={() => endRedaction(item)}>
+                    <PreviewImage file={item.file} alt="Photo to redact; drag over sensitive information" />
                     {[...item.redactions, ...(item.draftRegion ? [item.draftRegion] : [])].map((box, index) => <span key={index} style={{ position: "absolute", left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%`, background: "#111", opacity: 0.7, border: "2px solid #F86C00", pointerEvents: "none" }} />)}
                   </div>
                   {item.redactions.length > 0 && <button type="button" onClick={() => update(item.id, { redactions: item.redactions.slice(0, -1) })}>Undo last blur area</button>}
                 </>}
-                <button type="button" onClick={() => void submitReview(item)}>Submit human review</button>
-                {item.error && <p role="alert">{item.error}</p>}
+                  {item.error && <p className="hgr-photo-manager__alert" role="alert">{item.error}</p>}
+                  <button type="button" onClick={() => void submitReview(item)}>Submit human review</button>
+                </details>
               </>}
-              {item.status === "approved" && <p>Human review approved. The image remains private until added to the machine’s public gallery and the machine is published.</p>}
-            </div>
+            {item.status === "approved" && <p className="hgr-photo-card__approved">Human review approved. The image remains private until added to the machine’s public gallery and the machine is published.</p>}
           </div>
         </li>)}
       </ol>
+      }
     </section>
   );
 }

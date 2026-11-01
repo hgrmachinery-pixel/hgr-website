@@ -30,6 +30,7 @@ export const MachineMedia: CollectionConfig = {
   hooks: {
     beforeOperation: [async ({ args, operation, req }) => {
       if (operation !== "create" || !req.file) return args;
+      if (!isStaffUser(req.user)) throw new Error("Staff sign-in is required to upload machine photos");
       const input = args.data as Record<string, unknown> | undefined;
       const context = req.context as Record<string, unknown>;
       if (context.machinePhotoProcessing === true && input?.assetKind === "derivative") return args;
@@ -37,8 +38,11 @@ export const MachineMedia: CollectionConfig = {
         throw new Error("Choose a machine before uploading its photo");
       }
       if (typeof input.category !== "string") throw new Error("Choose a photo category before uploading");
-      const machine = await req.payload.findByID({ collection: "machines", id: input.machine, depth: 0, overrideAccess: true, req });
+      const machine = await req.payload.findByID({ collection: "machines", id: input.machine, depth: 0, overrideAccess: false, req });
       if (typeof machine.hgrId !== "string") throw new Error("The selected machine has no permanent HGR reference");
+      const serialPolicyRevision = Number(machine.serialVisibilityRevision ?? 1);
+      if (!Number.isSafeInteger(serialPolicyRevision) || serialPolicyRevision < 1) throw new Error("The machine serial policy revision is invalid");
+      context.machinePhotoPolicyRevision = serialPolicyRevision;
       const sequenceResult = await req.payload.db.execute({ drizzle: req.payload.db.drizzle, sql: sql`SELECT nextval('hgr_machine_photo_seq') AS value` });
       const sequence = Number(sequenceResult.rows[0]?.value);
       if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("Could not allocate a permanent photo sequence");
@@ -47,7 +51,7 @@ export const MachineMedia: CollectionConfig = {
       input.photoSequence = sequence;
       input.revision = 0;
       input.processingStatus = "master";
-      input.review = initialPhotoReview();
+      input.review = initialPhotoReview(1, serialPolicyRevision);
       input.machineReference = machine.hgrId;
       req.file.name = generatedMachinePhotoFilename(machine.hgrId, input.category as any, sequence, req.file.mimetype);
       args.data = input;
@@ -64,7 +68,9 @@ export const MachineMedia: CollectionConfig = {
           data.contentDigest = photoContentDigest(req.file.data);
           data.uploadedBy = req.user?.id;
           data.uploadedAt = new Date().toISOString();
-          data.review = initialPhotoReview();
+          const serialPolicyRevision = Number(context.machinePhotoPolicyRevision);
+          if (!Number.isSafeInteger(serialPolicyRevision) || serialPolicyRevision < 1) throw new Error("The machine serial policy revision is invalid");
+          data.review = initialPhotoReview(1, serialPolicyRevision);
           data.auditHistory = [{ event: "uploaded", actor: req.user?.id, at: data.uploadedAt, digest: data.contentDigest }];
         }
         return data;
