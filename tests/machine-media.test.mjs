@@ -60,9 +60,10 @@ test("initial photo review stamps a valid server-selected serial policy revision
   assert.deepEqual(media.initialPhotoReview(), { status: "needs-review", revision: 1, serialPolicyRevision: 1 });
 });
 
-test("master upload carries its database-read serial policy revision through required-field validation", async () => {
+test("master upload independently reads and validates the current serial policy in beforeChange", async () => {
   const collection = await readFile(new URL("../src/collections/MachineMedia.ts", import.meta.url), "utf8");
-  assert.match(collection, /machine\.serialVisibilityRevision[\s\S]*context\.machinePhotoPolicyRevision\s*=\s*serialPolicyRevision/);
+  assert.match(collection, /overrideAccess:\s*false,[\s\S]*req,\s*\}\);[\s\S]*validSerialPolicyRevision\(machine\?\.serialVisibilityRevision\)/);
+  assert.doesNotMatch(collection, /Number\(context\.machinePhotoPolicyRevision\)/);
   assert.match(collection, /data\.review\s*=\s*initialPhotoReview\(1, serialPolicyRevision\)/);
   assert.match(collection, /name: "serialPolicyRevision", type: "number", required: true/);
   assert.match(collection, /Number\(\(data\.review as Record<string, unknown>\)\.serialPolicyRevision\) !== Number\(machine\.serialVisibilityRevision \?\? 1\)/);
@@ -74,8 +75,29 @@ test("serial visibility changes revoke all existing machine photo reviews", asyn
   assert.match(machines, /serialVisibilityPolicyChanged/);
   assert.match(machines, /serial-visibility-policy-changed/);
   assert.match(mediaSource, /export function serialVisibilityPolicyChanged/);
+  assert.equal(media.serialVisibilityPolicyChanged({ showSerialPublicly: false }, { showSerialPublicly: true }), true);
   assert.equal(media.isPhotoReviewComplete(Object.fromEntries(media.PHOTO_REVIEW_CHECKLIST.map((key) => [key, "clear"]))), true);
   assert.equal(media.isPhotoReviewComplete(Object.fromEntries(media.PHOTO_REVIEW_CHECKLIST.map((key) => [key, key === "manufacturerSerialNumbers" ? "found" : "clear"]))), false);
+});
+
+test("serial policy revision changes make a previously approved derivative non-public", () => {
+  const checklist = Object.fromEntries(media.PHOTO_REVIEW_CHECKLIST.map((key) => [key, "clear"]));
+  const derivative = {
+    id: 92,
+    assetKind: "derivative",
+    machine: 1,
+    photoIdentity: "synthetic-photo",
+    processingStatus: "ready",
+    revision: 1,
+    contentDigest: "sha256:synthetic",
+    review: { status: "approved", revision: 1, digest: "sha256:synthetic", serialPolicyRevision: 1, reviewedBy: 2, reviewedAt: "2026-10-01T00:00:00.000Z", checklist },
+  };
+  const machine = { id: 1, _status: "published", archived: false, showSerialPublicly: false, serialVisibilityRevision: 1, featuredImage: 92, gallery: [92], currentPhotoRevisions: { "synthetic-photo": 1 } };
+  assert.equal(media.isPublicMachineDerivative(derivative, machine), true);
+
+  const policyChanged = { ...machine, showSerialPublicly: true, serialVisibilityRevision: 2 };
+  assert.equal(media.serialVisibilityPolicyChanged(machine, policyChanged), true);
+  assert.equal(media.isPublicMachineDerivative(derivative, policyChanged), false);
 });
 
 test("photo review and audit histories preserve prior events", async () => {

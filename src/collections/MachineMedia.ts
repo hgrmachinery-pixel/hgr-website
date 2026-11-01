@@ -9,6 +9,22 @@ import { appendAssetAuditEvent } from "../lib/audit/assets.ts";
 
 const staffFieldRead = ({ req }: { req: { user?: unknown } }) => isStaffUser(req.user);
 
+function relationshipID(value: unknown): string | number | undefined {
+  if (typeof value === "string" || typeof value === "number") return value;
+  if (value && typeof value === "object") {
+    const id = (value as { id?: unknown }).id;
+    if (typeof id === "string" || typeof id === "number") return id;
+  }
+  return undefined;
+}
+
+function validSerialPolicyRevision(value: unknown): number | undefined {
+  if (typeof value !== "number" && typeof value !== "string") return undefined;
+  if (typeof value === "string" && !value.trim()) return undefined;
+  const revision = Number(value);
+  return Number.isSafeInteger(revision) && revision > 0 ? revision : undefined;
+}
+
 export const MachineMedia: CollectionConfig = {
   slug: "machine-media",
   labels: { singular: "Machine Image", plural: "Machine Images" },
@@ -40,9 +56,8 @@ export const MachineMedia: CollectionConfig = {
       if (typeof input.category !== "string") throw new Error("Choose a photo category before uploading");
       const machine = await req.payload.findByID({ collection: "machines", id: input.machine, depth: 0, overrideAccess: false, req });
       if (typeof machine.hgrId !== "string") throw new Error("The selected machine has no permanent HGR reference");
-      const serialPolicyRevision = Number(machine.serialVisibilityRevision ?? 1);
-      if (!Number.isSafeInteger(serialPolicyRevision) || serialPolicyRevision < 1) throw new Error("The machine serial policy revision is invalid");
-      context.machinePhotoPolicyRevision = serialPolicyRevision;
+      const serialPolicyRevision = validSerialPolicyRevision(machine.serialVisibilityRevision ?? 1);
+      if (serialPolicyRevision === undefined) throw new Error("The machine serial policy revision is invalid");
       const sequenceResult = await req.payload.db.execute({ drizzle: req.payload.db.drizzle, sql: sql`SELECT nextval('hgr_machine_photo_seq') AS value` });
       const sequence = Number(sequenceResult.rows[0]?.value);
       if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("Could not allocate a permanent photo sequence");
@@ -64,12 +79,27 @@ export const MachineMedia: CollectionConfig = {
           throw new Error("Photo derivatives can only be created by the protected processing route");
         }
         if (data.assetKind === "master") {
+          if (!isStaffUser(req.user)) throw new Error("Staff sign-in is required to upload machine photos");
           if (!req.file?.data?.length) throw new Error("The private master file is missing");
           data.contentDigest = photoContentDigest(req.file.data);
           data.uploadedBy = req.user?.id;
           data.uploadedAt = new Date().toISOString();
-          const serialPolicyRevision = Number(context.machinePhotoPolicyRevision);
-          if (!Number.isSafeInteger(serialPolicyRevision) || serialPolicyRevision < 1) throw new Error("The machine serial policy revision is invalid");
+          const machineID = relationshipID(data.machine);
+          if (machineID === undefined || machineID === "") throw new Error("Choose a machine before uploading its photo");
+          let machine;
+          try {
+            machine = await req.payload.findByID({
+              collection: "machines",
+              id: machineID,
+              depth: 0,
+              overrideAccess: false,
+              req,
+            });
+          } catch {
+            throw new Error("The selected machine could not be verified for photo upload");
+          }
+          const serialPolicyRevision = validSerialPolicyRevision(machine?.serialVisibilityRevision);
+          if (serialPolicyRevision === undefined) throw new Error("The machine serial policy revision is invalid");
           data.review = initialPhotoReview(1, serialPolicyRevision);
           data.auditHistory = [{ event: "uploaded", actor: req.user?.id, at: data.uploadedAt, digest: data.contentDigest }];
         }
