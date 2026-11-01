@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload";
+import { isDeepStrictEqual } from "node:util";
 import { sql } from "@payloadcms/db-postgres";
 
 import { denyAccess, staffAccess } from "../lib/machines/access";
@@ -107,6 +108,20 @@ export const MachineMedia: CollectionConfig = {
       }
 
       if (!originalDoc) throw new Error("Machine photo records are immutable outside the review workflow");
+      const preservedCloudFile = context._payloadCloudStorage;
+      if (context.skipCloudStorage === true) {
+        const isCloudStorageFollowUp = isStaffUser(req.user)
+          && !req.file
+          && preservedCloudFile !== null
+          && typeof preservedCloudFile === "object"
+          && "file" in preservedCloudFile
+          && Object.keys(data).every((key) =>
+            ["filename", "mimeType", "filesize", "width", "height", "sizes", "url"].includes(key)
+              || isDeepStrictEqual(data[key], (originalDoc as Record<string, unknown>)[key]),
+          );
+        if (!isCloudStorageFollowUp) throw new Error("Cloud storage metadata updates cannot change machine photo or review data");
+        return data;
+      }
       const transactionID = await req.transactionID;
       const session = transactionID ? req.payload.db.sessions?.[String(transactionID)]?.db : undefined;
       if (!transactionID || !session) throw new Error("Photo updates require an active Payload transaction");

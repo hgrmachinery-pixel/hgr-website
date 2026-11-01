@@ -148,3 +148,95 @@ test("beforeChange turns denied machine reads into a controlled upload validatio
     (error) => error.message === "The selected machine could not be verified for photo upload" && !error.message.includes("private"),
   );
 });
+
+function cloudStorageFollowUp({ changed = {}, markers = true, file = undefined, user = { id: 2, collection: "users" } } = {}) {
+  const originalDoc = {
+    id: 19,
+    assetKind: "master",
+    machine: 1,
+    category: "general-exterior",
+    filename: "hgr-000001-general-exterior-000007.webp",
+    mimeType: "image/webp",
+    filesize: 400,
+    width: 800,
+    height: 600,
+    sizes: { thumbnail: { filename: "thumb.webp", width: 320, height: 240 } },
+    contentDigest: "sha256:synthetic",
+    review: { status: "needs-review", revision: 1, serialPolicyRevision: 1 },
+    auditHistory: [{ event: "uploaded", actor: 2 }],
+    altText: "Excavator exterior",
+  };
+  const data = { ...originalDoc, filename: "stored-name.webp", filesize: 390, ...changed };
+  const req = {
+    user,
+    context: markers ? { skipCloudStorage: true, _payloadCloudStorage: { file: { name: "synthetic.jpg" } } } : {},
+    file,
+    transactionID: Promise.resolve("synthetic-transaction"),
+    payload: {
+      db: {
+        drizzle: {},
+        sessions: { "synthetic-transaction": { db: {} } },
+        execute: async () => ({ rows: [{ serialVisibilityRevision: 1, reviewHistory: [], auditHistory: [] }] }),
+      },
+    },
+  };
+  return { data, originalDoc, req };
+}
+
+test("trusted S3 follow-up accepts storage metadata while preserving private master and review data", async () => {
+  const upload = cloudStorageFollowUp();
+  const result = await beforeChange({ data: upload.data, operation: "update", originalDoc: upload.originalDoc, req: upload.req });
+  assert.equal(result.filename, "stored-name.webp");
+  assert.equal(result.contentDigest, upload.originalDoc.contentDigest);
+  assert.deepEqual(result.review, upload.originalDoc.review);
+  assert.equal(result.assetKind, "master");
+});
+
+test("full-document update without cloud-storage markers remains blocked as a direct edit", async () => {
+  const upload = cloudStorageFollowUp({ markers: false });
+  await assert.rejects(
+    beforeChange({ data: upload.data, operation: "update", originalDoc: upload.originalDoc, req: upload.req }),
+    /Only factual alternative text, focal point and gallery order may be edited directly/,
+  );
+});
+
+test("cloud-storage follow-up rejects changes to protected machine-photo and review fields", async () => {
+  for (const changed of [
+    { review: { status: "approved", revision: 1, serialPolicyRevision: 1 } },
+    { machine: 99 },
+    { contentDigest: "sha256:attacker" },
+    { assetKind: "derivative" },
+    { photoIdentity: "attacker-photo" },
+    { revision: 2 },
+    { auditHistory: [] },
+    { publishedBy: 2 },
+    { prefix: "public" },
+  ]) {
+    const upload = cloudStorageFollowUp({ changed });
+    await assert.rejects(
+      beforeChange({ data: upload.data, operation: "update", originalDoc: upload.originalDoc, req: upload.req }),
+      /Cloud storage metadata updates cannot change machine photo or review data/,
+    );
+  }
+});
+
+test("cloud-storage skip flag alone or a live upload file cannot authorize follow-up update", async () => {
+  const noPreservedFile = cloudStorageFollowUp({ markers: false });
+  noPreservedFile.req.context.skipCloudStorage = true;
+  await assert.rejects(
+    beforeChange({ data: noPreservedFile.data, operation: "update", originalDoc: noPreservedFile.originalDoc, req: noPreservedFile.req }),
+    /Cloud storage metadata updates cannot change machine photo or review data/,
+  );
+
+  const withIncomingFile = cloudStorageFollowUp({ file: { data: Buffer.from("synthetic") } });
+  await assert.rejects(
+    beforeChange({ data: withIncomingFile.data, operation: "update", originalDoc: withIncomingFile.originalDoc, req: withIncomingFile.req }),
+    /Cloud storage metadata updates cannot change machine photo or review data/,
+  );
+
+  const anonymous = cloudStorageFollowUp({ user: null });
+  await assert.rejects(
+    beforeChange({ data: anonymous.data, operation: "update", originalDoc: anonymous.originalDoc, req: anonymous.req }),
+    /Cloud storage metadata updates cannot change machine photo or review data/,
+  );
+});
