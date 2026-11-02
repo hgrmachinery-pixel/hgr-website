@@ -147,9 +147,14 @@ export const MachineMedia: CollectionConfig = {
       const latest = latestResult.rows[0] as { reviewHistory?: unknown; auditHistory?: unknown } | undefined;
       if (!latest) throw new Error("The current machine photo revision could not be locked");
       if (context.machinePhotoReview !== true && context.machinePhotoPublication !== true) {
-        const keys = Object.keys(data);
         const allowedMetadata = new Set(["altText", "focalX", "focalY", "order"]);
-        if (req.file || keys.some((key) => !allowedMetadata.has(key))) {
+        // Validate the request body, not `data`: Payload merges upload identity
+        // fields into `data` and may normalize private-storage URLs before hooks.
+        const submittedData = req.data;
+        const keys = submittedData && typeof submittedData === "object" && !Array.isArray(submittedData)
+          ? Object.keys(submittedData)
+          : [];
+        if (!submittedData || keys.length === 0 || req.file || keys.some((key) => !allowedMetadata.has(key))) {
           throw new Error("Only factual alternative text, focal point and gallery order may be edited directly");
         }
         if (typeof data.altText === "string" && data.altText.length > 250) throw new Error("Alternative text must be 250 characters or fewer");

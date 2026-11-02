@@ -200,6 +200,102 @@ test("full-document update without cloud-storage markers remains blocked as a di
   );
 });
 
+function metadataPatch({ changed = {}, file = undefined } = {}) {
+  const originalDoc = {
+    id: 22,
+    assetKind: "master",
+    machine: 1,
+    category: "general-exterior",
+    filename: "hgr-000001-general-exterior-000007.webp",
+    _objectKey: "private/machine-media/22/master.webp",
+    prefix: "machine-media/22",
+    url: "/api/machine-media/file/22/master.webp",
+    mimeType: "image/webp",
+    filesize: 400,
+    width: 800,
+    height: 600,
+    sizes: { thumbnail: { filename: "thumb.webp", width: 320, height: 240 } },
+    contentDigest: "sha256:synthetic",
+    review: { status: "needs-review", revision: 1, serialPolicyRevision: 1 },
+    auditHistory: [{ event: "uploaded", actor: 2 }],
+    altText: "Excavator exterior",
+    focalX: 50,
+    focalY: 50,
+    order: 0,
+  };
+  // Payload merges stored upload fields into the hook data. Its upload/storage
+  // processing can normalize a private URL even though the request only sent
+  // altText, so the request body must be checked separately.
+  const data = {
+    altText: "Komatsu PC350-7 excavator, left side",
+    _objectKey: originalDoc._objectKey,
+    filename: originalDoc.filename,
+    prefix: originalDoc.prefix,
+    url: null,
+    sizes: structuredClone(originalDoc.sizes),
+    ...changed,
+  };
+  let lockReads = 0;
+  const req = {
+    user: { id: 2, collection: "users" },
+    data: { altText: "Komatsu PC350-7 excavator, left side", ...changed },
+    context: {},
+    file,
+    transactionID: Promise.resolve("synthetic-transaction"),
+    payload: {
+      db: {
+        drizzle: {},
+        sessions: { "synthetic-transaction": { db: {} } },
+        execute: async () => {
+          lockReads++;
+          return { rows: lockReads === 1
+            ? [{ serialVisibilityRevision: 1 }]
+            : [{ reviewHistory: [], auditHistory: originalDoc.auditHistory }] };
+        },
+      },
+    },
+  };
+  return { data, originalDoc, req, lockReads: () => lockReads };
+}
+
+test("authenticated altText-only PATCH accepts Payload-normalized upload fields and audits only submitted metadata", async () => {
+  const patch = metadataPatch();
+  const result = await beforeChange({
+    data: patch.data,
+    operation: "update",
+    originalDoc: patch.originalDoc,
+    req: patch.req,
+  });
+
+  assert.equal(result.altText, "Komatsu PC350-7 excavator, left side");
+  assert.equal(result._objectKey, patch.originalDoc._objectKey);
+  assert.equal(result.filename, patch.originalDoc.filename);
+  assert.equal(patch.lockReads(), 2);
+  assert.deepEqual(result.auditHistory.at(-1).fields, ["altText"]);
+  assert.equal(result.auditHistory.at(-1).event, "metadata-updated");
+});
+
+test("metadata PATCH still rejects changed protected fields and attached files", async () => {
+  const protectedFieldPatch = metadataPatch({ changed: { filename: "attacker.webp" } });
+  await assert.rejects(
+    beforeChange({ data: protectedFieldPatch.data, operation: "update", originalDoc: protectedFieldPatch.originalDoc, req: protectedFieldPatch.req }),
+    /Only factual alternative text, focal point and gallery order may be edited directly/,
+  );
+  assert.equal(protectedFieldPatch.lockReads(), 2);
+
+  const echoedProtectedField = metadataPatch({ changed: { filename: "hgr-000001-general-exterior-000007.webp" } });
+  await assert.rejects(
+    beforeChange({ data: echoedProtectedField.data, operation: "update", originalDoc: echoedProtectedField.originalDoc, req: echoedProtectedField.req }),
+    /Only factual alternative text, focal point and gallery order may be edited directly/,
+  );
+
+  const filePatch = metadataPatch({ file: { data: Buffer.from("unexpected replacement") } });
+  await assert.rejects(
+    beforeChange({ data: filePatch.data, operation: "update", originalDoc: filePatch.originalDoc, req: filePatch.req }),
+    /Only factual alternative text, focal point and gallery order may be edited directly/,
+  );
+});
+
 test("cloud-storage follow-up rejects changes to protected machine-photo and review fields", async () => {
   for (const changed of [
     { review: { status: "approved", revision: 1, serialPolicyRevision: 1 } },
