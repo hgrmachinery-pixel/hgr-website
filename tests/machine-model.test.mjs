@@ -12,7 +12,7 @@ import {
   validateMachinePrice,
 } from "../src/lib/machines/identity.ts";
 import { projectPublicMachine } from "../src/lib/machines/publicProjection.ts";
-import { generatedMachineImageName } from "../src/lib/machines/media.ts";
+import { generateMachinePhotoAltText, generatedMachineImageName } from "../src/lib/machines/media.ts";
 import {
   denyAccess,
   publishedMachineRead,
@@ -55,7 +55,7 @@ test("route corrections retain every prior path for the same machine", () => {
   assert.deepEqual(appendHistoricalSlug([firstSlug], correctedSlug, correctedSlug), [firstSlug]);
 });
 
-test("publishing needs core facts and one real featured gallery reference", () => {
+test("publishing needs core facts while the featured image stays optional", () => {
   const base = {
     hgrId: "HGR-000001",
     category: "excavator",
@@ -73,12 +73,18 @@ test("publishing needs core facts and one real featured gallery reference", () =
   );
   assert.deepEqual(
     machinePublicationErrors({ ...base, brand: "", model: undefined, featuredImage: null }),
-    ["Brand", "Model", "Featured Image"],
+    ["Brand", "Model"],
   );
   assert.deepEqual(
     machinePublicationErrors({ ...base, featuredImage: { relationTo: "machine-media", value: 15 } }),
     [],
   );
+});
+
+test("machine photo alt text uses only machine facts and the selected view category", () => {
+  assert.equal(generateMachinePhotoAltText({ brand: "Komatsu", model: "PC200-8", category: "excavator" }, "general-exterior"), "Komatsu PC200-8 excavator General / Exterior");
+  assert.equal(generateMachinePhotoAltText({ brand: "Komatsu", model: "PC200-8", category: "excavator" }, "side-view-1"), "Komatsu PC200-8 excavator Side View 1");
+  assert.ok(generateMachinePhotoAltText({ brand: "x".repeat(300) }, "engine").length <= 250);
 });
 
 test("machine configuration protects identity from routine changes and deletion", async () => {
@@ -161,6 +167,13 @@ test("Payload access keeps drafts, archives, and private facts behind server rul
   assert.match(mediaSource, /isReadingStaticFile[\s\S]*publicMachineMediaAccess/);
   assert.match(mediaSource, /create: staffAccess,[\s\S]*update: staffAccess/);
   assert.match(pagesSource, /versions: \{ drafts: true/);
+});
+
+test("machine Save Draft remains enabled and publication checks are published-only", async () => {
+  const machineSource = await readFile(new URL("../src/collections/Machines.ts", import.meta.url), "utf8");
+
+  assert.match(machineSource, /versions:\s*\{\s*drafts:\s*true/);
+  assert.match(machineSource, /if \(data\._status === "published" && context\.machinePhotoProcessing !== true\)/);
 });
 
 test("public projection excludes drafts, archived records, hidden price, and private serial", () => {

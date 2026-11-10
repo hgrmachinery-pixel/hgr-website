@@ -1,4 +1,5 @@
 import "@payloadcms/next/css";
+import "./machine-photo-uploader.css";
 import config from "@payload-config";
 import { handleServerFunctions, RootLayout } from "@payloadcms/next/layouts";
 import type { ServerFunctionClient } from "payload";

@@ -2,10 +2,12 @@ import type { CollectionConfig } from "payload";
 import { sql } from "@payloadcms/db-postgres";
 
 import { denyAccess, staffAccess } from "../lib/machines/access";
-import { publicMachineMediaAccess, generatedMachinePhotoFilename, initialPhotoReview, historyIsAppendOnly, isPhotoReviewComplete, PHOTO_REVIEW_CHECKLIST } from "../lib/machines/media.ts";
+import { publicMachineMediaAccess, generatedMachinePhotoFilename, generateMachinePhotoAltText, initialPhotoReview, historyIsAppendOnly, isPhotoReviewComplete, PHOTO_REVIEW_CHECKLIST } from "../lib/machines/media.ts";
 import { photoContentDigest } from "../lib/machines/media-image.ts";
 import { isStaffUser } from "../lib/machines/access";
 import { appendAssetAuditEvent } from "../lib/audit/assets.ts";
+import { isUnchangedStorageMetadataEcho } from "../lib/machines/storage-metadata-echo.ts";
+import { changedMachineMediaFields } from "../lib/machines/media-update.ts";
 
 const staffFieldRead = ({ req }: { req: { user?: unknown } }) => isStaffUser(req.user);
 
@@ -39,6 +41,9 @@ export const MachineMedia: CollectionConfig = {
       if (typeof input.category !== "string") throw new Error("Choose a photo category before uploading");
       const machine = await req.payload.findByID({ collection: "machines", id: input.machine, depth: 0, overrideAccess: true, req });
       if (typeof machine.hgrId !== "string") throw new Error("The selected machine has no permanent HGR reference");
+      const serialPolicyRevision = Number(machine.serialVisibilityRevision ?? 1);
+      if (!Number.isSafeInteger(serialPolicyRevision) || serialPolicyRevision < 1) throw new Error("The machine serial policy revision is invalid");
+      (req.context as Record<string, unknown>).machinePhotoPolicyRevision = serialPolicyRevision;
       const sequenceResult = await req.payload.db.execute({ drizzle: req.payload.db.drizzle, sql: sql`SELECT nextval('hgr_machine_photo_seq') AS value` });
       const sequence = Number(sequenceResult.rows[0]?.value);
       if (!Number.isSafeInteger(sequence) || sequence < 1) throw new Error("Could not allocate a permanent photo sequence");
@@ -47,8 +52,11 @@ export const MachineMedia: CollectionConfig = {
       input.photoSequence = sequence;
       input.revision = 0;
       input.processingStatus = "master";
-      input.review = initialPhotoReview();
+      input.review = initialPhotoReview(1, serialPolicyRevision);
       input.machineReference = machine.hgrId;
+      if (typeof input.altText !== "string" || !input.altText.trim()) {
+        input.altText = generateMachinePhotoAltText(machine, input.category);
+      }
       req.file.name = generatedMachinePhotoFilename(machine.hgrId, input.category as any, sequence, req.file.mimetype);
       args.data = input;
       return args;
@@ -64,7 +72,9 @@ export const MachineMedia: CollectionConfig = {
           data.contentDigest = photoContentDigest(req.file.data);
           data.uploadedBy = req.user?.id;
           data.uploadedAt = new Date().toISOString();
-          data.review = initialPhotoReview();
+          const serialPolicyRevision = Number(context.machinePhotoPolicyRevision);
+          if (!Number.isSafeInteger(serialPolicyRevision) || serialPolicyRevision < 1) throw new Error("The machine serial policy revision is invalid");
+          data.review = initialPhotoReview(1, serialPolicyRevision);
           data.auditHistory = [{ event: "uploaded", actor: req.user?.id, at: data.uploadedAt, digest: data.contentDigest }];
         }
         return data;
@@ -95,8 +105,19 @@ export const MachineMedia: CollectionConfig = {
       });
       const latest = latestResult.rows[0] as { reviewHistory?: unknown; auditHistory?: unknown } | undefined;
       if (!latest) throw new Error("The current machine photo revision could not be locked");
+      if (context.skipCloudStorage === true) {
+        const unchangedEcho = isUnchangedStorageMetadataEcho(
+          data as Record<string, unknown>,
+          originalDoc as Record<string, unknown>,
+          latest,
+        );
+        if (!isStaffUser(req.user) || req.file || req.payloadUploadSizes || !unchangedEcho) {
+          throw new Error("Cloud storage may only persist an unchanged staff photo record");
+        }
+        return data;
+      }
       if (context.machinePhotoReview !== true && context.machinePhotoPublication !== true) {
-        const keys = Object.keys(data);
+        const keys = changedMachineMediaFields(data as Record<string, unknown>, originalDoc as Record<string, unknown>);
         const allowedMetadata = new Set(["altText", "focalX", "focalY", "order"]);
         if (req.file || keys.some((key) => !allowedMetadata.has(key))) {
           throw new Error("Only factual alternative text, focal point and gallery order may be edited directly");
@@ -115,7 +136,8 @@ export const MachineMedia: CollectionConfig = {
       const allowed = context.machinePhotoReview === true
         ? new Set(["review", "reviewHistory", "auditHistory", "approvedBy", "approvedAt", "lastModifiedBy", "lastModifiedAt"])
         : new Set(["auditHistory", "publishedBy", "publishedAt", "lastModifiedBy", "lastModifiedAt"]);
-      if (Object.keys(data).some((key) => !allowed.has(key))) throw new Error("Photo review transitions contain unsupported fields");
+      const changedFields = changedMachineMediaFields(data as Record<string, unknown>, originalDoc as Record<string, unknown>);
+      if (changedFields.some((key) => !allowed.has(key))) throw new Error("Photo review transitions contain unsupported fields");
       const previousHistory = Array.isArray(latest.reviewHistory) ? latest.reviewHistory : [];
       const nextHistory = Array.isArray(data.reviewHistory) ? data.reviewHistory : previousHistory;
       if (context.machinePhotoReview === true && !historyIsAppendOnly(previousHistory, nextHistory)) throw new Error("Photo review history is append-only");
@@ -157,10 +179,10 @@ export const MachineMedia: CollectionConfig = {
           if (event.event === "approved" && (uncertain || found || status !== "approved" || String(data.approvedBy) !== String(req.user?.id) || data.approvedAt !== event.at)) {
             throw new Error("Only a complete clear human review can approve a photo");
           }
-          if (event.event === "owner-escalation" && (!uncertain || status !== "needs-review" || data.approvedBy !== undefined || data.approvedAt !== undefined)) {
+          if (event.event === "owner-escalation" && (!uncertain || status !== "needs-review" || data.approvedBy != null || data.approvedAt != null)) {
             throw new Error("Uncertain photos must remain unapproved for Owner escalation");
           }
-          if (event.event === "sensitive-information-found" && (!found || uncertain || status !== "needs-review" || data.approvedBy !== undefined || data.approvedAt !== undefined)) {
+          if (event.event === "sensitive-information-found" && (!found || uncertain || status !== "needs-review" || data.approvedBy != null || data.approvedAt != null)) {
             throw new Error("Photos with sensitive information must remain unapproved for redaction");
           }
         }

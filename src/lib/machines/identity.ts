@@ -67,7 +67,6 @@ export function machinePublicationErrors(data: Record<string, unknown>): string[
     ["Brand", data.brand],
     ["Model", data.model],
     ["Stock Status", data.stockStatus],
-    ["Featured Image", featuredId],
   ]
     .filter(([, value]) => typeof value !== "string" || value.trim() === "")
     .map(([label]) => label as string);

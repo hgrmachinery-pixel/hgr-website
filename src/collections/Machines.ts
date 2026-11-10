@@ -27,7 +27,21 @@ type MachineIdentity = {
   previousSlugs?: string[];
   showSerialPublicly?: boolean | null;
   serialVisibilityRevision?: number | null;
+  currentPhotoRevisions?: unknown;
 };
+
+function sameCurrentPhotoRevisions(next: unknown, previous: unknown): boolean {
+  if (!next || typeof next !== "object" || Array.isArray(next)) return false;
+  const nextMap = next as Record<string, unknown>;
+  const previousMap = previous && typeof previous === "object" && !Array.isArray(previous)
+    ? previous as Record<string, unknown>
+    : {};
+  const nextKeys = Object.keys(nextMap);
+  const previousKeys = Object.keys(previousMap);
+  return nextKeys.length === previousKeys.length && nextKeys.every((key) =>
+    Object.prototype.hasOwnProperty.call(previousMap, key) && Object.is(nextMap[key], previousMap[key]),
+  );
+}
 
 function relationIds(value: unknown): Array<string | number> {
   const entries = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value];
@@ -90,7 +104,7 @@ export const Machines: CollectionConfig = {
     description: "Manage one record for each physical machine.",
     listSearchableFields: ["hgrId", "brand", "model"],
     enableRichTextRelationship: false,
-    components: { edit: { beforeDocumentControls: ["@/components/payload/MachinePhotoUploader#MachinePhotoUploader", "@/components/payload/CopyMachineLink#CopyMachineLink"] } },
+    components: { edit: { beforeDocumentControls: ["@/components/payload/CopyMachineLink#CopyMachineLink"] } },
     preview: (doc) => {
       const baseURL = process.env.SERVER_URL;
       const secret = process.env.PREVIEW_SECRET;
@@ -165,14 +179,17 @@ export const Machines: CollectionConfig = {
         if (data.hgrId !== identity.hgrId) {
           throw new Error("A machine reference cannot be changed");
         }
-        if (data.currentPhotoRevisions !== undefined && context.machinePhotoProcessing !== true) {
+        if (
+          data.currentPhotoRevisions !== undefined &&
+          context.machinePhotoProcessing !== true &&
+          !sameCurrentPhotoRevisions(data.currentPhotoRevisions, identity.currentPhotoRevisions)
+        ) {
           throw new Error("Current photo revisions can only be updated by the protected photo processor");
         }
       }
 
-      if (data._status === "published") {
+      if (data._status === "published" && context.machinePhotoProcessing !== true) {
         const publishingData = { ...(originalDoc ?? {}), ...data };
-        const errors = machinePublicationErrors(publishingData);
         const ids = (value: unknown): Array<string | number> => {
           const entries = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value];
           return entries.map((entry) => {
@@ -185,17 +202,30 @@ export const Machines: CollectionConfig = {
             return undefined;
           }).filter((id): id is string | number => id !== undefined);
         };
-        const selected = [...new Set([...ids(publishingData.gallery), ...ids(publishingData.featuredImage)])];
-        const photos = await Promise.all(selected.map((id) => req.payload.findByID({ collection: "machine-media", id, depth: 0, overrideAccess: true, req })));
-        const photoById = new Map(photos.map((photo) => [String(photo.id), photo]));
-        const invalid = selected.some((id) => {
-          const photo = photoById.get(String(id));
-          return !photo || !isPublicMachineDerivative(photo as unknown as Record<string, any>, { ...publishingData, id: originalDoc?.id ?? photo.machine });
-        });
-        const featuredId = ids(publishingData.featuredImage)[0];
-        const featured = featuredId === undefined ? undefined : photoById.get(String(featuredId));
-        if (invalid) errors.push("Every public gallery image must be the current approved derivative");
-        if (!featured || (featured as unknown as { category?: string }).category !== "general-exterior") errors.push("Featured Image must be an approved General / Exterior derivative");
+        if (originalDoc?.id !== undefined) {
+          const result = await req.payload.find({
+            collection: "machine-media",
+            where: { and: [{ machine: { equals: originalDoc.id } }, { assetKind: { equals: "derivative" } }] },
+            depth: 0, limit: 500, page: 1, overrideAccess: true, req,
+          });
+          const candidates = result.docs as Array<Record<string, any>>;
+          const allIds = candidates.map((photo) => photo.id);
+          const machineForEligibility = { ...publishingData, id: originalDoc.id, gallery: allIds };
+          const eligible = candidates
+            .filter((photo) => isPublicMachineDerivative(photo, machineForEligibility))
+            .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0) || Number(a.photoSequence ?? 0) - Number(b.photoSequence ?? 0));
+          const eligibleIds = eligible.map((photo) => photo.id);
+          data.gallery = eligibleIds;
+          publishingData.gallery = eligibleIds;
+          const selectedFeatured = ids(publishingData.featuredImage)[0];
+          const selectedPhoto = eligible.find((photo) => String(photo.id) === String(selectedFeatured));
+          const featured = selectedPhoto?.category === "general-exterior"
+            ? selectedPhoto
+            : eligible.find((photo) => photo.category === "general-exterior");
+          data.featuredImage = featured?.id ?? null;
+          publishingData.featuredImage = data.featuredImage;
+        }
+        const errors = machinePublicationErrors(publishingData);
         if (errors.length > 0) {
           throw new Error(
             `Complete these fields before publishing: ${errors.join(", ")}.`,
@@ -410,6 +440,11 @@ export const Machines: CollectionConfig = {
     },
     { name: "serialVisibilityRevision", type: "number", defaultValue: 1, admin: { hidden: true, readOnly: true }, access: { read: ({ req }) => Boolean(req.user), update: () => false } },
     {
+      type: "ui",
+      name: "machinePhotosManager",
+      admin: { components: { Field: "@/components/payload/MachinePhotoUploader#MachinePhotoUploader" }, disableListColumn: true },
+    },
+    {
       name: "featuredImage",
       label: "Featured Image",
       type: "relationship",
@@ -421,6 +456,7 @@ export const Machines: CollectionConfig = {
       type: "relationship",
       relationTo: "machine-media",
       hasMany: true,
+      admin: { hidden: true, readOnly: true },
     },
     {
       name: "currentPhotoRevisions",

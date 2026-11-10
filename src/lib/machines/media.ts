@@ -31,6 +31,13 @@ export const MACHINE_PHOTO_CATEGORY_LABELS: Record<MachinePhotoCategory, string>
 };
 
 export type MachinePhotoCategory = (typeof MACHINE_PHOTO_CATEGORIES)[number];
+export function generateMachinePhotoAltText(machine: { brand?: unknown; model?: unknown; category?: unknown }, photoCategory: unknown): string {
+  const machineType = typeof machine.category === "string" ? machine.category.trim() : "";
+  const parts = [machine.brand, machine.model, machineType, typeof photoCategory === "string" ? MACHINE_PHOTO_CATEGORY_LABELS[photoCategory as MachinePhotoCategory] : ""]
+    .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
+    .map((part) => part.trim());
+  return parts.join(" ").slice(0, 250);
+}
 export const PHOTO_REVIEW_CHECKLIST = [
   "manufacturerSerialNumbers",
   "chassisVinNumbers",
@@ -73,8 +80,8 @@ export function generatedMachinePhotoFilename(
   return `${machineReference.toLowerCase()}-${category}-${String(sequence).padStart(6, "0")}.${extension}`;
 }
 
-export function initialPhotoReview(revision = 1) {
-  return { status: "needs-review" as const, revision };
+export function initialPhotoReview(revision = 1, serialPolicyRevision = 1) {
+  return { status: "needs-review" as const, revision, serialPolicyRevision };
 }
 
 export function serialVisibilityPolicyChanged(
@@ -104,6 +111,25 @@ export function isPhotoReviewComplete(checklist: unknown): checklist is PhotoRev
   return PHOTO_REVIEW_CHECKLIST.every((key) => answers[key] === "clear");
 }
 
+const approvalRequiredReviewEvents = new Set([
+  "sensitive-information-found",
+  "owner-escalation",
+  "review-invalidated",
+  "review-required-carried-forward",
+]);
+
+/** Keep a sensitive finding or unresolved review hold in force until a clear approval supersedes it. */
+export function machinePhotoRequiresHumanReview(derivative: Record<string, any>): boolean {
+  const revision = Number(derivative.revision);
+  const review = derivative.review && typeof derivative.review === "object" ? derivative.review : {};
+  const history = Array.isArray(derivative.reviewHistory) ? derivative.reviewHistory : [];
+  const currentRevisionHistory = history.filter((entry: any) => Number(entry?.revision) === revision);
+  const latestReview = currentRevisionHistory.at(-1);
+  const checklist = review.checklist && typeof review.checklist === "object" ? review.checklist : {};
+  return PHOTO_REVIEW_CHECKLIST.some((key) => checklist[key] === "found" || checklist[key] === "uncertain") ||
+    Boolean(latestReview && approvalRequiredReviewEvents.has(String(latestReview.event)));
+}
+
 export function isPublicMediaDeliveryVerified(value = process.env.HGR_PUBLIC_MEDIA_DELIVERY_VERIFIED): boolean {
   return value === "true";
 }
@@ -125,6 +151,15 @@ export function isPublicMachineDerivative(derivative: Record<string, any>, machi
   const derivativeId = relationshipId(derivative.id);
   const revision = Number(derivative.revision);
   const review = derivative.review && typeof derivative.review === "object" ? derivative.review : {};
+  const reviewEvents = Array.isArray(derivative.reviewHistory) ? derivative.reviewHistory : [];
+  const latestReview = [...reviewEvents].reverse().find((entry: any) => Number(entry?.revision) === revision);
+  const checklist = review.checklist && typeof review.checklist === "object" ? review.checklist : {};
+  const sensitiveHold = machinePhotoRequiresHumanReview(derivative);
+  const reviewValid = latestReview === undefined || latestReview.event === "approved" &&
+    review.status === "approved" && Number(review.revision) === revision &&
+    Number(review.serialPolicyRevision) === Number(machine.serialVisibilityRevision ?? 1) &&
+    review.digest === derivative.contentDigest && Boolean(review.reviewedBy) &&
+    typeof review.reviewedAt === "string" && Number.isFinite(Date.parse(review.reviewedAt)) && isPhotoReviewComplete(checklist);
   return Boolean(
     derivativeId &&
       derivative.assetKind === "derivative" &&
@@ -135,16 +170,12 @@ export function isPublicMachineDerivative(derivative: Record<string, any>, machi
       Number(machine.currentPhotoRevisions?.[String(derivative.photoIdentity)]) === revision &&
       Number.isSafeInteger(revision) &&
       revision > 0 &&
-      review.status === "approved" &&
       Number(review.revision) === revision &&
       Number(review.serialPolicyRevision) === Number(machine.serialVisibilityRevision ?? 1) &&
       typeof derivative.contentDigest === "string" &&
       derivative.contentDigest.length > 0 &&
       review.digest === derivative.contentDigest &&
-      Boolean(review.reviewedBy) &&
-      typeof review.reviewedAt === "string" &&
-      Number.isFinite(Date.parse(review.reviewedAt)) &&
-      isPhotoReviewComplete(review.checklist) &&
+      !sensitiveHold && reviewValid &&
       (relationshipId(machine.featuredImage) === derivativeId || relationshipIncludes(machine.gallery, derivativeId)),
   );
 }
@@ -235,6 +266,33 @@ export function measuredUploadProgress(loaded: number, total: number, lengthComp
   return Math.max(0, Math.min(99, Math.floor(loaded / total * 100)));
 }
 
+/** Show bounded Payload validation messages to staff, but never surface 5xx internals. */
+export function machinePhotoUploadFailure(status: number, responseText: string): string {
+  const fallback = `Master photo upload failed (HTTP ${status}).`;
+  if (status >= 500) return `${fallback} Check sanitized server logs before retrying.`;
+  if (status < 400 || status >= 500) return fallback;
+
+  try {
+    const body = JSON.parse(responseText) as { errors?: unknown; message?: unknown };
+    const nested = Array.isArray(body.errors)
+      ? body.errors.map((entry) => entry && typeof entry === "object" ? (entry as { message?: unknown }).message : undefined)
+      : [];
+    const candidate = [...nested, body.message].find((value): value is string => typeof value === "string" && value.trim().length > 0);
+    if (candidate) return `${fallback} ${candidate.trim().slice(0, 240)}`;
+  } catch {
+    // A proxy or framework may return a non-JSON error page; do not surface its body.
+  }
+  return fallback;
+}
+
+/** Map Sharp's container/codec metadata to the browser MIME type we accepted. */
+export function machinePhotoMimeType(metadata: { format?: string; compression?: string }): string | undefined {
+  if (metadata.format === "heif") return metadata.compression === "av1" ? "image/avif" : undefined;
+  if (metadata.format === "jpeg") return "image/jpeg";
+  if (metadata.format === "png" || metadata.format === "webp") return `image/${metadata.format}`;
+  return undefined;
+}
+
 export async function runBounded<T>(items: T[], concurrency: number, worker: (item: T) => Promise<void>): Promise<void> {
   if (!Number.isSafeInteger(concurrency) || concurrency < 1) throw new Error("Concurrency must be a positive whole number");
   let index = 0;
@@ -244,6 +302,26 @@ export async function runBounded<T>(items: T[], concurrency: number, worker: (it
 }
 
 export type NormalizedRedaction = { left: number; top: number; width: number; height: number };
+
+export type ImageDimensions = {
+  width: number;
+  height: number;
+  autoOrient?: { width: number; height: number };
+};
+
+/** Convert displayed-image coordinates using EXIF-oriented dimensions when available. */
+export function redactionPixelBounds(box: NormalizedRedaction, dimensions: ImageDimensions) {
+  const width = dimensions.autoOrient?.width ?? dimensions.width;
+  const height = dimensions.autoOrient?.height ?? dimensions.height;
+  if (!Number.isSafeInteger(width) || width < 1 || !Number.isSafeInteger(height) || height < 1) {
+    throw new Error("Image dimensions are invalid");
+  }
+  const left = Math.floor(box.left * width);
+  const top = Math.floor(box.top * height);
+  const regionWidth = Math.max(1, Math.min(width - left, Math.ceil(box.width * width)));
+  const regionHeight = Math.max(1, Math.min(height - top, Math.ceil(box.height * height)));
+  return { left, top, width: regionWidth, height: regionHeight };
+}
 
 export function validateRedactions(value: unknown): NormalizedRedaction[] | undefined {
   if (!Array.isArray(value) || value.length < 1 || value.length > 20) return undefined;
