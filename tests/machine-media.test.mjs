@@ -306,24 +306,51 @@ test("watermark artwork stays unavailable until approved and rejects active SVG 
   assert.equal(image.validateWatermarkOptions({ ...base, approvedArtwork: true }), undefined);
 });
 
-test("approved HGR domain watermark defaults render centered white text at 20 percent opacity", async () => {
+test("approved HGR domain watermark stays centered at 58 percent and is visible on light and dark photos", async () => {
   const options = image.DEFAULT_WATERMARK_OPTIONS;
   assert.deepEqual(options, {
     mode: "domain-text",
     placement: "center-lower",
-    sizePercent: 4,
+    sizePercent: 6,
     opacity: 0.2,
     margin: 24,
     domain: "hgrmachinery.com",
   });
-  const source = await sharp({ create: { width: 480, height: 320, channels: 3, background: { r: 30, g: 60, b: 90 } } }).png().toBuffer();
-  const before = Buffer.from(source);
-  const result = await image.applyWatermark(source, options);
-  const { data, info } = await sharp(result).raw().toBuffer({ resolveWithObject: true });
-  assert.equal(info.width, 480);
-  assert.equal(info.height, 320);
-  assert.ok(data.some((value) => value > 90), "white domain text should be rendered into the derivative");
-  assert.deepEqual(source, before, "the source master bytes must remain unchanged");
+  for (const background of [
+    { name: "dark", color: { r: 30, g: 45, b: 60 } },
+    { name: "light", color: { r: 190, g: 180, b: 165 } },
+  ]) {
+    const source = await sharp({ create: { width: 1200, height: 800, channels: 3, background: background.color } }).png().toBuffer();
+    const sourceBeforeProcessing = Buffer.from(source);
+    const reference = await sharp(source).webp({ quality: 84 }).raw().toBuffer({ resolveWithObject: true });
+    const result = await image.applyWatermark(source, options);
+    const marked = await sharp(result).raw().toBuffer({ resolveWithObject: true });
+    assert.equal(marked.info.width, 1200);
+    assert.equal(marked.info.height, 800);
+    assert.deepEqual(source, sourceBeforeProcessing, `${background.name}: watermarking must not alter the source master`);
+
+    let visiblePixels = 0;
+    let weightSum = 0;
+    let weightedX = 0;
+    let weightedY = 0;
+    for (let y = 0; y < marked.info.height; y++) {
+      for (let x = 0; x < marked.info.width; x++) {
+        const offset = (y * marked.info.width + x) * marked.info.channels;
+        const delta = [0, 1, 2].map((channel) => marked.data[offset + channel] - reference.data[offset + channel]);
+        const weight = Math.min(...delta);
+        if (weight < 5) continue;
+        visiblePixels++;
+        weightSum += weight;
+        weightedX += x * weight;
+        weightedY += y * weight;
+      }
+    }
+    assert.ok(visiblePixels > 500, `${background.name}: expected visible watermark pixels`);
+    const watermarkCenterX = weightedX / weightSum;
+    const watermarkCenterY = weightedY / weightSum;
+    assert.ok(Math.abs(watermarkCenterX - marked.info.width * 0.5) < marked.info.width * 0.02, `${background.name}: watermark should be horizontally centered`);
+    assert.ok(Math.abs(watermarkCenterY - marked.info.height * 0.58) < marked.info.height * 0.025, `${background.name}: watermark text should be centered at 58% image height`);
+  }
 });
 
 test("synthetic watermark rendering preserves resized dimensions and remains visibly localized", async () => {
