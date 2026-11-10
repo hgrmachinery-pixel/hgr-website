@@ -83,8 +83,8 @@ export type WatermarkOptions = { mode: WatermarkMode; placement: "top-left" | "t
 export const DEFAULT_WATERMARK_OPTIONS: Readonly<WatermarkOptions> = Object.freeze({
   mode: "domain-text",
   placement: "center-lower",
-  sizePercent: 4,
-  opacity: 0.2,
+  sizePercent: 6,
+  opacity: 0.5,
   margin: 24,
   domain: "hgrmachinery.com",
 });

@@ -306,24 +306,68 @@ test("watermark artwork stays unavailable until approved and rejects active SVG 
   assert.equal(image.validateWatermarkOptions({ ...base, approvedArtwork: true }), undefined);
 });
 
-test("approved HGR domain watermark defaults render centered white text at 20 percent opacity", async () => {
+test("approved HGR domain watermark stays centered at 58 percent and is visible on light and dark photos", async () => {
   const options = image.DEFAULT_WATERMARK_OPTIONS;
   assert.deepEqual(options, {
     mode: "domain-text",
     placement: "center-lower",
-    sizePercent: 4,
-    opacity: 0.2,
+    sizePercent: 6,
+    opacity: 0.5,
     margin: 24,
     domain: "hgrmachinery.com",
   });
-  const source = await sharp({ create: { width: 480, height: 320, channels: 3, background: { r: 30, g: 60, b: 90 } } }).png().toBuffer();
-  const before = Buffer.from(source);
-  const result = await image.applyWatermark(source, options);
-  const { data, info } = await sharp(result).raw().toBuffer({ resolveWithObject: true });
-  assert.equal(info.width, 480);
-  assert.equal(info.height, 320);
-  assert.ok(data.some((value) => value > 90), "white domain text should be rendered into the derivative");
-  assert.deepEqual(source, before, "the source master bytes must remain unchanged");
+  for (const background of [
+    { name: "dark machinery", sky: "#252a30", body: "#343b42", minimumDelta: 40 },
+    { name: "light machinery", sky: "#e5e0d5", body: "#cba63a", minimumDelta: 12 },
+  ]) {
+    const scene = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800">
+      <rect width="1200" height="800" fill="${background.sky}"/>
+      <path d="M0 650h1200v150H0z" fill="#292b2b"/>
+      <path d="M240 410h720v135H240zM660 325h210v125H660z" fill="${background.body}" stroke="#252525" stroke-width="12"/>
+      <path d="M470 420 710 190 755 220 560 445" fill="${background.body}" stroke="#252525" stroke-width="14"/>
+      <circle cx="390" cy="660" r="70" fill="#17191a"/><circle cx="810" cy="660" r="70" fill="#17191a"/>
+    </svg>`;
+    const source = await sharp(Buffer.from(scene)).png().toBuffer();
+    const sourceBeforeProcessing = Buffer.from(source);
+    const processedOriginal = await image.createResponsiveMachineImage(source);
+    const reference = await sharp(processedOriginal).raw().toBuffer({ resolveWithObject: true });
+    const result = await image.applyWatermark(processedOriginal, options);
+    const marked = await sharp(result).raw().toBuffer({ resolveWithObject: true });
+    assert.equal(marked.info.width, 1200);
+    assert.equal(marked.info.height, 800);
+    assert.deepEqual(source, sourceBeforeProcessing, `${background.name}: watermarking must not alter the source master`);
+
+    let visiblePixels = 0;
+    let weightSum = 0;
+    let weightedX = 0;
+    let weightedY = 0;
+    const opacitySamples = [];
+    for (let y = 420; y < 515; y++) {
+      for (let x = 260; x < 940; x++) {
+        const offset = (y * marked.info.width + x) * marked.info.channels;
+        const delta = [0, 1, 2].map((channel) => marked.data[offset + channel] - reference.data[offset + channel]);
+        const weight = Math.min(...delta);
+        if (weight < background.minimumDelta) continue;
+        const opacityEstimate = delta.reduce((sum, channelDelta, channel) => {
+          const sourceChannel = reference.data[offset + channel];
+          return sum + channelDelta / Math.max(1, 255 - sourceChannel);
+        }, 0) / 3;
+        opacitySamples.push(opacityEstimate);
+        visiblePixels++;
+        weightSum += weight;
+        weightedX += x * weight;
+        weightedY += y * weight;
+      }
+    }
+    assert.ok(visiblePixels > 500, `${background.name}: expected readable watermark pixels on the machine body`);
+    opacitySamples.sort((a, b) => a - b);
+    const measuredOpacity = opacitySamples[Math.floor(opacitySamples.length * 0.95)];
+    assert.ok(measuredOpacity > 0.4 && measuredOpacity < 0.65, `${background.name}: expected approximately 50% white overlay, got ${measuredOpacity}`);
+    const watermarkCenterX = weightedX / weightSum;
+    const watermarkCenterY = weightedY / weightSum;
+    assert.ok(Math.abs(watermarkCenterX - marked.info.width * 0.5) < marked.info.width * 0.02, `${background.name}: watermark should be horizontally centered`);
+    assert.ok(Math.abs(watermarkCenterY - marked.info.height * 0.58) < marked.info.height * 0.025, `${background.name}: watermark text should be centered at 58% image height`);
+  }
 });
 
 test("synthetic watermark rendering preserves resized dimensions and remains visibly localized", async () => {
