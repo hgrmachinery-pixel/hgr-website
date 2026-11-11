@@ -7,7 +7,7 @@ import { MachineMedia } from "../src/collections/MachineMedia.ts";
 import * as media from "../src/lib/machines/media.ts";
 import * as image from "../src/lib/machines/media-image.ts";
 import { isUnchangedStorageMetadataEcho } from "../src/lib/machines/storage-metadata-echo.ts";
-import { processMachinePhoto } from "../src/lib/machines/media-process.ts";
+import { persistCurrentPhotoRevision, processMachinePhoto } from "../src/lib/machines/media-process.ts";
 import { changedMachineMediaFields } from "../src/lib/machines/media-update.ts";
 
 const categories = [
@@ -147,6 +147,44 @@ test("Payload storage metadata echo allows only an unchanged staff record", asyn
   assert.throws(() => beforeDelete({}), /deletion is disabled/);
 });
 
+test("alt text edits tolerate Payload's raw versus afterRead file URL forms but still reject altered paths", async () => {
+  const filename = "hgr-000073-general-exterior-000001-public-r1.webp";
+  const cardFilename = "hgr-000073-general-exterior-000001-public-r1-card.webp";
+  const original = {
+    id: 12, machine: 73, assetKind: "derivative", filename,
+    url: `https://staging.example/api/machine-media/file/${filename}?prefix=machine-media`,
+    sizes: { card: { filename: cardFilename, url: `https://staging.example/api/machine-media/file/${cardFilename}?prefix=machine-media`, width: 640 } },
+    contentDigest: "sha256:derivative", photoIdentity: "photo-identity", revision: 1, processingStatus: "ready",
+    review: { status: "needs-review", revision: 1, digest: "sha256:derivative", serialPolicyRevision: 1 },
+    reviewHistory: [], auditHistory: [{ event: "uploaded", actor: 73, at: "2026-11-10T00:00:00.000Z" }],
+    altText: "Old alternative text", prefix: "machine-media",
+  };
+  const rawUpdate = {
+    ...original,
+    url: `/api/machine-media/file/${filename}`,
+    sizes: { card: { filename: cardFilename, url: `/api/machine-media/file/${cardFilename}`, width: 640 } },
+    altText: "Komatsu PC200-8 excavator Front View",
+  };
+  assert.deepEqual(changedMachineMediaFields(rawUpdate, original, "https://staging.example"), ["altText"]);
+  assert.ok(changedMachineMediaFields({ ...rawUpdate, url: "https://attacker.example/api/machine-media/file/other.webp?prefix=machine-media" }, original, "https://staging.example").includes("url"));
+  assert.ok(changedMachineMediaFields({ ...rawUpdate, sizes: { card: { ...rawUpdate.sizes.card, filename: "different.webp" } } }, original, "https://staging.example").includes("sizes"));
+
+  const beforeChange = MachineMedia.hooks.beforeChange[0];
+  let query = 0;
+  const result = await beforeChange({
+    data: rawUpdate,
+    operation: "update",
+    originalDoc: original,
+    req: {
+      context: {}, user: { collection: "users", id: 73 }, transactionID: Promise.resolve("metadata-edit"),
+      payload: { config: { serverURL: "https://staging.example" }, db: { drizzle: {}, sessions: { "metadata-edit": { db: {} } }, execute: async () => ({ rows: query++ === 0 ? [{ serialVisibilityRevision: 1 }] : [{ reviewHistory: [], auditHistory: original.auditHistory }] }) } },
+    },
+  });
+  assert.equal(result.altText, rawUpdate.altText);
+  assert.equal(result.auditHistory.at(-1).event, "metadata-updated");
+  assert.deepEqual(result.auditHistory.at(-1).fields, ["altText"]);
+});
+
 test("Payload merged photo updates compare changed fields and accept a recorded sensitive hold", async () => {
   const checklist = Object.fromEntries(media.PHOTO_REVIEW_CHECKLIST.map((key) => [key, "clear"]));
   checklist.personalInformation = "found";
@@ -266,23 +304,41 @@ test("public machine media fails closed unless an exact reviewed derivative is s
   assert.equal(media.isPublicMediaDeliveryVerified("true"), true);
 });
 
-test("public static access resolves a unique current derivative and denies master or ambiguous filenames", async () => {
+test("public static access resolves original and resized derivative filenames and denies master or ambiguous files", async () => {
   const prior = process.env.HGR_PUBLIC_MEDIA_DELIVERY_VERIFIED;
   process.env.HGR_PUBLIC_MEDIA_DELIVERY_VERIFIED = "true";
   const checklist = Object.fromEntries(media.PHOTO_REVIEW_CHECKLIST.map((key) => [key, "clear"]));
   const derivative = {
     id: 92, filename: "hgr-000028-engine-000017-public-r1.webp", assetKind: "derivative", machine: 28,
     photoIdentity: "photo-uuid-1", processingStatus: "ready", revision: 1, contentDigest: "sha256:abc",
+    sizes: {
+      thumbnail: { filename: "hgr-000028-engine-000017-public-r1-thumb.webp" },
+      card: { filename: "hgr-000028-engine-000017-public-r1-card.webp" },
+      large: { filename: "hgr-000028-engine-000017-public-r1-large.webp" },
+    },
     review: { status: "approved", revision: 1, digest: "sha256:abc", serialPolicyRevision: 1, reviewedBy: 4, reviewedAt: "2026-10-01T10:00:00.000Z", checklist },
   };
   const machine = { id: 28, _status: "published", archived: false, serialVisibilityRevision: 1, featuredImage: 92, gallery: [92], currentPhotoRevisions: { "photo-uuid-1": 1 } };
+  let requestedWhere;
   const req = { payload: {
-    find: async () => ({ docs: [derivative] }),
+    find: async ({ where }) => { requestedWhere = where; return { docs: [derivative] }; },
     findByID: async ({ collection }) => collection === "machines" ? machine : derivative,
   } };
   assert.deepEqual(await media.publicMachineMediaAccess({ req, data: { filename: derivative.filename } }), { id: { equals: 92 } });
+  assert.deepEqual(await media.publicMachineMediaAccess({ req, data: { filename: derivative.sizes.card.filename } }), { id: { equals: 92 } });
+  assert.deepEqual(requestedWhere, {
+    and: [
+      { assetKind: { equals: "derivative" } },
+      { or: [
+        { filename: { equals: derivative.sizes.card.filename } },
+        { "sizes.thumbnail.filename": { equals: derivative.sizes.card.filename } },
+        { "sizes.card.filename": { equals: derivative.sizes.card.filename } },
+        { "sizes.large.filename": { equals: derivative.sizes.card.filename } },
+      ] },
+    ],
+  });
   req.payload.find = async () => ({ docs: [{ ...derivative }, { ...derivative, id: 93 }] });
-  assert.equal(await media.publicMachineMediaAccess({ req, data: { filename: derivative.filename } }), false);
+  assert.equal(await media.publicMachineMediaAccess({ req, data: { filename: derivative.sizes.thumbnail.filename } }), false);
   req.payload.find = async () => ({ docs: [{ ...derivative, assetKind: "master" }] });
   assert.equal(await media.publicMachineMediaAccess({ req, data: { filename: derivative.filename } }), false);
   if (prior === undefined) delete process.env.HGR_PUBLIC_MEDIA_DELIVERY_VERIFIED;
@@ -534,6 +590,23 @@ test("photo processing and review serialize on the machine row and carry unresol
   assert.match(processor, /const latest = existing\.docs\[0\][\s\S]*?machinePhotoRequiresHumanReview\(latest\)/);
   assert.match(processor, /event: "review-required-carried-forward"/);
   assert.match(review, /approvedBy: !uncertain && !found \? auth\.user\.id : null/);
+});
+
+test("photo processing writes only the protected revision-map column inside its existing transaction", async () => {
+  const transactionDB = { marker: "disposable transaction" };
+  let query;
+  const payload = {
+    db: {
+      drizzle: {},
+      sessions: { photo: { db: transactionDB } },
+      execute: async (value) => { query = value; return { rows: [{ id: 73 }] }; },
+    },
+  };
+  await persistCurrentPhotoRevision(payload, { transactionID: Promise.resolve("photo") }, 73, "photo-identity", 2);
+  assert.equal(query.db, transactionDB);
+  const source = await readFile(new URL("../src/lib/machines/media-process.ts", import.meta.url), "utf8");
+  assert.match(source, /UPDATE "machines" SET "current_photo_revisions" = COALESCE\("current_photo_revisions", '\{\}'::jsonb\)/);
+  assert.doesNotMatch(source, /payload\.update\(\{\s*collection: "machines"[\s\S]*?currentPhotoRevisions/);
 });
 
 test("separate responsive Sharp variants use synthetic source and preserve its bytes", async () => {

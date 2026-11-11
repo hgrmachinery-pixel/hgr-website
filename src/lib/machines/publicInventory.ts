@@ -150,9 +150,15 @@ export function projectPublicImage(value: unknown, deliveryVerified = false): Pu
   const thumbnailUrl = getPublicImageURL(thumbnail.url, deliveryVerified);
   const cardUrl = getPublicImageURL(card.url, deliveryVerified);
   const largeUrl = getPublicImageURL(large.url, deliveryVerified);
+  // Payload omits a configured size when the source is already smaller in both
+  // dimensions. The top-level URL is still the processed WebP for a derivative;
+  // never use it for a private master.
+  const processedDerivativeUrl = image.assetKind === "derivative" || image.__hgrPublicDerivative === true
+    ? getPublicImageURL(image.url, deliveryVerified)
+    : undefined;
   const actualWidth = (size: Record<string, unknown>) =>
     typeof size.width === "number" && Number.isSafeInteger(size.width) && size.width > 0 ? size.width : undefined;
-  const url = cardUrl ?? largeUrl ?? thumbnailUrl;
+  const url = cardUrl ?? largeUrl ?? thumbnailUrl ?? processedDerivativeUrl;
   if (!url) return undefined;
   return {
     url,

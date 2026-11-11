@@ -36,7 +36,11 @@ async function resolveMachineMedia(payload: Payload, document: Record<string, un
     const id = getRelationId(relation);
     if (id === undefined) return undefined;
     try {
-      return await payload.findByID({ collection: "machine-media", id, depth: 0, overrideAccess: false });
+      const media = await payload.findByID({ collection: "machine-media", id, depth: 0, overrideAccess: false });
+      // The public collection access check authorizes only the current
+      // derivative. Its assetKind field is intentionally staff-only, so carry
+      // this server-side fact into projection without exposing the field.
+      return media ? { ...media, __hgrPublicDerivative: true } : undefined;
     } catch {
       return undefined;
     }

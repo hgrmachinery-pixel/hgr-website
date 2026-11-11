@@ -44,6 +44,14 @@ test("normal upload completes ready without mandatory review and keeps gallery s
   assert.match(machines, /eligible\.find\(\(photo\) => photo\.category === "general-exterior"\)/);
 });
 
+test("alt text save confirms success and exposes failures outside the optional review panel", () => {
+  assert.match(component, /method: "PATCH", credentials: "same-origin", cache: "no-store"/);
+  assert.match(component, /Alternative text saved\./);
+  assert.match(component, /item\.altTextError && <p[^>]*role="alert"/);
+  assert.ok(component.indexOf("item.altTextError &&") < component.indexOf("<details className=\"hgr-photo-review\">"));
+  assert.match(component, /catch \(error\) \{\s*update\(item\.id, \{ altTextSaveStatus: undefined, altTextError: humanError\(error\) \}\);/);
+});
+
 test("sensitive review is recorded server-side before redaction and remains required afterward", () => {
   assert.match(component, /fetch\("\/api\/machine-media\/review"[\s\S]*?if \(response\.status === 400 && found && item\.redactions\.length > 0\)/);
   assert.ok(component.indexOf('fetch("/api/machine-media/review"') < component.indexOf("if (response.status === 400 && found && item.redactions.length > 0)"));

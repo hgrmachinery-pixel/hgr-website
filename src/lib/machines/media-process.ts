@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload } from "payload";
+import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload, type PayloadRequest } from "payload";
 import { sql } from "@payloadcms/db-postgres";
 
 import { isStaffUser } from "./access.ts";
@@ -7,6 +7,26 @@ import { generatedMachinePhotoFilename, isPhotoReviewComplete, machinePhotoMimeT
 import { blurSensitiveAreas, applyWatermark, createResponsiveMachineImage, DEFAULT_WATERMARK_OPTIONS, inspectMachinePhoto, MachinePhotoPixelLimitError, photoContentDigest } from "./media-image.ts";
 
 const processingLocks = new Set<string>();
+
+export async function persistCurrentPhotoRevision(
+  payload: Payload,
+  req: PayloadRequest,
+  machineId: string | number,
+  photoIdentity: string,
+  revision: number,
+): Promise<void> {
+  const transactionID = await req.transactionID;
+  const session = transactionID ? payload.db.sessions?.[String(transactionID)]?.db : undefined;
+  if (!transactionID || !session || !Number.isSafeInteger(revision) || revision < 1) {
+    throw new Error("Photo revision could not be saved in the locked transaction");
+  }
+  const result = await payload.db.execute({
+    db: session as Parameters<typeof payload.db.execute>[0]["db"],
+    drizzle: payload.db.drizzle,
+    sql: sql`UPDATE "machines" SET "current_photo_revisions" = COALESCE("current_photo_revisions", '{}'::jsonb) || ${JSON.stringify({ [photoIdentity]: revision })}::jsonb WHERE "id" = ${machineId} RETURNING "id"`,
+  });
+  if (!result.rows[0]) throw new Error("The machine photo revision was not saved");
+}
 
 function relationId(value: unknown): string | number | undefined {
   if (typeof value === "string" || typeof value === "number") return value;
@@ -128,7 +148,7 @@ export async function processMachinePhoto({
       if (latest.sourceDigest !== photoContentDigest(bytes)) throw new Error("A different derivative already exists for this photo revision");
       const current = machine.currentPhotoRevisions && typeof machine.currentPhotoRevisions === "object" ? machine.currentPhotoRevisions as Record<string, number> : {};
       if (Number(current[master.photoIdentity]) !== latest.revision) {
-        await payload.update({ collection: "machines", id: machine.id, data: { currentPhotoRevisions: { ...current, [master.photoIdentity]: latest.revision } }, overrideAccess: true, req: transactionReq });
+        await persistCurrentPhotoRevision(payload, transactionReq, machine.id, master.photoIdentity, latest.revision);
       }
       await commitTransaction(transactionReq);
       transactionOpen = false;
@@ -180,16 +200,7 @@ export async function processMachinePhoto({
       overrideAccess: true,
       req: transactionReq,
     });
-    const currentPhotoRevisions = machine.currentPhotoRevisions && typeof machine.currentPhotoRevisions === "object"
-      ? machine.currentPhotoRevisions as Record<string, number>
-      : {};
-    await payload.update({
-      collection: "machines",
-      id: machine.id,
-      data: { currentPhotoRevisions: { ...currentPhotoRevisions, [master.photoIdentity]: revision } },
-      overrideAccess: true,
-      req: transactionReq,
-    });
+    await persistCurrentPhotoRevision(payload, transactionReq, machine.id, master.photoIdentity, revision);
     await commitTransaction(transactionReq);
     transactionOpen = false;
     return { status: 200, derivativeId: derivative.id, filename: derivative.filename ?? "", digest: derivative.contentDigest, idempotent: false };

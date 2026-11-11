@@ -117,7 +117,7 @@ export const MachineMedia: CollectionConfig = {
         return data;
       }
       if (context.machinePhotoReview !== true && context.machinePhotoPublication !== true) {
-        const keys = changedMachineMediaFields(data as Record<string, unknown>, originalDoc as Record<string, unknown>);
+        const keys = changedMachineMediaFields(data as Record<string, unknown>, originalDoc as Record<string, unknown>, req.payload.config?.serverURL);
         const allowedMetadata = new Set(["altText", "focalX", "focalY", "order"]);
         if (req.file || keys.some((key) => !allowedMetadata.has(key))) {
           throw new Error("Only factual alternative text, focal point and gallery order may be edited directly");
@@ -136,7 +136,7 @@ export const MachineMedia: CollectionConfig = {
       const allowed = context.machinePhotoReview === true
         ? new Set(["review", "reviewHistory", "auditHistory", "approvedBy", "approvedAt", "lastModifiedBy", "lastModifiedAt"])
         : new Set(["auditHistory", "publishedBy", "publishedAt", "lastModifiedBy", "lastModifiedAt"]);
-      const changedFields = changedMachineMediaFields(data as Record<string, unknown>, originalDoc as Record<string, unknown>);
+      const changedFields = changedMachineMediaFields(data as Record<string, unknown>, originalDoc as Record<string, unknown>, req.payload.config?.serverURL);
       if (changedFields.some((key) => !allowed.has(key))) throw new Error("Photo review transitions contain unsupported fields");
       const previousHistory = Array.isArray(latest.reviewHistory) ? latest.reviewHistory : [];
       const nextHistory = Array.isArray(data.reviewHistory) ? data.reviewHistory : previousHistory;

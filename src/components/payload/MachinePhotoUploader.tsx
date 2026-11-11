@@ -15,6 +15,8 @@ type QueueItem = {
   progressKnown: boolean;
   category: MachinePhotoCategory;
   altText: string;
+  altTextSaveStatus?: "saving" | "saved";
+  altTextError?: string;
   masterId?: string | number;
   derivativeId?: string | number;
   derivativeFilename?: string;
@@ -205,16 +207,21 @@ export function MachinePhotoUploader() {
 
   const saveAltText = async (item: QueueItem) => {
     if (item.derivativeId === undefined) return;
-    const response = await fetch(`/api/machine-media/${item.derivativeId}`, {
-      method: "PATCH", credentials: "same-origin", cache: "no-store",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ altText: item.altText }),
-    });
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({}));
-      return update(item.id, { error: result.errors?.[0]?.message || "Alternative text could not be saved." });
+    update(item.id, { altTextSaveStatus: "saving", altTextError: undefined });
+    try {
+      const response = await fetch(`/api/machine-media/${item.derivativeId}`, {
+        method: "PATCH", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ altText: item.altText }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.errors?.[0]?.message || "Alternative text could not be saved.");
+      }
+      update(item.id, { altTextSaveStatus: "saved", altTextError: undefined });
+    } catch (error) {
+      update(item.id, { altTextSaveStatus: undefined, altTextError: humanError(error) });
     }
-    update(item.id, { error: undefined });
   };
 
   const beginRedaction = (item: QueueItem, event: React.PointerEvent<HTMLDivElement>) => {
@@ -294,10 +301,12 @@ export function MachinePhotoUploader() {
                   <figcaption>Processed copy · private until the machine is published</figcaption>
                 </figure>}
                 <label className="hgr-photo-manager__field">Alternative text
-                  <input value={item.altText} maxLength={250} onChange={(event) => update(item.id, { altText: event.target.value })} placeholder="Describe only what is visible" />
+                  <input value={item.altText} maxLength={250} onChange={(event) => update(item.id, { altText: event.target.value, altTextSaveStatus: undefined, altTextError: undefined })} placeholder="Describe only what is visible" />
                   <small>Suggested from the machine details and photo category. Edit it to match the visible image.</small>
                 </label>
-                <button type="button" onClick={() => void saveAltText(item)}>Save alternative text</button>
+                {item.altTextSaveStatus === "saved" && <p role="status">Alternative text saved.</p>}
+                {item.altTextError && <p className="hgr-photo-manager__alert" role="alert">{item.altTextError}</p>}
+                <button type="button" disabled={item.altTextSaveStatus === "saving"} onClick={() => void saveAltText(item)}>{item.altTextSaveStatus === "saving" ? "Saving alternative text…" : "Save alternative text"}</button>
                 <details className="hgr-photo-review">
                   <summary>{item.status === "needs-review" ? "Required sensitive-content review" : "Optional photo review and sensitive-content safeguards"}</summary>
                   <p>Ordinary photos are ready without this checklist. If you find sensitive information, mark it and blur those areas before publication.</p>

@@ -70,7 +70,7 @@ async function readLatestIdentity(
   const result = await req.payload.db.execute({
     db: transaction,
     drizzle: req.payload.db.drizzle,
-    sql: sql`SELECT "hgr_id" AS "hgrId", "slug", "previous_slugs" AS "previousSlugs", "show_serial_publicly" AS "showSerialPublicly", "serial_visibility_revision" AS "serialVisibilityRevision" FROM "machines" WHERE "id" = ${id} FOR UPDATE`,
+    sql: sql`SELECT "hgr_id" AS "hgrId", "slug", "previous_slugs" AS "previousSlugs", "show_serial_publicly" AS "showSerialPublicly", "serial_visibility_revision" AS "serialVisibilityRevision", "current_photo_revisions" AS "currentPhotoRevisions" FROM "machines" WHERE "id" = ${id} FOR UPDATE`,
   });
   const row = result.rows[0] as MachineIdentity | undefined;
   return row;
@@ -143,6 +143,15 @@ export const Machines: CollectionConfig = {
       } else if (originalDoc) {
         const persisted = await readLatestIdentity(req, originalDoc.id);
         const identity = { ...(originalDoc as MachineIdentity), ...persisted };
+        const currentPhotoRevisions = identity.currentPhotoRevisions && typeof identity.currentPhotoRevisions === "object" && !Array.isArray(identity.currentPhotoRevisions)
+          ? { ...identity.currentPhotoRevisions as Record<string, number> }
+          : {};
+        const context = req.context as Record<string, unknown>;
+        context.hgrAuthoritativePhotoRevisions = currentPhotoRevisions;
+        // This server-owned map may have advanced while a newer machine draft
+        // was open. Carry the locked main-row value into the next draft/publish
+        // save so it cannot be lost or copy the draft status into the live row.
+        data.currentPhotoRevisions = currentPhotoRevisions;
         const currentSerialVisibility = identity.showSerialPublicly === true;
         const nextSerialVisibility = data.showSerialPublicly === undefined
           ? currentSerialVisibility
@@ -182,7 +191,7 @@ export const Machines: CollectionConfig = {
         if (
           data.currentPhotoRevisions !== undefined &&
           context.machinePhotoProcessing !== true &&
-          !sameCurrentPhotoRevisions(data.currentPhotoRevisions, identity.currentPhotoRevisions)
+          !sameCurrentPhotoRevisions(data.currentPhotoRevisions, context.hgrAuthoritativePhotoRevisions ?? identity.currentPhotoRevisions)
         ) {
           throw new Error("Current photo revisions can only be updated by the protected photo processor");
         }

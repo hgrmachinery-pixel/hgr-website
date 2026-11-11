@@ -198,9 +198,17 @@ export async function publicMachineMediaAccess({ data, id, req }: {
   }
   const filename = data && typeof data.filename === "string" ? data.filename : "";
   if (!filename || filename.includes("/") || filename.includes("\\")) return false;
+  // Payload can request the original or one of the configured resized files
+  // through the same collection file route. Resolve each exact filename back
+  // to its owning derivative; checking only the top-level filename makes the
+  // public card/thumbnail URLs fail even when the derivative itself is public.
+  const filenameMatches = [
+    { filename: { equals: filename } },
+    ...["thumbnail", "card", "large"].map((size) => ({ [`sizes.${size}.filename`]: { equals: filename } })),
+  ];
   const matches = await req.payload.find({
     collection: "machine-media",
-    where: { filename: { equals: filename }, assetKind: { equals: "derivative" } },
+    where: { and: [{ assetKind: { equals: "derivative" } }, { or: filenameMatches }] },
     depth: 0,
     limit: 2,
     overrideAccess: true,
