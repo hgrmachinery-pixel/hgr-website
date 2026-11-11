@@ -202,6 +202,7 @@ export const Machines: CollectionConfig = {
             return undefined;
           }).filter((id): id is string | number => id !== undefined);
         };
+        let eligible: Array<Record<string, any>> = [];
         if (originalDoc?.id !== undefined) {
           const result = await req.payload.find({
             collection: "machine-media",
@@ -211,7 +212,7 @@ export const Machines: CollectionConfig = {
           const candidates = result.docs as Array<Record<string, any>>;
           const allIds = candidates.map((photo) => photo.id);
           const machineForEligibility = { ...publishingData, id: originalDoc.id, gallery: allIds };
-          const eligible = candidates
+          eligible = candidates
             .filter((photo) => isPublicMachineDerivative(photo, machineForEligibility))
             .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0) || Number(a.photoSequence ?? 0) - Number(b.photoSequence ?? 0));
           const eligibleIds = eligible.map((photo) => photo.id);
@@ -225,7 +226,7 @@ export const Machines: CollectionConfig = {
           data.featuredImage = featured?.id ?? null;
           publishingData.featuredImage = data.featuredImage;
         }
-        const errors = machinePublicationErrors(publishingData);
+        const errors = machinePublicationErrors(publishingData, eligible);
         if (errors.length > 0) {
           throw new Error(
             `Complete these fields before publishing: ${errors.join(", ")}.`,

@@ -40,7 +40,7 @@ test("normal upload completes ready without mandatory review and keeps gallery s
   assert.match(component, /Ready for publication/);
   assert.match(component, /Optional photo review and sensitive-content safeguards/);
   assert.match(machines, /name: "gallery"[\s\S]*?admin: \{ hidden: true, readOnly: true \}/);
-  assert.match(machines, /const eligible = candidates[\s\S]*?data\.gallery = eligibleIds/);
+  assert.match(machines, /eligible = candidates[\s\S]*?data\.gallery = eligibleIds/);
   assert.match(machines, /eligible\.find\(\(photo\) => photo\.category === "general-exterior"\)/);
 });
 

@@ -55,7 +55,12 @@ function relationshipId(value: unknown): string | null {
   return null;
 }
 
-export function machinePublicationErrors(data: Record<string, unknown>): string[] {
+type EligibleMachinePhoto = { id?: unknown; category?: unknown };
+
+export function machinePublicationErrors(
+  data: Record<string, unknown>,
+  eligiblePhotos: readonly EligibleMachinePhoto[] = [],
+): string[] {
   const gallery = Array.isArray(data.gallery) ? data.gallery : [];
   const galleryIds = new Set(
     gallery.map(relationshipId).filter((id): id is string => id !== null),
@@ -73,6 +78,14 @@ export function machinePublicationErrors(data: Record<string, unknown>): string[
 
   if (featuredId && !galleryIds.has(featuredId)) {
     missing.push("Featured Image in Gallery");
+  }
+
+  const hasGeneralExteriorPhoto = eligiblePhotos.some((photo) => {
+    const id = relationshipId(photo.id);
+    return photo.category === "general-exterior" && id !== null && galleryIds.has(id);
+  });
+  if (!hasGeneralExteriorPhoto) {
+    missing.push("Processed General / Exterior Photo");
   }
 
   return missing;

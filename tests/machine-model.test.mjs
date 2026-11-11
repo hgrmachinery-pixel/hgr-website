@@ -55,7 +55,7 @@ test("route corrections retain every prior path for the same machine", () => {
   assert.deepEqual(appendHistoricalSlug([firstSlug], correctedSlug, correctedSlug), [firstSlug]);
 });
 
-test("publishing needs core facts while the featured image stays optional", () => {
+test("publishing needs core facts and an eligible general photo while featured selection stays optional", () => {
   const base = {
     hgrId: "HGR-000001",
     category: "excavator",
@@ -66,18 +66,24 @@ test("publishing needs core facts while the featured image stays optional", () =
     gallery: [{ id: 15 }],
   };
 
-  assert.deepEqual(machinePublicationErrors(base), []);
+  const eligibleGeneralPhoto = [{ id: 15, category: "general-exterior" }];
+  assert.deepEqual(machinePublicationErrors(base, eligibleGeneralPhoto), []);
   assert.deepEqual(
-    machinePublicationErrors({ ...base, gallery: [{ id: 16 }] }),
-    ["Featured Image in Gallery"],
+    machinePublicationErrors({ ...base, gallery: [{ id: 16 }] }, eligibleGeneralPhoto),
+    ["Featured Image in Gallery", "Processed General / Exterior Photo"],
   );
   assert.deepEqual(
-    machinePublicationErrors({ ...base, brand: "", model: undefined, featuredImage: null }),
+    machinePublicationErrors({ ...base, brand: "", model: undefined, featuredImage: null }, eligibleGeneralPhoto),
     ["Brand", "Model"],
   );
   assert.deepEqual(
-    machinePublicationErrors({ ...base, featuredImage: { relationTo: "machine-media", value: 15 } }),
+    machinePublicationErrors({ ...base, featuredImage: null }, eligibleGeneralPhoto),
     [],
+  );
+  assert.deepEqual(machinePublicationErrors(base), ["Processed General / Exterior Photo"]);
+  assert.deepEqual(
+    machinePublicationErrors(base, [{ id: 15, category: "front-view" }]),
+    ["Processed General / Exterior Photo"],
   );
 });
 
