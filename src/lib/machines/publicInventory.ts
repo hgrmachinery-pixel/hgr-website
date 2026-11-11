@@ -29,7 +29,7 @@ export type PublicImageCandidate = {
 
 const statusOrder: Record<InventoryStatus, number> = { available: 0, reserved: 1, sold: 2 };
 const validStatuses = new Set<InventoryStatus>(["available", "reserved", "sold"]);
-const safeRelativeImage = /^\/api\/machine-media\/file\/[A-Za-z0-9._-]+$/;
+const safeMachineMediaPath = /^\/api\/machine-media\/file\/[A-Za-z0-9._-]+$/;
 
 function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -94,11 +94,47 @@ export function paginateMachines<T>(items: readonly T[], requestedPage: number, 
   return { page, pageSize, totalPages, items: items.slice((page - 1) * pageSize, page * pageSize) };
 }
 
-export function getPublicImageURL(value: unknown, deliveryVerified = false): string | undefined {
+export function getPublicImageURL(
+  value: unknown,
+  deliveryVerified = false,
+  serverURL = process.env.SERVER_URL,
+): string | undefined {
   const url = text(value);
-  if (!url || !safeRelativeImage.test(url)) return undefined;
-  if (!deliveryVerified) return undefined;
-  return url;
+  if (!url || !deliveryVerified) return undefined;
+
+  let parsedURL: URL;
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(url)) {
+    if (!serverURL) return undefined;
+    try {
+      const configuredOrigin = new URL(serverURL);
+      if (
+        !["http:", "https:"].includes(configuredOrigin.protocol) ||
+        configuredOrigin.username || configuredOrigin.password ||
+        configuredOrigin.pathname !== "/" || configuredOrigin.search || configuredOrigin.hash
+      ) return undefined;
+      parsedURL = new URL(url);
+      if (
+        parsedURL.origin !== configuredOrigin.origin ||
+        parsedURL.username || parsedURL.password
+      ) return undefined;
+    } catch {
+      return undefined;
+    }
+  } else {
+    try {
+      parsedURL = new URL(url, "https://relative-image.invalid");
+      if (parsedURL.origin !== "https://relative-image.invalid") return undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  if (!safeMachineMediaPath.test(parsedURL.pathname) || parsedURL.hash) return undefined;
+  const parameters = [...parsedURL.searchParams.entries()];
+  if (parameters.length > 0 && (parameters.length !== 1 || parameters[0][0] !== "prefix" || parameters[0][1] !== "machine-media")) {
+    return undefined;
+  }
+  return `${parsedURL.pathname}${parameters.length ? "?prefix=machine-media" : ""}`;
 }
 
 export function projectPublicImage(value: unknown, deliveryVerified = false): PublicImageCandidate | undefined {

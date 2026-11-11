@@ -262,7 +262,11 @@ export const Machines: CollectionConfig = {
         if (priorPublicationEvent?.event === targetEvent) continue;
         const at = new Date().toISOString();
         const auditHistory = [...history, { event: targetEvent, actor: req.user?.id, at, machine: doc.id }];
-        const localReq = await createLocalReq({ user: req.user ?? undefined, context: { machinePhotoPublication: true } }, req.payload);
+        const localReq = await createLocalReq({
+          req,
+          user: req.user ?? undefined,
+          context: { ...req.context, machinePhotoPublication: true },
+        }, req.payload);
         await req.payload.update({
           collection: "machine-media",
           id: photo.id,

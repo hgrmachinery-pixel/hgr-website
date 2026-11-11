@@ -190,3 +190,8 @@ test("machine detail retains verified contact links and mobile gallery affordanc
   assert.match(styles, /\.machine-gallery__thumbs \{ flex-direction: row; max-height: none; overflow-x: auto;/);
   assert.match(styles, /\.machine-mobile-whatsapp \{ position: fixed;[^}]*min-height: 52px; display: flex;/);
 });
+
+test("publication photo audit inherits the Payload transaction from the machine update", async () => {
+  const source = await readFile(new URL("../src/collections/Machines.ts", import.meta.url), "utf8");
+  assert.match(source, /createLocalReq\(\{\s*req,\s*user: req\.user \?\? undefined,\s*context: \{ \.\.\.req\.context, machinePhotoPublication: true \}/);
+});
