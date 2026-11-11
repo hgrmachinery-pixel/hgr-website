@@ -83,8 +83,8 @@ export type WatermarkOptions = { mode: WatermarkMode; placement: "top-left" | "t
 export const DEFAULT_WATERMARK_OPTIONS: Readonly<WatermarkOptions> = Object.freeze({
   mode: "domain-text",
   placement: "center-lower",
-  sizePercent: 4,
-  opacity: 0.2,
+  sizePercent: 6,
+  opacity: 0.5,
   margin: 24,
   domain: "hgrmachinery.com",
 });
@@ -99,6 +99,81 @@ export function validateWatermarkOptions(options: WatermarkOptions): string | un
   return undefined;
 }
 
+// A small embedded 5x7 bitmap font keeps Sharp/libvips from depending on
+// system fonts, which are not consistently installed in Railway containers.
+const WATERMARK_GLYPHS: Readonly<Record<string, readonly string[]>> = Object.freeze({
+  a: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+  b: ["11110", "10001", "10001", "11110", "10001", "10001", "11110"],
+  c: ["01111", "10000", "10000", "10000", "10000", "10000", "01111"],
+  d: ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
+  e: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+  f: ["11111", "10000", "10000", "11110", "10000", "10000", "10000"],
+  g: ["01111", "10000", "10000", "10111", "10001", "10001", "01111"],
+  h: ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
+  i: ["111", "010", "010", "010", "010", "010", "111"],
+  j: ["00111", "00010", "00010", "00010", "00010", "10010", "01100"],
+  k: ["10001", "10010", "10100", "11000", "10100", "10010", "10001"],
+  l: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"],
+  m: ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
+  n: ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
+  o: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+  p: ["11110", "10001", "10001", "11110", "10000", "10000", "10000"],
+  q: ["01110", "10001", "10001", "10001", "10101", "10010", "01101"],
+  r: ["11110", "10001", "10001", "11110", "10100", "10010", "10001"],
+  s: ["01111", "10000", "10000", "01110", "00001", "00001", "11110"],
+  t: ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
+  u: ["10001", "10001", "10001", "10001", "10001", "10001", "01110"],
+  v: ["10001", "10001", "10001", "10001", "10001", "01010", "00100"],
+  w: ["10001", "10001", "10001", "10101", "10101", "10101", "01010"],
+  x: ["10001", "10001", "01010", "00100", "01010", "10001", "10001"],
+  y: ["10001", "10001", "01010", "00100", "00100", "00100", "00100"],
+  z: ["11111", "00001", "00010", "00100", "01000", "10000", "11111"],
+  0: ["01110", "10001", "10011", "10101", "11001", "10001", "01110"],
+  1: ["00100", "01100", "00100", "00100", "00100", "00100", "01110"],
+  2: ["01110", "10001", "00001", "00010", "00100", "01000", "11111"],
+  3: ["11110", "00001", "00001", "01110", "00001", "00001", "11110"],
+  4: ["00010", "00110", "01010", "10010", "11111", "00010", "00010"],
+  5: ["11111", "10000", "10000", "11110", "00001", "00001", "11110"],
+  6: ["01110", "10000", "10000", "11110", "10001", "10001", "01110"],
+  7: ["11111", "00001", "00010", "00100", "01000", "01000", "01000"],
+  8: ["01110", "10001", "10001", "01110", "10001", "10001", "01110"],
+  9: ["01110", "10001", "10001", "01111", "00001", "00001", "01110"],
+  ".": ["000", "000", "000", "000", "000", "110", "110"],
+  "-": ["00000", "00000", "00000", "11111", "00000", "00000", "00000"],
+});
+
+/** Build font-independent SVG paths for the approved HGR domain watermark. */
+export function buildDomainWatermarkSvg(width: number, height: number, options: WatermarkOptions): Buffer {
+  const domain = (options.domain ?? "").toLowerCase();
+  const glyphs = [...domain].map((character) => {
+    const glyph = WATERMARK_GLYPHS[character];
+    if (!glyph) throw new Error(`Unsupported watermark character: ${character}`);
+    return glyph;
+  });
+  const fontSize = Math.max(1, Math.round(width * options.sizePercent / 100));
+  const cellWidth = fontSize / 11;
+  const cellHeight = fontSize / 7;
+  const advance = cellWidth * 6;
+  const textWidth = Math.max(0, glyphs.length * advance - cellWidth);
+  const left = (width - textWidth) / 2;
+  const top = height * 0.58 - fontSize / 2;
+  const rectangles: string[] = [];
+
+  glyphs.forEach((glyph, characterIndex) => {
+    glyph.forEach((row, y) => {
+      [...row].forEach((pixel, x) => {
+        if (pixel === "1") {
+          const rectX = (left + characterIndex * advance + x * cellWidth).toFixed(2);
+          const rectY = (top + y * cellHeight).toFixed(2);
+          rectangles.push(`M${rectX} ${rectY}h${cellWidth.toFixed(2)}v${cellHeight.toFixed(2)}h-${cellWidth.toFixed(2)}z`);
+        }
+      });
+    });
+  });
+
+  return Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><path fill="white" fill-opacity="${options.opacity}" d="${rectangles.join("")}"/></svg>`);
+}
+
 export async function applyWatermark(input: Buffer, options: WatermarkOptions): Promise<Buffer> {
   const error = validateWatermarkOptions(options);
   if (error) throw new Error(error);
@@ -106,12 +181,7 @@ export async function applyWatermark(input: Buffer, options: WatermarkOptions): 
   const image = sharp(input, { failOn: "error", limitInputPixels: 100_000_000 });
   const { width, height } = await image.metadata();
   if (!width || !height) throw new Error("Image dimensions are unavailable");
-  if (options.mode === "domain-text") {
-    const domain = options.domain!;
-    const fontSize = Math.max(16, Math.round(width * options.sizePercent / 100));
-    const svg = Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><text x="50%" y="58%" text-anchor="middle" dominant-baseline="middle" fill="white" fill-opacity="${options.opacity}" font-family="Arial,sans-serif" font-size="${fontSize}" font-weight="600">${domain}</text></svg>`);
-    return image.composite([{ input: svg, left: 0, top: 0 }]).webp({ quality: 84 }).toBuffer();
-  }
+  if (options.mode === "domain-text") return image.composite([{ input: buildDomainWatermarkSvg(width, height, options), left: 0, top: 0 }]).webp({ quality: 84 }).toBuffer();
   const watermarkWidth = Math.round(width * options.sizePercent / 100);
   const domain = (options.domain ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
   const domainText = options.mode === "hgr-logo-domain" ? `<text x="50%" y="95%" text-anchor="middle" fill="white" font-size="${Math.max(12, Math.round(watermarkWidth / 12))}">${domain}</text>` : "";
