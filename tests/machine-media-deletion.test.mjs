@@ -14,6 +14,11 @@ const afterDelete = MachineMedia.hooks.afterDelete[0];
 test("Machine Images offer staff one-record delete and reject bulk or anonymous delete", async () => {
   assert.equal(MachineMedia.disableBulkDelete, true);
   await assert.rejects(beforeOperation({ operation: "delete", args: { where: { id: { in: [1, 2] } }, collection: "machine-media" }, req: { user: staff } }), /one at a time/);
+  // Payload's deleteByIDOperation maps its hook operation to "delete" and
+  // passes the selected record in args.id.
+  const payloadSingleDeleteArgs = { id: 1, collection: "machine-media" };
+  assert.equal(await beforeOperation({ operation: "delete", args: payloadSingleDeleteArgs, req: { user: staff } }), payloadSingleDeleteArgs);
+  await assert.rejects(beforeOperation({ operation: "delete", args: { id: 1, where: { id: { in: [1, 2] } }, collection: "machine-media" }, req: { user: staff } }), /one at a time/);
   await assert.rejects(beforeOperation({ operation: "deleteByID", args: { id: 1, collection: "machine-media" }, req: { user: null } }), /Staff sign-in/);
   const args = { id: 1, collection: "machine-media" };
   assert.equal(await beforeOperation({ operation: "deleteByID", args, req: { user: staff } }), args);
@@ -50,6 +55,47 @@ test("deletion checks publication state before creating cleanup jobs", async () 
   };
   await assert.rejects(beforeDelete({ id: 1, req: request }), /Unpublish the machine/);
   assert.equal(request.context.machineMediaDeletion, undefined);
+});
+
+test("deleting one derivative queues only its own cleanup key and audit event", async () => {
+  const statements = [];
+  const digest = `sha256:${"d".repeat(64)}`;
+  const request = {
+    user: staff, context: {}, transactionID: Promise.resolve("tx-derivative"),
+    payload: {
+      config: { admin: { user: "users" }, i18n: { fallbackLanguage: "en", supportedLanguages: { en: {} }, translations: {} }, collections: [] },
+      db: { drizzle: {}, sessions: { "tx-derivative": { db: {} } }, execute: async ({ sql }) => {
+        statements.push(sql);
+        if (statements.length === 1) return { rows: [{ machineId: 20 }] };
+        if (statements.length === 2) return { rows: [{ id: 20, machineStatus: "draft", currentPhotoRevisions: {} }] };
+        if (statements.length === 3) return { rows: [{
+          id: 22, machineId: 20, assetKind: "derivative", filename: "hgr-public.webp", prefix: "machine-media",
+          objectKey: null, sizes: {}, photoIdentity: "photo-1", revision: 1, contentDigest: digest,
+          sourceMasterId: 10, redactionDigest: null, reviewStatus: "approved", reviewRevision: 1,
+          reviewSerialPolicyRevision: 1, reviewDigest: digest, reviewChecklist: {}, reviewHistory: [], auditHistory: [],
+        }] };
+        if (statements.length === 4) return { rows: [] };
+        return { rows: [] };
+      } },
+      create: async ({ collection, data }) => {
+        assert.equal(collection, "asset-audit-events");
+        assert.equal(data.entityID, "22");
+        assert.equal(data.eventType, "modified");
+        return {};
+      },
+    },
+  };
+  const previousBucket = process.env.R2_BUCKET;
+  process.env.R2_BUCKET = "hgr-staging-media";
+  try {
+    await beforeDelete({ id: 22, req: request });
+  } finally {
+    if (previousBucket === undefined) delete process.env.R2_BUCKET;
+    else process.env.R2_BUCKET = previousBucket;
+  }
+  assert.equal(statements.length, 6); // locks/checks, revision watermark, then one outbox insert
+  assert.deepEqual(request.context.machineMediaDeletion["22"].childIDs, []);
+  assert.equal(request.context.machineMediaDeletion["22"].row.assetKind, "derivative");
 });
 
 test("deleting a master queues cleanup durably and deletes linked derivatives sequentially", async () => {

@@ -51,7 +51,12 @@ export const MachineMedia: CollectionConfig = {
     beforeOperation: [async ({ args, operation, req }) => {
       if (operation === "delete" || operation === "deleteByID") {
         if (!isStaffUser(req.user)) throw new Error("Staff sign-in is required to delete machine photos");
-        if (operation !== "deleteByID" || args.id === undefined) throw new Error("Machine photos must be deleted one at a time");
+        // Payload maps a single-record deleteByID operation to the `delete`
+        // hook operation while retaining args.id. Bulk deletes use `where`.
+        const deleteArgs = args as { id?: unknown; where?: unknown };
+        if ((operation !== "delete" && operation !== "deleteByID") || deleteArgs.id === undefined || deleteArgs.where !== undefined) {
+          throw new Error("Machine photos must be deleted one at a time");
+        }
         return args;
       }
       if (operation !== "create" || !req.file) return args;
