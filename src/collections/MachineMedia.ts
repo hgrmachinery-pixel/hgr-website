@@ -1,12 +1,13 @@
 import type { CollectionConfig } from "payload";
-import { isDeepStrictEqual } from "node:util";
 import { sql } from "@payloadcms/db-postgres";
 
 import { denyAccess, staffAccess } from "../lib/machines/access";
-import { publicMachineMediaAccess, generatedMachinePhotoFilename, initialPhotoReview, historyIsAppendOnly, isPhotoReviewComplete, PHOTO_REVIEW_CHECKLIST } from "../lib/machines/media.ts";
+import { publicMachineMediaAccess, generatedMachinePhotoFilename, generateMachinePhotoAltText, initialPhotoReview, historyIsAppendOnly, PHOTO_REVIEW_CHECKLIST } from "../lib/machines/media.ts";
 import { photoContentDigest } from "../lib/machines/media-image.ts";
 import { isStaffUser } from "../lib/machines/access";
 import { appendAssetAuditEvent } from "../lib/audit/assets.ts";
+import { isUnchangedStorageMetadataEcho } from "../lib/machines/storage-metadata-echo.ts";
+import { changedMachineMediaFields } from "../lib/machines/media-update.ts";
 
 const staffFieldRead = ({ req }: { req: { user?: unknown } }) => isStaffUser(req.user);
 
@@ -69,6 +70,7 @@ export const MachineMedia: CollectionConfig = {
       input.processingStatus = "master";
       input.review = initialPhotoReview(1, serialPolicyRevision);
       input.machineReference = machine.hgrId;
+      if (typeof input.altText !== "string" || !input.altText.trim()) input.altText = generateMachinePhotoAltText(machine, input.category);
       req.file.name = generatedMachinePhotoFilename(machine.hgrId, input.category as any, sequence, req.file.mimetype);
       args.data = input;
       return args;
@@ -108,18 +110,23 @@ export const MachineMedia: CollectionConfig = {
       }
 
       if (!originalDoc) throw new Error("Machine photo records are immutable outside the review workflow");
-      const preservedCloudFile = context._payloadCloudStorage;
       if (context.skipCloudStorage === true) {
-        const isCloudStorageFollowUp = isStaffUser(req.user)
-          && !req.file
-          && preservedCloudFile !== null
-          && typeof preservedCloudFile === "object"
-          && "file" in preservedCloudFile
-          && Object.keys(data).every((key) =>
-            ["filename", "mimeType", "filesize", "width", "height", "sizes", "url"].includes(key)
-              || isDeepStrictEqual(data[key], (originalDoc as Record<string, unknown>)[key]),
-          );
-        if (!isCloudStorageFollowUp) throw new Error("Cloud storage metadata updates cannot change machine photo or review data");
+        const adapterMarker = context._payloadCloudStorage;
+        const isStorageAdapterFollowUp = adapterMarker !== null && typeof adapterMarker === "object" && "file" in adapterMarker;
+        // Lock authoritative histories before permitting the adapter's storage-only echo.
+        const transactionID = await req.transactionID;
+        const session = transactionID ? req.payload.db.sessions?.[String(transactionID)]?.db : undefined;
+        if (!transactionID || !session) throw new Error("Photo storage updates require an active Payload transaction");
+        const latestResult = await req.payload.db.execute({
+          db: session as Parameters<typeof req.payload.db.execute>[0]["db"],
+          drizzle: req.payload.db.drizzle,
+          sql: sql`SELECT "review_history" AS "reviewHistory", "audit_history" AS "auditHistory" FROM "machine_media" WHERE "id" = ${originalDoc.id} FOR UPDATE`,
+        });
+        const latest = latestResult.rows[0] as { reviewHistory?: unknown; auditHistory?: unknown } | undefined;
+        const unchangedEcho = latest && isUnchangedStorageMetadataEcho(data as Record<string, unknown>, originalDoc as Record<string, unknown>, latest);
+        if (!isStaffUser(req.user) || !isStorageAdapterFollowUp || req.file || req.payloadUploadSizes || !unchangedEcho) {
+          throw new Error("Cloud storage metadata updates cannot change machine photo or review data");
+        }
         return data;
       }
       const transactionID = await req.transactionID;
@@ -148,13 +155,16 @@ export const MachineMedia: CollectionConfig = {
       if (!latest) throw new Error("The current machine photo revision could not be locked");
       if (context.machinePhotoReview !== true && context.machinePhotoPublication !== true) {
         const allowedMetadata = new Set(["altText", "focalX", "focalY", "order"]);
-        // Validate the request body, not `data`: Payload merges upload identity
-        // fields into `data` and may normalize private-storage URLs before hooks.
+        // Validate the raw REST body when available. Payload may merge stored
+        // file metadata and normalize its URL before this hook receives `data`.
         const submittedData = req.data;
-        const keys = submittedData && typeof submittedData === "object" && !Array.isArray(submittedData)
+        const submittedKeys = submittedData && typeof submittedData === "object" && !Array.isArray(submittedData)
           ? Object.keys(submittedData)
           : [];
-        if (!submittedData || keys.length === 0 || req.file || keys.some((key) => !allowedMetadata.has(key))) {
+        const keys = submittedKeys.length > 0
+          ? submittedKeys
+          : changedMachineMediaFields(data as Record<string, unknown>, originalDoc as Record<string, unknown>, req.payload.config?.serverURL);
+        if (keys.length === 0 || req.file || keys.some((key) => !allowedMetadata.has(key))) {
           throw new Error("Only factual alternative text, focal point and gallery order may be edited directly");
         }
         if (typeof data.altText === "string" && data.altText.length > 250) throw new Error("Alternative text must be 250 characters or fewer");
@@ -171,7 +181,8 @@ export const MachineMedia: CollectionConfig = {
       const allowed = context.machinePhotoReview === true
         ? new Set(["review", "reviewHistory", "auditHistory", "approvedBy", "approvedAt", "lastModifiedBy", "lastModifiedAt"])
         : new Set(["auditHistory", "publishedBy", "publishedAt", "lastModifiedBy", "lastModifiedAt"]);
-      if (Object.keys(data).some((key) => !allowed.has(key))) throw new Error("Photo review transitions contain unsupported fields");
+      const changedFields = changedMachineMediaFields(data as Record<string, unknown>, originalDoc as Record<string, unknown>, req.payload.config?.serverURL);
+      if (changedFields.some((key) => !allowed.has(key))) throw new Error("Photo review transitions contain unsupported fields");
       const previousHistory = Array.isArray(latest.reviewHistory) ? latest.reviewHistory : [];
       const nextHistory = Array.isArray(data.reviewHistory) ? data.reviewHistory : previousHistory;
       if (context.machinePhotoReview === true && !historyIsAppendOnly(previousHistory, nextHistory)) throw new Error("Photo review history is append-only");
@@ -213,10 +224,10 @@ export const MachineMedia: CollectionConfig = {
           if (event.event === "approved" && (uncertain || found || status !== "approved" || String(data.approvedBy) !== String(req.user?.id) || data.approvedAt !== event.at)) {
             throw new Error("Only a complete clear human review can approve a photo");
           }
-          if (event.event === "owner-escalation" && (!uncertain || status !== "needs-review" || data.approvedBy !== undefined || data.approvedAt !== undefined)) {
+          if (event.event === "owner-escalation" && (!uncertain || status !== "needs-review" || data.approvedBy != null || data.approvedAt != null)) {
             throw new Error("Uncertain photos must remain unapproved for Owner escalation");
           }
-          if (event.event === "sensitive-information-found" && (!found || uncertain || status !== "needs-review" || data.approvedBy !== undefined || data.approvedAt !== undefined)) {
+          if (event.event === "sensitive-information-found" && (!found || uncertain || status !== "needs-review" || data.approvedBy != null || data.approvedAt != null)) {
             throw new Error("Photos with sensitive information must remain unapproved for redaction");
           }
         }

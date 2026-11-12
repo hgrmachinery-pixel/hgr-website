@@ -70,7 +70,7 @@ async function readLatestIdentity(
   const result = await req.payload.db.execute({
     db: transaction,
     drizzle: req.payload.db.drizzle,
-    sql: sql`SELECT "hgr_id" AS "hgrId", "slug", "previous_slugs" AS "previousSlugs", "show_serial_publicly" AS "showSerialPublicly", "serial_visibility_revision" AS "serialVisibilityRevision" FROM "machines" WHERE "id" = ${id} FOR UPDATE`,
+    sql: sql`SELECT "hgr_id" AS "hgrId", "slug", "previous_slugs" AS "previousSlugs", "show_serial_publicly" AS "showSerialPublicly", "serial_visibility_revision" AS "serialVisibilityRevision", "current_photo_revisions" AS "currentPhotoRevisions" FROM "machines" WHERE "id" = ${id} FOR UPDATE`,
   });
   const row = result.rows[0] as MachineIdentity | undefined;
   return row;
@@ -143,6 +143,15 @@ export const Machines: CollectionConfig = {
       } else if (originalDoc) {
         const persisted = await readLatestIdentity(req, originalDoc.id);
         const identity = { ...(originalDoc as MachineIdentity), ...persisted };
+        const currentPhotoRevisions = identity.currentPhotoRevisions && typeof identity.currentPhotoRevisions === "object" && !Array.isArray(identity.currentPhotoRevisions)
+          ? { ...identity.currentPhotoRevisions as Record<string, number> }
+          : {};
+        const context = req.context as Record<string, unknown>;
+        context.hgrAuthoritativePhotoRevisions = currentPhotoRevisions;
+        // This server-owned map may have advanced while a newer machine draft
+        // was open. Carry the locked main-row value into the next draft/publish
+        // save so it cannot be lost or copy the draft status into the live row.
+        data.currentPhotoRevisions = currentPhotoRevisions;
         const currentSerialVisibility = identity.showSerialPublicly === true;
         const nextSerialVisibility = data.showSerialPublicly === undefined
           ? currentSerialVisibility
@@ -182,15 +191,14 @@ export const Machines: CollectionConfig = {
         if (
           data.currentPhotoRevisions !== undefined &&
           context.machinePhotoProcessing !== true &&
-          !sameCurrentPhotoRevisions(data.currentPhotoRevisions, identity.currentPhotoRevisions)
+          !sameCurrentPhotoRevisions(data.currentPhotoRevisions, context.hgrAuthoritativePhotoRevisions ?? identity.currentPhotoRevisions)
         ) {
           throw new Error("Current photo revisions can only be updated by the protected photo processor");
         }
       }
 
-      if (data._status === "published") {
+      if (data._status === "published" && context.machinePhotoProcessing !== true) {
         const publishingData = { ...(originalDoc ?? {}), ...data };
-        const errors = machinePublicationErrors(publishingData);
         const ids = (value: unknown): Array<string | number> => {
           const entries = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value];
           return entries.map((entry) => {
@@ -203,17 +211,31 @@ export const Machines: CollectionConfig = {
             return undefined;
           }).filter((id): id is string | number => id !== undefined);
         };
-        const selected = [...new Set([...ids(publishingData.gallery), ...ids(publishingData.featuredImage)])];
-        const photos = await Promise.all(selected.map((id) => req.payload.findByID({ collection: "machine-media", id, depth: 0, overrideAccess: true, req })));
-        const photoById = new Map(photos.map((photo) => [String(photo.id), photo]));
-        const invalid = selected.some((id) => {
-          const photo = photoById.get(String(id));
-          return !photo || !isPublicMachineDerivative(photo as unknown as Record<string, any>, { ...publishingData, id: originalDoc?.id ?? photo.machine });
-        });
-        const featuredId = ids(publishingData.featuredImage)[0];
-        const featured = featuredId === undefined ? undefined : photoById.get(String(featuredId));
-        if (invalid) errors.push("Every public gallery image must be the current approved derivative");
-        if (!featured || (featured as unknown as { category?: string }).category !== "general-exterior") errors.push("Featured Image must be an approved General / Exterior derivative");
+        let eligible: Array<Record<string, any>> = [];
+        if (originalDoc?.id !== undefined) {
+          const result = await req.payload.find({
+            collection: "machine-media",
+            where: { and: [{ machine: { equals: originalDoc.id } }, { assetKind: { equals: "derivative" } }] },
+            depth: 0, limit: 500, page: 1, overrideAccess: true, req,
+          });
+          const candidates = result.docs as Array<Record<string, any>>;
+          const allIds = candidates.map((photo) => photo.id);
+          const machineForEligibility = { ...publishingData, id: originalDoc.id, gallery: allIds };
+          eligible = candidates
+            .filter((photo) => isPublicMachineDerivative(photo, machineForEligibility))
+            .sort((a, b) => Number(a.order ?? 0) - Number(b.order ?? 0) || Number(a.photoSequence ?? 0) - Number(b.photoSequence ?? 0));
+          const eligibleIds = eligible.map((photo) => photo.id);
+          data.gallery = eligibleIds;
+          publishingData.gallery = eligibleIds;
+          const selectedFeatured = ids(publishingData.featuredImage)[0];
+          const selectedPhoto = eligible.find((photo) => String(photo.id) === String(selectedFeatured));
+          const featured = selectedPhoto?.category === "general-exterior"
+            ? selectedPhoto
+            : eligible.find((photo) => photo.category === "general-exterior");
+          data.featuredImage = featured?.id ?? null;
+          publishingData.featuredImage = data.featuredImage;
+        }
+        const errors = machinePublicationErrors(publishingData, eligible);
         if (errors.length > 0) {
           throw new Error(
             `Complete these fields before publishing: ${errors.join(", ")}.`,
@@ -224,9 +246,12 @@ export const Machines: CollectionConfig = {
       return data;
     }],
     afterChange: [async ({ doc, previousDoc, req }) => {
-      const nowPublic = doc._status === "published" && doc.archived !== true;
+      const currentMachine = await req.payload.findByID({ collection: "machines", id: doc.id, depth: 0, draft: false, overrideAccess: true, req });
+      // Saving a draft over a published machine must not unpublish the live photos.
+      if (doc._status !== "published" && currentMachine._status === "published") return doc;
+      const nowPublic = currentMachine._status === "published" && currentMachine.archived !== true;
       const wasPublic = previousDoc?._status === "published" && previousDoc.archived !== true;
-      const currentPhotoIds = new Set([...relationIds(doc.gallery), ...relationIds(doc.featuredImage)].map(String));
+      const currentPhotoIds = new Set([...relationIds(currentMachine.gallery), ...relationIds(currentMachine.featuredImage)].map(String));
       const previousPhotoIds = new Set([...relationIds(previousDoc?.gallery), ...relationIds(previousDoc?.featuredImage)].map(String));
       const publicationIds = nowPublic
         ? [...currentPhotoIds].filter((id) => !wasPublic || !previousPhotoIds.has(id))
@@ -249,7 +274,11 @@ export const Machines: CollectionConfig = {
         if (priorPublicationEvent?.event === targetEvent) continue;
         const at = new Date().toISOString();
         const auditHistory = [...history, { event: targetEvent, actor: req.user?.id, at, machine: doc.id }];
-        const localReq = await createLocalReq({ user: req.user ?? undefined, context: { machinePhotoPublication: true } }, req.payload);
+        const localReq = await createLocalReq({
+          req,
+          user: req.user ?? undefined,
+          context: { ...req.context, machinePhotoPublication: true },
+        }, req.payload);
         await req.payload.update({
           collection: "machine-media",
           id: photo.id,
@@ -264,7 +293,13 @@ export const Machines: CollectionConfig = {
         });
       }
 
-      if (previousDoc && serialVisibilityPolicyChanged(previousDoc, doc)) {
+      const currentSerialPolicyRevision = Number(currentMachine.serialVisibilityRevision ?? 1);
+      const previousSerialPolicyRevision = Number(previousDoc?.serialVisibilityRevision ?? 1);
+      const serialPolicyNeedsRecheck = Boolean(previousDoc) && (
+        previousSerialPolicyRevision !== currentSerialPolicyRevision ||
+        (previousDoc?._status !== currentMachine._status && currentMachine._status === "published")
+      );
+      if (serialPolicyNeedsRecheck && currentMachine._status === "published") {
         let page = 1;
         let hasNextPage = true;
         while (hasNextPage) {
@@ -278,6 +313,7 @@ export const Machines: CollectionConfig = {
             req,
           });
           for (const derivative of derivatives.docs) {
+            if (Number(derivative.review?.serialPolicyRevision ?? 1) === currentSerialPolicyRevision) continue;
             const at = new Date().toISOString();
             const historyEntry = {
               event: "review-invalidated",
@@ -298,7 +334,7 @@ export const Machines: CollectionConfig = {
               collection: "machine-media",
               id: derivative.id,
               data: {
-                review: { status: "needs-review", revision: derivative.revision, digest: derivative.contentDigest, serialPolicyRevision: doc.serialVisibilityRevision ?? 1 },
+                review: { status: "needs-review", revision: derivative.revision, digest: derivative.contentDigest, serialPolicyRevision: currentSerialPolicyRevision },
                 reviewHistory: [...priorReviews, historyEntry],
                 auditHistory: [...priorAudit, historyEntry],
                 lastModifiedBy: req.user?.id,
@@ -349,12 +385,7 @@ export const Machines: CollectionConfig = {
     { name: "year", label: "Year of Manufacture", type: "number", min: 1900 },
     { name: "hours", type: "number", min: 0 },
     { name: "engine", type: "text" },
-    {
-      name: "operatingWeight",
-      label: "Operating Weight",
-      type: "text",
-      admin: { description: "Enter the verified operating weight with its unit, exactly as approved for display." },
-    },
+    { name: "operatingWeight", label: "Operating Weight", type: "text" },
     {
       name: "condition",
       type: "select",
@@ -449,6 +480,7 @@ export const Machines: CollectionConfig = {
       type: "relationship",
       relationTo: "machine-media",
       hasMany: true,
+      admin: { hidden: true, readOnly: true },
     },
     {
       name: "currentPhotoRevisions",

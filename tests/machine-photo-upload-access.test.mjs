@@ -176,7 +176,7 @@ function cloudStorageFollowUp({ changed = {}, markers = true, file = undefined, 
       db: {
         drizzle: {},
         sessions: { "synthetic-transaction": { db: {} } },
-        execute: async () => ({ rows: [{ serialVisibilityRevision: 1, reviewHistory: [], auditHistory: [] }] }),
+        execute: async () => ({ rows: [{ serialVisibilityRevision: 1, reviewHistory: [], auditHistory: originalDoc.auditHistory }] }),
       },
     },
   };

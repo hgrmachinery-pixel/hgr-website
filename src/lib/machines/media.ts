@@ -31,6 +31,13 @@ export const MACHINE_PHOTO_CATEGORY_LABELS: Record<MachinePhotoCategory, string>
 };
 
 export type MachinePhotoCategory = (typeof MACHINE_PHOTO_CATEGORIES)[number];
+export function generateMachinePhotoAltText(machine: { brand?: unknown; model?: unknown; category?: unknown }, photoCategory: unknown): string {
+  const machineType = typeof machine.category === "string" ? machine.category.trim() : "";
+  const parts = [machine.brand, machine.model, machineType, typeof photoCategory === "string" ? MACHINE_PHOTO_CATEGORY_LABELS[photoCategory as MachinePhotoCategory] : ""]
+    .filter((part): part is string => typeof part === "string" && part.trim().length > 0)
+    .map((part) => part.trim());
+  return parts.join(" ").slice(0, 250);
+}
 export const PHOTO_REVIEW_CHECKLIST = [
   "manufacturerSerialNumbers",
   "chassisVinNumbers",
@@ -104,6 +111,25 @@ export function isPhotoReviewComplete(checklist: unknown): checklist is PhotoRev
   return PHOTO_REVIEW_CHECKLIST.every((key) => answers[key] === "clear");
 }
 
+const approvalRequiredReviewEvents = new Set([
+  "sensitive-information-found",
+  "owner-escalation",
+  "review-invalidated",
+  "review-required-carried-forward",
+]);
+
+/** Keep a sensitive finding or unresolved review hold in force until a clear approval supersedes it. */
+export function machinePhotoRequiresHumanReview(derivative: Record<string, any>): boolean {
+  const revision = Number(derivative.revision);
+  const review = derivative.review && typeof derivative.review === "object" ? derivative.review : {};
+  const history = Array.isArray(derivative.reviewHistory) ? derivative.reviewHistory : [];
+  const currentRevisionHistory = history.filter((entry: any) => Number(entry?.revision) === revision);
+  const latestReview = currentRevisionHistory.at(-1);
+  const checklist = review.checklist && typeof review.checklist === "object" ? review.checklist : {};
+  return PHOTO_REVIEW_CHECKLIST.some((key) => checklist[key] === "found" || checklist[key] === "uncertain") ||
+    Boolean(latestReview && approvalRequiredReviewEvents.has(String(latestReview.event)));
+}
+
 export function isPublicMediaDeliveryVerified(value = process.env.HGR_PUBLIC_MEDIA_DELIVERY_VERIFIED): boolean {
   return value === "true";
 }
@@ -125,6 +151,17 @@ export function isPublicMachineDerivative(derivative: Record<string, any>, machi
   const derivativeId = relationshipId(derivative.id);
   const revision = Number(derivative.revision);
   const review = derivative.review && typeof derivative.review === "object" ? derivative.review : {};
+  const reviewEvents = Array.isArray(derivative.reviewHistory) ? derivative.reviewHistory : [];
+  const latestReview = [...reviewEvents].reverse().find((entry: any) => Number(entry?.revision) === revision);
+  const checklist = review.checklist && typeof review.checklist === "object" ? review.checklist : {};
+  const sensitiveHold = machinePhotoRequiresHumanReview(derivative);
+  const privateSerialPhoto = derivative.category === "chassis-serial-number" && machine.showSerialPublicly !== true;
+  const approvalRequired = latestReview !== undefined || typeof derivative.redactionDigest === "string" && derivative.redactionDigest.length > 0;
+  const reviewValid = !approvalRequired || latestReview?.event === "approved" &&
+    review.status === "approved" && Number(review.revision) === revision &&
+    Number(review.serialPolicyRevision) === Number(machine.serialVisibilityRevision ?? 1) &&
+    review.digest === derivative.contentDigest && Boolean(review.reviewedBy) &&
+    typeof review.reviewedAt === "string" && Number.isFinite(Date.parse(review.reviewedAt)) && isPhotoReviewComplete(checklist);
   return Boolean(
     derivativeId &&
       derivative.assetKind === "derivative" &&
@@ -135,16 +172,12 @@ export function isPublicMachineDerivative(derivative: Record<string, any>, machi
       Number(machine.currentPhotoRevisions?.[String(derivative.photoIdentity)]) === revision &&
       Number.isSafeInteger(revision) &&
       revision > 0 &&
-      review.status === "approved" &&
       Number(review.revision) === revision &&
       Number(review.serialPolicyRevision) === Number(machine.serialVisibilityRevision ?? 1) &&
       typeof derivative.contentDigest === "string" &&
       derivative.contentDigest.length > 0 &&
       review.digest === derivative.contentDigest &&
-      Boolean(review.reviewedBy) &&
-      typeof review.reviewedAt === "string" &&
-      Number.isFinite(Date.parse(review.reviewedAt)) &&
-      isPhotoReviewComplete(review.checklist) &&
+      !sensitiveHold && !privateSerialPhoto && reviewValid &&
       (relationshipId(machine.featuredImage) === derivativeId || relationshipIncludes(machine.gallery, derivativeId)),
   );
 }
@@ -167,9 +200,17 @@ export async function publicMachineMediaAccess({ data, id, req }: {
   }
   const filename = data && typeof data.filename === "string" ? data.filename : "";
   if (!filename || filename.includes("/") || filename.includes("\\")) return false;
+  // Payload can request the original or one of the configured resized files
+  // through the same collection file route. Resolve each exact filename back
+  // to its owning derivative; checking only the top-level filename makes the
+  // public card/thumbnail URLs fail even when the derivative itself is public.
+  const filenameMatches = [
+    { filename: { equals: filename } },
+    ...["thumbnail", "card", "large"].map((size) => ({ [`sizes.${size}.filename`]: { equals: filename } })),
+  ];
   const matches = await req.payload.find({
     collection: "machine-media",
-    where: { filename: { equals: filename }, assetKind: { equals: "derivative" } },
+    where: { and: [{ assetKind: { equals: "derivative" } }, { or: filenameMatches }] },
     depth: 0,
     limit: 2,
     overrideAccess: true,

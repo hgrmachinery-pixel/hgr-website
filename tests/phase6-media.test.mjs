@@ -4,7 +4,7 @@ import { projectPublicImage, publicImageSrcSet } from "../src/lib/machines/publi
 
 const image = (overrides = {}) => ({
   id: 12,
-  url: "/api/machine-media/file/master-original.jpg",
+  url: "/api/machine-media/file/processed-r1.webp",
   altText: "Komatsu PC200 excavator viewed from the side",
   category: "side-view-1",
   order: 4,
@@ -33,7 +33,7 @@ test("verified public image projects supported responsive derivatives and review
   });
 });
 
-test("partial responsive image omits absent derivatives and never substitutes master URL", () => {
+test("partial responsive images fall back only to the processed derivative, never a private master", () => {
   assert.deepEqual(projectPublicImage(image({ sizes: { thumbnail: { url: "/api/machine-media/file/thumb.jpg" } } }), true), {
     url: "/api/machine-media/file/thumb.jpg",
     thumbnailUrl: "/api/machine-media/file/thumb.jpg",
@@ -41,13 +41,16 @@ test("partial responsive image omits absent derivatives and never substitutes ma
     category: "side-view-1",
     order: 4,
   });
-  assert.equal(projectPublicImage(image({ sizes: {} }), true), undefined);
+  assert.equal(projectPublicImage(image({ sizes: {} }), true)?.url, "/api/machine-media/file/processed-r1.webp");
+  assert.equal(projectPublicImage(image({ assetKind: undefined, __hgrPublicDerivative: true, sizes: {} }), true)?.url, "/api/machine-media/file/processed-r1.webp");
+  assert.equal(projectPublicImage(image({ assetKind: "master", sizes: {} }), true), undefined);
 });
 
-test("unverified and malformed responsive URLs stay closed and empty alt text stays empty", () => {
+test("unverified and unsafe image routes stay closed while safe processed fallback and empty alt text remain valid", () => {
   assert.equal(projectPublicImage(image(), false), undefined);
-  assert.equal(projectPublicImage(image({ sizes: { card: { url: "https://bucket.example/card.jpg" } } }), true), undefined);
-  assert.equal(projectPublicImage(image({ sizes: { card: { url: "/api/machine-documents/file/private.pdf" } } }), true), undefined);
+  assert.equal(projectPublicImage(image({ sizes: { card: { url: "https://bucket.example/card.jpg" } } }), true)?.url, "/api/machine-media/file/processed-r1.webp");
+  assert.equal(projectPublicImage(image({ url: "https://bucket.example/private.jpg", sizes: { card: { url: "https://bucket.example/card.jpg" } } }), true), undefined);
+  assert.equal(projectPublicImage(image({ assetKind: "master", url: "/api/machine-documents/file/private.pdf", sizes: { card: { url: "/api/machine-documents/file/private.pdf" } } }), true), undefined);
   assert.equal(projectPublicImage(image({ altText: "", sizes: { card: { url: "/api/machine-media/file/card.jpg" } } }), true)?.altText, "");
 });
 
@@ -91,9 +94,11 @@ test("cards and gallery use responsive browser image sources without changing al
   const { readFile } = await import("node:fs/promises");
   const card = await readFile(new URL("../src/components/site/MachineCard.tsx", import.meta.url), "utf8");
   const gallery = await readFile(new URL("../src/components/site/MachineGallery.tsx", import.meta.url), "utf8");
+  const publicQueries = await readFile(new URL("../src/lib/machines/publicQueries.ts", import.meta.url), "utf8");
   assert.match(card, /srcSet=\{publicImageSrcSet\(image\)\}/);
   assert.match(card, /sizes=/);
   assert.match(gallery, /srcSet=\{publicImageSrcSet\(current\)\}/);
   assert.match(gallery, /sizes=/);
   assert.match(gallery, /thumbnailUrl \?\? image\.url/);
+  assert.match(publicQueries, /__hgrPublicDerivative: true/);
 });

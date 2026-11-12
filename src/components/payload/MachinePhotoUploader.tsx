@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { MACHINE_PHOTO_CATEGORIES, MACHINE_PHOTO_CATEGORY_LABELS, PHOTO_REVIEW_CHECKLIST, machinePhotoUploadFailure, measuredUploadProgress, planImageBatch, runBounded, type MachinePhotoCategory, type PhotoReviewChecklist } from "@/lib/machines/media";
 
 type ReviewAnswer = "clear" | "found" | "uncertain" | "";
-type Status = "queued" | "uploading" | "processing" | "needs-review" | "approved" | "failed";
+type Status = "queued" | "uploading" | "processing" | "ready" | "needs-review" | "approved" | "failed";
 type QueueItem = {
   id: string;
   file: File;
@@ -15,6 +15,8 @@ type QueueItem = {
   progressKnown: boolean;
   category: MachinePhotoCategory;
   altText: string;
+  altTextSaveStatus?: "saving" | "saved";
+  altTextError?: string;
   masterId?: string | number;
   derivativeId?: string | number;
   derivativeFilename?: string;
@@ -58,6 +60,7 @@ const statusLabel: Record<Status, string> = {
   queued: "Queued",
   uploading: "Uploading",
   processing: "Processing",
+  ready: "Ready for publication",
   "needs-review": "Needs review",
   approved: "Approved",
   failed: "Failed",
@@ -103,7 +106,7 @@ export function MachinePhotoUploader() {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || "Image processing failed");
-    update(item.id, { derivativeId: result.derivativeId, derivativeFilename: result.filename, digest: result.digest, status: "needs-review", progress: 100, progressKnown: true, error: undefined, failureStage: undefined, review: {}, redactions: [] });
+    update(item.id, { derivativeId: result.derivativeId, derivativeFilename: result.filename, digest: result.digest, status: "ready", progress: 100, progressKnown: true, error: undefined, failureStage: undefined, review: {}, redactions: [] });
   }, [update]);
 
   const upload = useCallback(async (item: QueueItem, retry = false) => {
@@ -119,7 +122,7 @@ export function MachinePhotoUploader() {
       const form = new FormData();
       form.append("_payload", JSON.stringify({ machine: machineId, category: item.category, altText: item.altText }));
       form.append("file", item.file, item.file.name);
-      const created = await new Promise<{ id: string | number }>((resolve, reject) => {
+      const created = await new Promise<{ id: string | number; altText?: string }>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "/api/machine-media", true);
         xhr.withCredentials = true;
@@ -140,7 +143,7 @@ export function MachinePhotoUploader() {
         xhr.addEventListener("abort", () => reject(new Error("Upload was cancelled")));
         xhr.send(form);
       });
-      update(item.id, { masterId: created.id, status: "processing", progress: 99, progressKnown: true });
+      update(item.id, { masterId: created.id, altText: created.altText ?? item.altText, status: "processing", progress: 99, progressKnown: true });
       failureStage = "processing";
       await process({ ...item, masterId: created.id });
     } catch (error) {
@@ -176,35 +179,49 @@ export function MachinePhotoUploader() {
     const checklist = Object.fromEntries(PHOTO_REVIEW_CHECKLIST.map((key) => [key, item.review[key]])) as Partial<PhotoReviewChecklist>;
     const uncertain = PHOTO_REVIEW_CHECKLIST.some((key) => checklist[key] === "uncertain");
     const found = PHOTO_REVIEW_CHECKLIST.some((key) => checklist[key] === "found");
-    if (uncertain) return update(item.id, { error: "Keep this photo private and escalate the uncertainty to the Owner." });
-    if (found) {
-      if (!item.redactions.length) return update(item.id, { error: "Add a blur area around every sensitive identifier, then process a new revision." });
-      update(item.id, { status: "processing", error: undefined });
-      return process(item, item.redactions).catch((error) => update(item.id, { status: "failed", error: humanError(error), failureStage: "processing" }));
+    if (PHOTO_REVIEW_CHECKLIST.some((key) => !["clear", "found", "uncertain"].includes(String(checklist[key])))) {
+      return update(item.id, { error: "Complete every review item before approval." });
     }
-    if (PHOTO_REVIEW_CHECKLIST.some((key) => checklist[key] !== "clear")) return update(item.id, { error: "Complete every review item before approval." });
     const response = await fetch("/api/machine-media/review", {
       method: "POST", credentials: "same-origin", cache: "no-store",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: item.derivativeId, digest: item.digest, checklist }),
     });
     const result = await response.json();
-    if (!response.ok) return update(item.id, { error: result.error || "Review could not be saved." });
+    if (!response.ok) {
+      update(item.id, { status: response.status === 400 ? "needs-review" : item.status, error: result.error || "Review could not be saved." });
+      if (response.status === 400 && found && item.redactions.length > 0) {
+        update(item.id, { status: "processing", error: undefined });
+        try {
+          await process(item, item.redactions);
+          update(item.id, { status: "needs-review", error: "Sensitive content was recorded. Review the processed revision and complete a clear checklist before publication." });
+        } catch (error) {
+          update(item.id, { status: "failed", error: humanError(error), failureStage: "processing" });
+        }
+      }
+      if (response.status === 400 && uncertain) update(item.id, { status: "needs-review", error: "This photo remains private. Escalate the uncertainty to the Owner." });
+      return;
+    }
     update(item.id, { status: "approved", error: undefined });
   };
 
   const saveAltText = async (item: QueueItem) => {
     if (item.derivativeId === undefined) return;
-    const response = await fetch(`/api/machine-media/${item.derivativeId}`, {
-      method: "PATCH", credentials: "same-origin", cache: "no-store",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ altText: item.altText }),
-    });
-    if (!response.ok) {
-      const result = await response.json().catch(() => ({}));
-      return update(item.id, { error: result.errors?.[0]?.message || "Alternative text could not be saved." });
+    update(item.id, { altTextSaveStatus: "saving", altTextError: undefined });
+    try {
+      const response = await fetch(`/api/machine-media/${item.derivativeId}`, {
+        method: "PATCH", credentials: "same-origin", cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ altText: item.altText }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.errors?.[0]?.message || "Alternative text could not be saved.");
+      }
+      update(item.id, { altTextSaveStatus: "saved", altTextError: undefined });
+    } catch (error) {
+      update(item.id, { altTextSaveStatus: undefined, altTextError: humanError(error) });
     }
-    update(item.id, { error: undefined });
   };
 
   const beginRedaction = (item: QueueItem, event: React.PointerEvent<HTMLDivElement>) => {
@@ -236,7 +253,7 @@ export function MachinePhotoUploader() {
         <div>
           <p className="hgr-photo-manager__eyebrow">Inventory photos</p>
           <h3>Machine photos</h3>
-          <p>Uploads are kept as private originals. Processed versions stay private until human review and machine publication.</p>
+          <p>Uploads are kept as private originals. Processed photos stay private until you publish them with the machine.</p>
         </div>
         <span className="hgr-photo-manager__count" aria-live="polite">{queue.length} {queue.length === 1 ? "photo" : "photos"}</span>
       </header>
@@ -278,19 +295,21 @@ export function MachinePhotoUploader() {
               <p>{item.error || "The request failed without an explanation."}</p>
               <button type="button" onClick={() => void upload(item, true)}>{item.masterId ? "Retry processing" : "Retry upload"}</button>
             </div>}
-              {item.status === "needs-review" && <>
+              {(["ready", "needs-review", "approved"] as const).includes(item.status as "ready" | "needs-review" | "approved") && <>
                 {item.derivativeFilename && <figure className="hgr-photo-review-preview">
                   <img src={`/api/machine-media/file/${encodeURIComponent(item.derivativeFilename)}`} alt="Processed photo for human review" />
-                  <figcaption>Review copy · private pending approval</figcaption>
+                  <figcaption>Processed copy · private until the machine is published</figcaption>
                 </figure>}
+                <label className="hgr-photo-manager__field">Alternative text
+                  <input value={item.altText} maxLength={250} onChange={(event) => update(item.id, { altText: event.target.value, altTextSaveStatus: undefined, altTextError: undefined })} placeholder="Describe only what is visible" />
+                  <small>Suggested from the machine details and photo category. Edit it to match the visible image.</small>
+                </label>
+                {item.altTextSaveStatus === "saved" && <p role="status">Alternative text saved.</p>}
+                {item.altTextError && <p className="hgr-photo-manager__alert" role="alert">{item.altTextError}</p>}
+                <button type="button" disabled={item.altTextSaveStatus === "saving"} onClick={() => void saveAltText(item)}>{item.altTextSaveStatus === "saving" ? "Saving alternative text…" : "Save alternative text"}</button>
                 <details className="hgr-photo-review">
-                  <summary>Review image and approval checklist</summary>
-                  <p>Check the exact processed photo. Sensitive details must be blurred and reviewed again.</p>
-                  <label className="hgr-photo-manager__field">Factual alternative text
-                  <input value={item.altText} maxLength={250} onChange={(event) => update(item.id, { altText: event.target.value })} placeholder="Describe only what is visible" />
-                  <small>Do not infer machine specifications or identifiers.</small>
-                  </label>
-                  <button type="button" onClick={() => void saveAltText(item)}>Save alternative text</button>
+                  <summary>{item.status === "needs-review" ? "Required sensitive-content review" : "Optional photo review and sensitive-content safeguards"}</summary>
+                  <p>Ordinary photos are ready without this checklist. If you find sensitive information, mark it and blur those areas before publication.</p>
                   <div className="hgr-photo-review__checklist">
                     {PHOTO_REVIEW_CHECKLIST.map((key) => <label key={key}>{checklistLabel[key]} <select value={item.review[key] ?? ""} onChange={(event) => setReviewAnswer(item, key, event.target.value as ReviewAnswer)}>
                       <option value="">Choose…</option><option value="clear">Checked — clear</option><option value="found">Sensitive item found</option><option value="uncertain">Uncertain — ask Owner</option>
@@ -305,7 +324,7 @@ export function MachinePhotoUploader() {
                   {item.redactions.length > 0 && <button type="button" onClick={() => update(item.id, { redactions: item.redactions.slice(0, -1) })}>Undo last blur area</button>}
                 </>}
                   {item.error && <p className="hgr-photo-manager__alert" role="alert">{item.error}</p>}
-                  <button type="button" onClick={() => void submitReview(item)}>Submit human review</button>
+                  <button type="button" onClick={() => void submitReview(item)}>Save optional review</button>
                 </details>
               </>}
             {item.status === "approved" && <p className="hgr-photo-card__approved">Human review approved. The image remains private until added to the machine’s public gallery and the machine is published.</p>}
