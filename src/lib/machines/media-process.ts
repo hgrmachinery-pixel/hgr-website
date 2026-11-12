@@ -8,8 +8,21 @@ import { blurSensitiveAreas, applyWatermark, createResponsiveMachineImage, DEFAU
 
 const processingLocks = new Set<string>();
 
-export function shouldCarryPhotoReviewHold(latest: Record<string, any> | undefined, redactions: NormalizedRedaction[]): boolean {
-  return redactions.length > 0 || Boolean(latest && machinePhotoRequiresHumanReview(latest));
+export function shouldCarryPhotoReviewHold(
+  latest: Record<string, any> | undefined,
+  redactions: NormalizedRedaction[],
+  masterReviewHistory: unknown = [],
+): boolean {
+  const masterHasDeletionHold = Array.isArray(masterReviewHistory) && masterReviewHistory.some((event) =>
+    event && typeof event === "object" && (event as Record<string, unknown>).event === "review-required-carried-forward",
+  );
+  return redactions.length > 0 || masterHasDeletionHold || Boolean(latest && (latest.redactionDigest || machinePhotoRequiresHumanReview(latest)));
+}
+
+export function nextMachinePhotoRevision(latestRevision: unknown, storedHighWater: unknown): number {
+  const latest = Number.isSafeInteger(Number(latestRevision)) && Number(latestRevision) > 0 ? Number(latestRevision) : 0;
+  const highWater = Number.isSafeInteger(Number(storedHighWater)) && Number(storedHighWater) > 0 ? Number(storedHighWater) : 0;
+  return Math.max(latest, highWater) + 1;
 }
 
 export async function persistCurrentPhotoRevision(
@@ -148,18 +161,23 @@ export async function processMachinePhoto({
       req: transactionReq,
     });
     const latest = existing.docs[0];
+    const current = machine.currentPhotoRevisions && typeof machine.currentPhotoRevisions === "object" ? machine.currentPhotoRevisions as Record<string, number> : {};
+    const storedHighWater = Number(current[master.photoIdentity] ?? 0);
     if (latest && (!redactions.length || latest.redactionDigest === redactionDigest)) {
       if (latest.sourceDigest !== photoContentDigest(bytes)) throw new Error("A different derivative already exists for this photo revision");
-      const current = machine.currentPhotoRevisions && typeof machine.currentPhotoRevisions === "object" ? machine.currentPhotoRevisions as Record<string, number> : {};
-      if (Number(current[master.photoIdentity]) !== latest.revision) {
-        await persistCurrentPhotoRevision(payload, transactionReq, machine.id, master.photoIdentity, latest.revision);
+      if (storedHighWater <= Number(latest.revision)) {
+        if (storedHighWater !== Number(latest.revision)) {
+          await persistCurrentPhotoRevision(payload, transactionReq, machine.id, master.photoIdentity, latest.revision);
+        }
+        await commitTransaction(transactionReq);
+        transactionOpen = false;
+        return { status: 200, derivativeId: latest.id, filename: latest.filename ?? "", digest: latest.contentDigest, idempotent: true };
       }
-      await commitTransaction(transactionReq);
-      transactionOpen = false;
-      return { status: 200, derivativeId: latest.id, filename: latest.filename ?? "", digest: latest.contentDigest, idempotent: true };
+      // A higher revision was deleted. Fall through and allocate beyond the
+      // stored high-water mark so pending cleanup cannot target a replacement.
     }
 
-    const revision = Number(latest?.revision ?? 0) + 1;
+    const revision = nextMachinePhotoRevision(latest?.revision, storedHighWater);
     const baseName = generatedMachinePhotoFilename(master.machineReference, category, master.photoSequence, "image/webp");
     const derivativeFile = {
       data: processed,
@@ -167,7 +185,7 @@ export async function processMachinePhoto({
       name: baseName.replace(/\.webp$/i, `-public-r${revision}.webp`),
       size: processed.length,
     };
-    const carriedReviewHold = shouldCarryPhotoReviewHold(latest, redactions)
+    const carriedReviewHold = shouldCarryPhotoReviewHold(latest, redactions, master.reviewHistory)
       ? [{ event: "review-required-carried-forward", revision, digest: `sha256:${derivativeDigest}`, sourceRevision: latest?.revision, at: new Date().toISOString() }]
       : [];
     const createdAt = new Date().toISOString();

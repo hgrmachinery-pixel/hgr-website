@@ -21,6 +21,7 @@ import { Users } from "./collections/Users";
 import { SiteContact } from "./globals/SiteContact";
 import { noDeliveryEmailAdapter } from "./lib/email/noDeliveryAdapter";
 import { configuredImageLimits } from "./lib/machines/media.ts";
+import { startMachineMediaDeletionWorker } from "./lib/machines/media-deletion.ts";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -161,6 +162,9 @@ export default buildConfig({
   },
   typescript: {
     outputFile: path.resolve(configDirectory, "payload-types.ts"),
+  },
+  onInit: async (payload) => {
+    startMachineMediaDeletionWorker(payload);
   },
 });
 

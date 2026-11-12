@@ -7,7 +7,7 @@ import { MachineMedia } from "../src/collections/MachineMedia.ts";
 import * as media from "../src/lib/machines/media.ts";
 import * as image from "../src/lib/machines/media-image.ts";
 import { isUnchangedStorageMetadataEcho } from "../src/lib/machines/storage-metadata-echo.ts";
-import { persistCurrentPhotoRevision, processMachinePhoto, shouldCarryPhotoReviewHold } from "../src/lib/machines/media-process.ts";
+import { nextMachinePhotoRevision, persistCurrentPhotoRevision, processMachinePhoto, shouldCarryPhotoReviewHold } from "../src/lib/machines/media-process.ts";
 import { changedMachineMediaFields } from "../src/lib/machines/media-update.ts";
 
 const categories = [
@@ -145,7 +145,8 @@ test("Payload storage metadata echo allows only an unchanged staff record", asyn
   await assert.rejects(() => callUpdateHook({ data: { filename: "forged.jpg" }, context: {} }), /Only factual alternative text/);
   const beforeDelete = MachineMedia.hooks?.beforeDelete?.[0];
   assert.ok(beforeDelete);
-  assert.throws(() => beforeDelete({}), /deletion is disabled/);
+  assert.equal(typeof beforeDelete, "function");
+  assert.match(MachineMedia.hooks.beforeOperation[0].toString(), /deleteByID/);
 });
 
 test("alt text edits tolerate Payload's raw versus afterRead file URL forms but still reject altered paths", async () => {
@@ -275,7 +276,8 @@ test("photo review and audit histories preserve prior events", async () => {
   const collection = await readFile(new URL("../src/collections/MachineMedia.ts", import.meta.url), "utf8");
   const review = await readFile(new URL("../src/lib/machines/media-review.ts", import.meta.url), "utf8");
   assert.match(collection, /historyIsAppendOnly/);
-  assert.match(collection, /beforeDelete:\s*\[\(\)\s*=>\s*\{\s*throw/);
+  assert.match(collection, /machine_media_deletion_jobs/);
+  assert.match(collection, /eventType:\s*"modified"/);
   assert.match(review, /initTransaction/);
   assert.match(review, /FOR UPDATE/);
   const previous = [{ event: "uploaded", actor: 4, at: "2026-10-01T00:00:00.000Z" }];
@@ -619,9 +621,16 @@ test("photo processing and review serialize on the machine row and carry unresol
   assert.match(processor, /initTransaction\(transactionReq\)[\s\S]*?SELECT "id" FROM "machines" WHERE "id" = \$\{machineId\} FOR UPDATE/);
   assert.match(review, /SELECT "id" FROM "machines" WHERE "id" = \$\{machineId\} FOR UPDATE/);
   assert.match(processor, /const latest = existing\.docs\[0\]/);
-  assert.match(processor, /shouldCarryPhotoReviewHold\(latest, redactions\)/);
+  assert.match(processor, /shouldCarryPhotoReviewHold\(latest, redactions, master\.reviewHistory\)/);
   assert.match(processor, /event: "review-required-carried-forward"/);
   assert.match(review, /approvedBy: !uncertain && !found \? auth\.user\.id : null/);
+});
+
+test("photo processing never reuses a revision whose object cleanup may still be pending", () => {
+  assert.equal(nextMachinePhotoRevision(3, 3), 4);
+  assert.equal(nextMachinePhotoRevision(2, 3), 4);
+  assert.equal(nextMachinePhotoRevision(undefined, 3), 4);
+  assert.equal(shouldCarryPhotoReviewHold(undefined, [], [{ event: "review-required-carried-forward" }]), true);
 });
 
 test("photo processing writes only the protected revision-map column inside its existing transaction", async () => {
