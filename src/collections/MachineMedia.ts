@@ -9,6 +9,7 @@ import { appendAssetAuditEvent } from "../lib/audit/assets.ts";
 import { isUnchangedStorageMetadataEcho } from "../lib/machines/storage-metadata-echo.ts";
 import { changedMachineMediaFields } from "../lib/machines/media-update.ts";
 import { machineMediaObjectKeys } from "../lib/machines/media-deletion.ts";
+import { machineMediaBulkDeleteEndpoint } from "../lib/machines/media-bulk-delete.ts";
 
 const staffFieldRead = ({ req }: { req: { user?: unknown } }) => isStaffUser(req.user);
 
@@ -34,7 +35,8 @@ export const MachineMedia: CollectionConfig = {
   labels: { singular: "Machine Image", plural: "Machine Images" },
   admin: {
     useAsTitle: "filename",
-    description: "Staff can delete one photo at a time from Draft machines. Deleting a master also removes its linked derivatives; object cleanup retries automatically.",
+    description: "Staff can delete selected photos from Draft machines. Published-machine photos are protected; deleting a master also removes linked derivatives. Object cleanup retries automatically.",
+    components: { beforeList: ["@/components/payload/MachineMediaBulkDelete#MachineMediaBulkDelete"] },
   },
   access: {
     create: staffAccess,
@@ -47,6 +49,7 @@ export const MachineMedia: CollectionConfig = {
     update: staffAccess,
     delete: staffAccess,
   },
+  endpoints: [{ path: "/bulk-delete", method: "post", handler: machineMediaBulkDeleteEndpoint }],
   hooks: {
     beforeOperation: [async ({ args, operation, req }) => {
       if (operation === "delete" || operation === "deleteByID") {
