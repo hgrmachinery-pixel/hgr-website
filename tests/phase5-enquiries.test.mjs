@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { validateEnquiry, submitEnquiry } from "../src/lib/enquiries/submit.ts";
 import { createResendEnquiryAdapter, readEnquiryEmailConfig } from "../src/lib/email/enquiryAdapter.ts";
+import { checkEnquiryRateLimit, enquiryClientKey, resetEnquiryRateLimitsForTests } from "../src/lib/enquiries/rateLimit.ts";
 
 const validGeneral = { kind: "general", name: "A Customer", phone: "+60 12 345 6789", subject: "General", message: "Please call me." };
 
@@ -53,6 +54,23 @@ test("machine enquiries accept an optional viewing preference", () => {
 test("bounds input and rejects honeypot submissions", () => {
   assert.equal(validateEnquiry({ ...validGeneral, name: "N".repeat(161) }).ok, false);
   assert.equal(validateEnquiry({ ...validGeneral, website: "spam" }).ok, false);
+});
+
+test("enquiry throttling limits client windows and ignores user-controlled X-Forwarded-For", () => {
+  resetEnquiryRateLimitsForTests();
+  assert.equal(enquiryClientKey(new Headers({ "x-forwarded-for": "198.51.100.1" })), "unknown-client");
+  assert.equal(enquiryClientKey(new Headers({ "x-real-ip": "198.51.100.1" })), "unknown-client");
+  for (let index = 0; index < 24; index += 1) assert.equal(checkEnquiryRateLimit("unknown-client", 1000).allowed, true);
+  assert.equal(checkEnquiryRateLimit("unknown-client", 1000).allowed, false);
+  assert.equal(enquiryClientKey(new Headers({ "cf-connecting-ip": "203.0.113.8" })), "ip:203.0.113.8");
+  resetEnquiryRateLimitsForTests();
+  for (let index = 0; index < 8; index += 1) assert.equal(checkEnquiryRateLimit("ip:203.0.113.8", 2000).allowed, true);
+  assert.equal(checkEnquiryRateLimit("ip:203.0.113.8", 2000).allowed, false);
+  assert.equal(checkEnquiryRateLimit("ip:203.0.113.8", 902001).allowed, true);
+  resetEnquiryRateLimitsForTests();
+  for (let index = 0; index < 120; index += 1) assert.equal(checkEnquiryRateLimit(`ip:198.51.100.${index + 1}`, 3000).allowed, true);
+  assert.equal(checkEnquiryRateLimit("ip:198.51.100.250", 3000).allowed, false);
+  resetEnquiryRateLimitsForTests();
 });
 
 test("delivery reports success only when the injected adapter accepts", async () => {

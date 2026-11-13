@@ -3,13 +3,24 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { MachineMedia } from "../src/collections/MachineMedia.ts";
-import { machineMediaObjectKeys, mediaDeletionRetryDelayMs, runMachineMediaDeletionAttempt, safeMediaDeletionErrorCode } from "../src/lib/machines/media-deletion.ts";
+import { isAllowedMachineMediaCleanupTarget, machineMediaObjectKeys, mediaDeletionRetryDelayMs, runMachineMediaDeletionAttempt, safeMediaDeletionErrorCode } from "../src/lib/machines/media-deletion.ts";
 import { shouldCarryPhotoReviewHold } from "../src/lib/machines/media-process.ts";
 
 const staff = { collection: "users", id: 9 };
 const beforeOperation = MachineMedia.hooks.beforeOperation[0];
 const beforeDelete = MachineMedia.hooks.beforeDelete[0];
 const afterDelete = MachineMedia.hooks.afterDelete[0];
+
+test("cleanup worker bucket allowlist is environment-specific and fails closed before worker startup", async () => {
+  assert.equal(isAllowedMachineMediaCleanupTarget("staging", "hgr-staging-media"), true);
+  assert.equal(isAllowedMachineMediaCleanupTarget("production", "hgr-production-media"), true);
+  assert.equal(isAllowedMachineMediaCleanupTarget("staging", "hgr-production-media"), false);
+  assert.equal(isAllowedMachineMediaCleanupTarget("production", "hgr-staging-media"), false);
+  assert.equal(isAllowedMachineMediaCleanupTarget("preview", "hgr-staging-media"), false);
+  assert.equal(isAllowedMachineMediaCleanupTarget(undefined, "hgr-production-media"), false);
+  const source = await readFile(new URL("../src/lib/machines/media-deletion.ts", import.meta.url), "utf8");
+  assert.ok(source.indexOf("isAllowedMachineMediaCleanupTarget(process.env.RAILWAY_ENVIRONMENT_NAME, bucket)") < source.indexOf("const drain = async () =>"));
+});
 
 test("Machine Images offer staff one-record delete and reject bulk or anonymous delete", async () => {
   assert.equal(MachineMedia.disableBulkDelete, true);

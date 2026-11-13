@@ -22,6 +22,7 @@ import { SiteContact } from "./globals/SiteContact";
 import { noDeliveryEmailAdapter } from "./lib/email/noDeliveryAdapter";
 import { configuredImageLimits } from "./lib/machines/media.ts";
 import { startMachineMediaDeletionWorker } from "./lib/machines/media-deletion.ts";
+import { validateServerURL } from "./lib/serverURL.ts";
 
 const configDirectory = path.dirname(fileURLToPath(import.meta.url));
 
@@ -88,23 +89,7 @@ if (secret.length < 32) {
 }
 
 const serverURL = requiredEnvironment("SERVER_URL");
-let origin: URL;
-try {
-  origin = new URL(serverURL);
-} catch {
-  throw new Error(
-    "SERVER_URL must be an HTTP or HTTPS URL without credentials",
-  );
-}
-if (
-  !["http:", "https:"].includes(origin.protocol) ||
-  origin.username ||
-  origin.password
-) {
-  throw new Error(
-    "SERVER_URL must be an HTTP or HTTPS URL without credentials",
-  );
-}
+const origin = validateServerURL(serverURL);
 
 export default buildConfig({
   editor: lexicalEditor({}),

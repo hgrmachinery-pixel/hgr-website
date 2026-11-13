@@ -30,6 +30,10 @@ function securelyMatches(actual: Buffer, expected: string): boolean {
   return actual.length === expectedBytes.length && digestMatches;
 }
 
+export function normalizedRailwayBranch(value: string | undefined): string | undefined {
+  return value?.trim().toLocaleLowerCase("en").replace(/^refs\/heads\//, "");
+}
+
 function stagingGateMode(environment: Readonly<Record<string, string | undefined>>): "off" | "protect" | "misconfigured" {
   const environmentName = environment.RAILWAY_ENVIRONMENT_NAME;
   const isRailway = Boolean(environment.RAILWAY_PROJECT_ID);
@@ -39,7 +43,7 @@ function stagingGateMode(environment: Readonly<Record<string, string | undefined
   // A staging branch must never become public if Railway points it at a
   // differently named environment. Keep the ordinary production/main path
   // unchanged, and fail closed for other Railway environments.
-  if (isRailway && (environmentName !== "production" || environment.RAILWAY_GIT_BRANCH === "staging")) {
+  if (isRailway && (environmentName !== "production" || normalizedRailwayBranch(environment.RAILWAY_GIT_BRANCH) === "staging")) {
     return "misconfigured";
   }
   return "off";

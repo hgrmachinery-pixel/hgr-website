@@ -6,6 +6,16 @@ import { sql } from "@payloadcms/db-postgres";
 const retryBaseMs = 30_000;
 const retryMaxMs = 6 * 60 * 60 * 1000;
 
+export function isAllowedMachineMediaCleanupTarget(environmentName: string | undefined, bucket: string | undefined): boolean {
+  const environment = environmentName?.trim().toLocaleLowerCase("en");
+  const expectedBucket = environment === "staging"
+    ? "hgr-staging-media"
+    : environment === "production"
+      ? "hgr-production-media"
+      : undefined;
+  return expectedBucket !== undefined && bucket === expectedBucket;
+}
+
 export function machineMediaObjectKeys(files: Array<{
   filename?: unknown;
   prefix?: unknown;
@@ -71,6 +81,10 @@ export function startMachineMediaDeletionWorker(payload: Payload): void {
   const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
   if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
     payload.logger.error({ msg: "Machine photo cleanup worker is enabled but storage configuration is incomplete" });
+    return;
+  }
+  if (!isAllowedMachineMediaCleanupTarget(process.env.RAILWAY_ENVIRONMENT_NAME, bucket)) {
+    payload.logger.error({ msg: "Machine photo cleanup worker environment and storage bucket do not match; worker remains stopped" });
     return;
   }
   const client = new S3Client({

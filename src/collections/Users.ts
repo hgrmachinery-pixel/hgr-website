@@ -1,5 +1,6 @@
 import type { CollectionConfig, PayloadRequest } from "payload";
 import { sql } from "@payloadcms/db-postgres";
+import { timingSafeEqual } from "node:crypto";
 
 import { isStaffUser } from "../lib/machines/access.ts";
 import { hasOwnerAuthority } from "../lib/auth/permissions.ts";
@@ -40,6 +41,15 @@ async function canManageUsers(req: PayloadRequest): Promise<boolean> {
   return hasOwnerAuthority(req);
 }
 
+function ownerBootstrapAuthorized(req: PayloadRequest): boolean {
+  const token = process.env.HGR_OWNER_BOOTSTRAP_TOKEN;
+  const supplied = req.headers?.get("x-hgr-owner-bootstrap-token");
+  if (!token || token.length < 32 || !supplied) return false;
+  const expectedBytes = Buffer.from(token);
+  const suppliedBytes = Buffer.from(supplied);
+  return expectedBytes.length === suppliedBytes.length && timingSafeEqual(expectedBytes, suppliedBytes);
+}
+
 async function lockOwnerRole(req: PayloadRequest): Promise<string | number> {
   const transactionID = await req.transactionID;
   const session = transactionID
@@ -74,7 +84,7 @@ export const Users: CollectionConfig = {
   slug: "users",
   auth: {
     cookies: {
-      secure: process.env.SERVER_URL?.startsWith("https://") === true,
+      secure: process.env.NODE_ENV === "production" || process.env.SERVER_URL?.startsWith("https://") === true,
       sameSite: "Lax",
     },
     maxLoginAttempts: 5,
@@ -93,7 +103,9 @@ export const Users: CollectionConfig = {
     // Access checks are also used by Payload's permission probe. Keep them
     // side-effect-free; the transaction lock and authoritative recount happen
     // in beforeChange when a create is actually attempted.
-    create: async ({ req }) => (await userCount(req)) === 0 || canManageUsers(req),
+    create: async ({ req }) => (await userCount(req)) === 0
+      ? ownerBootstrapAuthorized(req)
+      : canManageUsers(req),
     read: async ({ id, req }) => {
       const user = req.user;
       if (!isStaffUser(user)) return false;
@@ -135,6 +147,9 @@ export const Users: CollectionConfig = {
         return data;
       }
 
+      if (await userCount(req) === 0 && !ownerBootstrapAuthorized(req)) {
+        throw new Error("Initial Owner setup is not authorized.");
+      }
       if (await isFirstAccount(req)) {
         // The first account is bound to the pre-seeded Owner role. Ignore any
         // client-supplied relationship so bootstrap cannot choose a weaker role.

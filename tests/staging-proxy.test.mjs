@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { createStagingProxy } from "../src/lib/stagingBasicAuth.ts";
+import { checkStagingBasicAuth } from "../src/lib/stagingBasicAuth.ts";
 
 const environmentKeys = [
   "RAILWAY_PROJECT_ID",
@@ -118,6 +119,18 @@ test("production behavior remains unchanged and misnamed Railway environments fa
     const response = stagingProxy()(request("/"));
     assert.equal(response.status, 503);
   });
+});
+
+test("staging and refs/heads/staging branch values both fail closed on a misnamed production environment", () => {
+  for (const branch of ["staging", "refs/heads/staging"]) {
+    const result = checkStagingBasicAuth(request("/"), {
+      RAILWAY_PROJECT_ID: "synthetic-project",
+      RAILWAY_ENVIRONMENT_NAME: "production",
+      RAILWAY_GIT_BRANCH: branch,
+    });
+    assert.equal(result.mode, "denied");
+    assert.equal(result.response.status, 503);
+  }
 });
 
 test("Next proxy has no matcher exclusions, so it runs before every route", async () => {

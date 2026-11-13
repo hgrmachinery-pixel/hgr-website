@@ -6,6 +6,7 @@ import { isStaffUser } from "../src/lib/machines/access.ts";
 import { MachineDocuments } from "../src/collections/MachineDocuments.ts";
 import { validateImageUpload, publicMachineMediaAccess } from "../src/lib/machines/media.ts";
 import { configuredDocumentMimeTypes } from "../src/lib/machines/documents.ts";
+import { validateServerURL } from "../src/lib/serverURL.ts";
 
 const publicMachine = {
   id: 42,
@@ -69,4 +70,27 @@ test("the initial staff boundary remains limited to authenticated users records"
 test("photo batch and document MIME validation reject unsafe inputs", () => {
   assert.match(validateImageUpload(0), /invalid image size/i);
   assert.deepEqual(configuredDocumentMimeTypes("application/pdf, image/jpeg, image/svg+xml"), ["application/pdf", "image/jpeg"]);
+});
+
+test("Next.js baseline security headers are configured without HSTS or CSP", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const config = await readFile(new URL("../next.config.mjs", import.meta.url), "utf8");
+  assert.match(config, /poweredByHeader:\s*false/);
+  assert.match(config, /X-Content-Type-Options.*nosniff/);
+  assert.match(config, /X-Frame-Options.*DENY/);
+  assert.match(config, /Referrer-Policy.*strict-origin-when-cross-origin/);
+  assert.doesNotMatch(config, /Strict-Transport-Security|Content-Security-Policy/);
+});
+
+test("production SERVER_URL guard requires HTTPS and Secure cookies fail closed", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const config = await readFile(new URL("../src/payload.config.ts", import.meta.url), "utf8");
+  const users = await readFile(new URL("../src/collections/Users.ts", import.meta.url), "utf8");
+  assert.match(config, /validateServerURL\(serverURL\)/);
+  assert.throws(() => validateServerURL("http://hgrmachinery.com", "production"), /must use HTTPS/);
+  assert.equal(validateServerURL("https://hgrmachinery.com", "production").origin, "https://hgrmachinery.com");
+  assert.throws(() => validateServerURL("https://wrong.example", "production", "production"), /must be https:\/\/hgrmachinery\.com/);
+  assert.equal(validateServerURL("https://abundant-presence-staging.up.railway.app", "production", "staging").origin, "https://abundant-presence-staging.up.railway.app");
+  assert.equal(validateServerURL("http://localhost:3000", "development").origin, "http://localhost:3000");
+  assert.match(users, /secure: process\.env\.NODE_ENV === "production" \|\| process\.env\.SERVER_URL\?\.startsWith\("https:\/\/"\) === true/);
 });

@@ -99,7 +99,7 @@ test("production config uses R2 for media collections and omits the fixture", ()
     assert.ok(users.auth);
     assert.equal(await users.access.read({ req: { user: null } }), false);
     assert.equal(await users.access.create({ req: { user: null, payload: { count: async () => ({ totalDocs: 1 }) } } }), false);
-    assert.equal(await users.access.create({ req: { user: null, payload: { count: async () => ({ totalDocs: 0 }) } } }), true);
+    assert.equal(await users.access.create({ req: { user: null, headers: new Headers(), payload: { count: async () => ({ totalDocs: 0 }) } } }), false);
     assert.equal(config.upload.limits.fileSize, 5 * 1024 * 1024);
     assert.equal(config.upload.abortOnLimit, true);
     const image = await config.sharp({ create: { width: 800, height: 600, channels: 3, background: '#f89800' } }).png().toBuffer();
@@ -109,6 +109,16 @@ test("production config uses R2 for media collections and omits the fixture", ()
     assert.equal(metadata.height, 480);
   `,
   );
+  assert.equal(result.status, 0, result.stderr || result.error?.message);
+});
+
+test("initial Owner create access requires the configured bootstrap header", () => {
+  const token = "synthetic-owner-bootstrap-token-with-32-chars";
+  const result = loadConfig({ HGR_OWNER_BOOTSTRAP_TOKEN: token }, `
+    const users = config.collections.find(({ slug }) => slug === 'users');
+    const req = { user: null, headers: new Headers({ 'x-hgr-owner-bootstrap-token': ${JSON.stringify(token)} }), payload: { count: async () => ({ totalDocs: 0 }) } };
+    assert.equal(await users.access.create({ req }), true);
+  `);
   assert.equal(result.status, 0, result.stderr || result.error?.message);
 });
 
