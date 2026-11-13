@@ -140,6 +140,10 @@ export function getPublicImageURL(
 export function projectPublicImage(value: unknown, deliveryVerified = false): PublicImageCandidate | undefined {
   if (!value || typeof value !== "object") return undefined;
   const image = value as Record<string, unknown>;
+  // This marker is added only after Payload's public read access has authorized
+  // the current processed derivative. Do not project master URLs just because
+  // they happen to have responsive-size metadata.
+  if (!deliveryVerified || image.__hgrPublicDerivative !== true) return undefined;
   const sizes = image.sizes && typeof image.sizes === "object" ? image.sizes as Record<string, unknown> : {};
   const thumbnail = sizes.thumbnail && typeof sizes.thumbnail === "object" ? sizes.thumbnail as Record<string, unknown> : {};
   const card = sizes.card && typeof sizes.card === "object" ? sizes.card as Record<string, unknown> : {};
@@ -153,9 +157,7 @@ export function projectPublicImage(value: unknown, deliveryVerified = false): Pu
   // Payload omits a configured size when the source is already smaller in both
   // dimensions. The top-level URL is still the processed WebP for a derivative;
   // never use it for a private master.
-  const processedDerivativeUrl = image.assetKind === "derivative" || image.__hgrPublicDerivative === true
-    ? getPublicImageURL(image.url, deliveryVerified)
-    : undefined;
+  const processedDerivativeUrl = getPublicImageURL(image.url, deliveryVerified);
   const actualWidth = (size: Record<string, unknown>) =>
     typeof size.width === "number" && Number.isSafeInteger(size.width) && size.width > 0 ? size.width : undefined;
   const url = cardUrl ?? largeUrl ?? thumbnailUrl ?? processedDerivativeUrl;

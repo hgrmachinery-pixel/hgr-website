@@ -9,6 +9,7 @@ const image = (overrides = {}) => ({
   category: "side-view-1",
   order: 4,
   assetKind: "derivative",
+  __hgrPublicDerivative: true,
   processingStatus: "ready",
   sizes: {
     thumbnail: { url: "/api/machine-media/file/thumb.jpg", width: 320 },
@@ -43,11 +44,12 @@ test("partial responsive images fall back only to the processed derivative, neve
   });
   assert.equal(projectPublicImage(image({ sizes: {} }), true)?.url, "/api/machine-media/file/processed-r1.webp");
   assert.equal(projectPublicImage(image({ assetKind: undefined, __hgrPublicDerivative: true, sizes: {} }), true)?.url, "/api/machine-media/file/processed-r1.webp");
-  assert.equal(projectPublicImage(image({ assetKind: "master", sizes: {} }), true), undefined);
+  assert.equal(projectPublicImage(image({ assetKind: "master", __hgrPublicDerivative: false, sizes: {} }), true), undefined);
 });
 
 test("unverified and unsafe image routes stay closed while safe processed fallback and empty alt text remain valid", () => {
   assert.equal(projectPublicImage(image(), false), undefined);
+  assert.equal(projectPublicImage(image({ __hgrPublicDerivative: false }), true), undefined);
   assert.equal(projectPublicImage(image({ sizes: { card: { url: "https://bucket.example/card.jpg" } } }), true)?.url, "/api/machine-media/file/processed-r1.webp");
   assert.equal(projectPublicImage(image({ url: "https://bucket.example/private.jpg", sizes: { card: { url: "https://bucket.example/card.jpg" } } }), true), undefined);
   assert.equal(projectPublicImage(image({ assetKind: "master", url: "/api/machine-documents/file/private.pdf", sizes: { card: { url: "/api/machine-documents/file/private.pdf" } } }), true), undefined);
@@ -69,8 +71,9 @@ test("responsive srcSet uses actual derivative widths and omits invalid width me
   assert.equal(projectPublicImage(image({ sizes: { card: { url: "/api/machine-media/file/card.jpg", width: "640" } } }), true)?.cardWidth, undefined);
 });
 
-test("machine share metadata uses only the eligible featured large derivative and factual alt", async () => {
+test("machine share metadata prefers large and falls back only to public processed derivatives", async () => {
   const { buildMachineMetadata } = await import("../src/lib/siteMetadata.ts");
+  const { projectPublicImage } = await import("../src/lib/machines/publicInventory.ts");
   const machine = {
     hgrId: "HGR-000028",
     slug: "komatsu-pc200-hgr-000028",
@@ -79,15 +82,25 @@ test("machine share metadata uses only the eligible featured large derivative an
     model: "PC200",
     year: 2018,
     stockStatus: "available",
-    featuredImage: { url: "/api/machine-media/file/card.jpg", largeUrl: "/api/machine-media/file/large.jpg", altText: "Komatsu PC200 viewed from the side" },
+    featuredImage: projectPublicImage(image(), true),
   };
   const metadata = buildMachineMetadata(machine, "https://hgrmachinery.com");
-  assert.deepEqual(metadata.openGraph.images, [{ url: "https://hgrmachinery.com/api/machine-media/file/large.jpg", alt: "Komatsu PC200 viewed from the side" }]);
-  assert.deepEqual(metadata.twitter.images, [{ url: "https://hgrmachinery.com/api/machine-media/file/large.jpg", alt: "Komatsu PC200 viewed from the side" }]);
+  assert.deepEqual(metadata.openGraph.images, [{ url: "https://hgrmachinery.com/api/machine-media/file/large.jpg", alt: "Komatsu PC200 excavator viewed from the side" }]);
+  assert.deepEqual(metadata.twitter.images, [{ url: "https://hgrmachinery.com/api/machine-media/file/large.jpg", alt: "Komatsu PC200 excavator viewed from the side" }]);
+
+  const cardOnly = projectPublicImage(image({ sizes: { card: { url: "/api/machine-media/file/card.jpg", width: 640 } } }), true);
+  const cardMetadata = buildMachineMetadata({ ...machine, featuredImage: cardOnly }, "https://hgrmachinery.com");
+  assert.deepEqual(cardMetadata.openGraph.images, [{ url: "https://hgrmachinery.com/api/machine-media/file/card.jpg", alt: "Komatsu PC200 excavator viewed from the side" }]);
+  assert.deepEqual(cardMetadata.twitter.images, cardMetadata.openGraph.images);
+
+  const master = projectPublicImage(image({ assetKind: "master", __hgrPublicDerivative: false, sizes: { card: { url: "/api/machine-media/file/private-master.jpg", width: 640 } } }), true);
+  assert.equal(master, undefined);
+  const privateOnlyMetadata = buildMachineMetadata({ ...machine, featuredImage: master }, "https://hgrmachinery.com");
+  assert.deepEqual(privateOnlyMetadata.openGraph.images, undefined);
 
   const noImage = buildMachineMetadata({ ...machine, featuredImage: undefined }, "https://hgrmachinery.com");
   assert.equal("images" in noImage.openGraph, false);
-  assert.equal("twitter" in noImage, false);
+  assert.equal(noImage.twitter.card, "summary");
 });
 
 test("cards and gallery use responsive browser image sources without changing alt text", async () => {
