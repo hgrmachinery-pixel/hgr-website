@@ -89,7 +89,9 @@ async function publish(machine, photos) {
 }
 
 function hydratedPublicMachine(machine, photos) {
-  const byId = new Map(photos.map((photo) => [String(photo.id), photo]));
+  // Public queries add this marker only after Payload has authorized each
+  // processed derivative. Model that public-read result in the fixture.
+  const byId = new Map(photos.map((photo) => [String(photo.id), { ...photo, __hgrPublicDerivative: true }]));
   return {
     ...machine,
     featuredImage: byId.get(String(machine.featuredImage)) ?? null,

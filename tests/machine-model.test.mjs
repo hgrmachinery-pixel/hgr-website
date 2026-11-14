@@ -93,7 +93,7 @@ test("machine photo alt text uses only machine facts and the selected view categ
   assert.ok(generateMachinePhotoAltText({ brand: "x".repeat(300) }, "engine").length <= 250);
 });
 
-test("machine configuration protects identity from routine changes and deletion", async () => {
+test("machine configuration protects identity and scopes permanent deletion safely", async () => {
   const [collection, config] = await Promise.all([
     readFile(new URL("../src/collections/Machines.ts", import.meta.url), "utf8"),
     readFile(new URL("../src/payload.config.ts", import.meta.url), "utf8"),
@@ -101,7 +101,8 @@ test("machine configuration protects identity from routine changes and deletion"
 
   assert.match(config, /Machines/);
   assert.match(collection, /disableDuplicate:\s*true/);
-  assert.match(collection, /delete:\s*deny/);
+  assert.match(collection, /delete: async \(\{ id, req \}\) => canOwnerDeleteMachine\(req, id\)/);
+  assert.match(collection, /disableBulkDelete:\s*true/);
   assert.match(collection, /unique:\s*true/);
   assert.match(collection, /originalDoc/);
 });
