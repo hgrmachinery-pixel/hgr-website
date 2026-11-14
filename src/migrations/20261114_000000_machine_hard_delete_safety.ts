@@ -42,6 +42,10 @@ export async function up({ db }: MigrateUpArgs): Promise<void> {
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
   await db.execute(sql`
+    -- Keep this check atomic with rollback so a concurrent publish cannot
+    -- commit after the guard passes but before its safety marker is dropped.
+    LOCK TABLE "machines", "_machines_v" IN ACCESS EXCLUSIVE MODE;
+
     DO $$ BEGIN
       IF EXISTS (
         SELECT 1 FROM "machines"

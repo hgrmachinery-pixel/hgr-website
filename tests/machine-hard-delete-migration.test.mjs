@@ -18,7 +18,8 @@ test("machine deletion guard is registered and legacy publication history fails 
 test("migration rollback refuses to remove the publication safety marker while history is protected or unknown", async () => {
   const migration = await readFile(new URL("../src/migrations/20261114_000000_machine_hard_delete_safety.ts", import.meta.url), "utf8");
   const guard = migration.indexOf('"ever_published" IS DISTINCT FROM FALSE');
+  const lock = migration.indexOf('LOCK TABLE "machines", "_machines_v" IN ACCESS EXCLUSIVE MODE');
   const drop = migration.indexOf('ALTER TABLE "machines" DROP COLUMN "ever_published"');
-  assert.ok(guard >= 0 && drop > guard);
+  assert.ok(lock >= 0 && guard > lock && drop > guard);
   assert.match(migration, /version__status" = 'published'/);
 });
