@@ -1,6 +1,6 @@
 import { sql } from "@payloadcms/db-postgres";
 import type { CollectionConfig, PayloadRequest } from "payload";
-import { createLocalReq } from "payload";
+import { APIError, createLocalReq } from "payload";
 
 import {
   appendHistoricalSlug,
@@ -11,7 +11,7 @@ import {
   validateMachinePrice,
 } from "../lib/machines/identity";
 import {
-  denyAccess as deny,
+  isStaffUser,
   publishedMachineRead,
   publicPriceRead,
   publicSerialRead,
@@ -20,6 +20,8 @@ import {
 import { machinePreviewURL } from "../lib/machines/preview";
 import { isPublicMachineDerivative, serialVisibilityPolicyChanged } from "../lib/machines/media.ts";
 import { youtubeVideoId } from "../lib/machines/video.ts";
+import { canOwnerDeleteMachine, getMachineDeletionBlockReason } from "../lib/machines/deletion.ts";
+import { hasOwnerAuthority } from "../lib/auth/permissions.ts";
 
 type MachineIdentity = {
   hgrId?: string;
@@ -73,6 +75,7 @@ async function readLatestIdentity(
     sql: sql`SELECT "hgr_id" AS "hgrId", "slug", "previous_slugs" AS "previousSlugs", "show_serial_publicly" AS "showSerialPublicly", "serial_visibility_revision" AS "serialVisibilityRevision", "current_photo_revisions" AS "currentPhotoRevisions" FROM "machines" WHERE "id" = ${id} FOR UPDATE`,
   });
   const row = result.rows[0] as MachineIdentity | undefined;
+  if (!row) throw new APIError("This machine no longer exists. Reload the page before saving.", 404, undefined, true);
   return row;
 }
 
@@ -94,6 +97,7 @@ async function allocateMachineId(req: PayloadRequest) {
 
 export const Machines: CollectionConfig = {
   slug: "machines",
+  disableBulkDelete: true,
   labels: {
     singular: "Machine",
     plural: "Machines",
@@ -104,7 +108,10 @@ export const Machines: CollectionConfig = {
     description: "Manage one record for each physical machine.",
     listSearchableFields: ["hgrId", "brand", "model"],
     enableRichTextRelationship: false,
-    components: { edit: { beforeDocumentControls: ["@/components/payload/CopyMachineLink#CopyMachineLink"] } },
+    components: { edit: { beforeDocumentControls: [
+      "@/components/payload/CopyMachineLink#CopyMachineLink",
+      "@/components/payload/MachineDeleteAction#MachineDeleteAction",
+    ] } },
     preview: (doc) => {
       const baseURL = process.env.SERVER_URL;
       const secret = process.env.PREVIEW_SECRET;
@@ -117,7 +124,7 @@ export const Machines: CollectionConfig = {
     create: isStaff,
     read: publishedMachineRead,
     update: isStaff,
-    delete: deny,
+    delete: async ({ id, req }) => canOwnerDeleteMachine(req, id),
     readVersions: isStaff,
   },
   versions: {
@@ -125,6 +132,14 @@ export const Machines: CollectionConfig = {
     maxPerDoc: 100,
   },
   hooks: {
+    beforeOperation: [async ({ args, operation }) => {
+      if (operation !== "delete" && operation !== "deleteByID") return args;
+      const deleteArgs = args as { id?: unknown; where?: unknown };
+      if (deleteArgs.id === undefined || deleteArgs.where !== undefined) {
+        throw new APIError("Machines must be deleted one at a time by an Owner.", 400, undefined, true);
+      }
+      return args;
+    }],
     beforeValidate: [async ({ data, operation, originalDoc, req }) => {
       if (!data) return data;
 
@@ -180,6 +195,43 @@ export const Machines: CollectionConfig = {
       }
 
       return data;
+    }],
+    beforeDelete: [async ({ id, req }) => {
+      if (!isStaffUser(req.user) || !(await hasOwnerAuthority(req))) {
+        throw new APIError("Only the current Owner can permanently delete a machine.", 403, undefined, true);
+      }
+      if (id === undefined) throw new APIError("Machines must be deleted one at a time.", 400, undefined, true);
+
+      const transactionID = await req.transactionID;
+      const session = transactionID ? req.payload.db.sessions?.[String(transactionID)]?.db : undefined;
+      if (!transactionID || !session) {
+        throw new APIError("Machine deletion requires an active database transaction. Retry the request.", 500, undefined, true);
+      }
+      const db = session as Parameters<typeof req.payload.db.execute>[0]["db"];
+
+      const locked = await req.payload.db.execute({
+        db,
+        drizzle: req.payload.db.drizzle,
+        sql: sql`SELECT "id" FROM "machines" WHERE "id" = ${id} FOR UPDATE`,
+      });
+      if (!locked.rows[0]) throw new APIError("This machine no longer exists. Reload the page and retry.", 404, undefined, true);
+
+      // Recheck persisted Owner authority after acquiring the machine lock.
+      if (!(await hasOwnerAuthority(req))) {
+        throw new APIError("Only the current Owner can permanently delete a machine.", 403, undefined, true);
+      }
+
+      const refusal = await getMachineDeletionBlockReason(req, id, db);
+      if (refusal) throw new APIError(refusal, 400, undefined, true);
+
+      // Payload's built-in cleanup logs and swallows version deletion errors.
+      // Remove draft versions explicitly in this transaction so a failure
+      // aborts the machine deletion instead of leaving detached version rows.
+      await req.payload.db.deleteVersions({
+        collection: "machines",
+        req,
+        where: { parent: { equals: id } },
+      });
     }],
     beforeChange: [async ({ data, operation, originalDoc, req }) => {
       const context = req.context as Record<string, unknown>;

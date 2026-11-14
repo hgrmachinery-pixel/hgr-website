@@ -7,6 +7,7 @@ import * as migration_20261007_210000_inventory_media_workflow from './20261007_
 import * as migration_20261009_000000_r2_storage_prefixes from './20261009_000000_r2_storage_prefixes';
 import * as migration_20261011_000000_site_contact_expansion from './20261011_000000_site_contact_expansion';
 import * as migration_20261112_000000_machine_media_deletion_jobs from './20261112_000000_machine_media_deletion_jobs';
+import * as migration_20261114_000000_machine_hard_delete_safety from './20261114_000000_machine_hard_delete_safety';
 
 export const migrations = [
   {
@@ -53,5 +54,10 @@ export const migrations = [
     up: migration_20261112_000000_machine_media_deletion_jobs.up,
     down: migration_20261112_000000_machine_media_deletion_jobs.down,
     name: '20261112_000000_machine_media_deletion_jobs',
+  },
+  {
+    up: migration_20261114_000000_machine_hard_delete_safety.up,
+    down: migration_20261114_000000_machine_hard_delete_safety.down,
+    name: '20261114_000000_machine_hard_delete_safety',
   },
 ];
