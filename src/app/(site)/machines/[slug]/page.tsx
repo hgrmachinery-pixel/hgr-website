@@ -17,23 +17,23 @@ import { buildMachineMetadata, buildMachineStructuredData, getIndexingPolicy, ge
 import { TrackAnalyticsEvent } from "../../../../components/site/AnalyticsProvider";
 import { TrackedContactLink } from "../../../../components/site/TrackedContactLink";
 import { createAnalyticsEvent } from "../../../../lib/analytics/events.ts";
+import { resolvePublicDetail, throwIfPublicDetailUnavailable } from "../../../../lib/publicDetail.ts";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const resolved = await getPublicMachineForSlug(slug);
+  throwIfPublicDetailUnavailable(resolved.unavailable);
   const machine = resolved.machine;
-  if (!machine || resolved.unavailable) return { robots: getIndexingPolicy() };
+  if (!machine) return { robots: getIndexingPolicy() };
   return { ...buildMachineMetadata(machine, getPublicOrigin()), robots: getIndexingPolicy() };
 }
 
 export default async function MachineDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const resolved = await getPublicMachineForSlug(slug);
-  if (resolved.unavailable) notFound();
-  const machine = resolved.machine;
-  if (!machine) notFound();
+  const machine = resolvePublicDetail(resolved.machine, resolved.unavailable, notFound);
   if (machine.slug !== slug) permanentRedirect(publicMachinePath(machine.slug));
   const inventory = await getPublicMachines();
   const images = machine.images;

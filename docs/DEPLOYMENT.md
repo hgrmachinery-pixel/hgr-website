@@ -12,6 +12,23 @@ This runbook describes the intended production path. Railway runs the Next.js ap
 
 Railway deploys commits pushed to the connected branch. If GitHub Actions is configured, enable Railway's **Wait for CI**. See [Railway GitHub auto-deploys](https://docs.railway.com/deployments/github-autodeploys).
 
+## Isolated Railway staging and access protection
+
+Create a separate Railway environment named exactly `staging` and connect it only to the GitHub `staging` branch. Railway must provide a non-empty `RAILWAY_PROJECT_ID` and `RAILWAY_ENVIRONMENT_NAME=staging`; do not override these system variables.
+
+Before exposing the staging URL, set these protected variables in the staging environment only:
+
+- `HGR_STAGING_BASIC_AUTH_USERNAME` — placeholder: `<staging-review-username>`
+- `HGR_STAGING_BASIC_AUTH_PASSWORD` — placeholder: `<unique-staging-password>`
+
+Replace the placeholders with unique values in Railway's protected variable settings. Never put real values in this guide, `.env.example`, Git, logs, or production/shared variable groups. `.env.example` intentionally contains blank values.
+
+The Next.js proxy gates every request, including pages, `/admin`, `/api`, media, Next.js assets, `robots.txt`, and `sitemap.xml`. Missing or unexpected Railway staging metadata, or a missing username/password variable, returns HTTP 503 and fails closed. Missing or incorrect Basic Auth returns HTTP 401. Authorized staging responses are private and non-cacheable. Only the known Railway production environment deployed from branch `main` bypasses the gate.
+
+Use staging-only values for `DATABASE_URL`, `PAYLOAD_SECRET`, `PREVIEW_SECRET`, and the R2 endpoint, private bucket, and bucket-scoped credentials. Set `SERVER_URL` and `NEXT_PUBLIC_SERVER_URL` to the staging HTTPS origin before the first build. Keep enquiry email disabled and `HGR_PUBLIC_INDEXING_ENABLED=false` while staging is under review.
+
+Use `npm ci && npm run build` to install and build, and `npm run start` to start the app. The pre-deploy command `npm run migrate:production` applies Payload migrations. Configure or run it for staging only after the Owner verifies the separate staging database identity and approves the migration; never point it at production.
+
 ## Build, pre-deploy, and start
 
 Configure these Railway commands:
@@ -49,8 +66,9 @@ Set values only in Railway's protected service variables or an approved Neon ref
 - `R2_SECRET_ACCESS_KEY`
 - `HGR_MACHINE_PHOTO_MAX_FILE_BYTES`
 - `HGR_MACHINE_PHOTO_MAX_BATCH_BYTES`
+- `HGR_MACHINE_PHOTO_MAX_PIXELS` (optional; defaults to 20,000,000)
 
-Keep `PAYLOAD_SECRET` and `PREVIEW_SECRET` separate and stable. Provide each required variable to the build, migration, and runtime stages that use it. Photo limits must be positive whole-number byte counts suited to host limits and processing capacity; missing or invalid limits disable inventory photo processing.
+Keep `PAYLOAD_SECRET` and `PREVIEW_SECRET` separate and stable. Provide each required variable to the build, migration, and runtime stages that use it. Photo byte limits must be positive whole-number byte counts suited to host limits and processing capacity; missing or invalid limits disable inventory photo processing. The optional photo pixel limit must also be a positive whole number; unset uses the conservative 20-million-pixel default and images above it are rejected before pixel decoding.
 
 ### Optional and gated names
 

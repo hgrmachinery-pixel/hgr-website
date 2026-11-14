@@ -38,6 +38,17 @@ test("indexing fails closed unless production and explicit opt-in are both set",
   ]) assert.equal(getIndexingPolicy(config).index, false);
 });
 
+test("staging environment and staging branch can never enable indexing", async () => {
+  const { getIndexingPolicy, buildPublicSitemap } = await import("../src/lib/siteMetadata.ts");
+  const stageEnvironment = getIndexingPolicy({ nodeEnv: "production", enabled: "true", origin: "https://staging.example.invalid", railwayEnvironmentName: "staging" });
+  const stageBranch = getIndexingPolicy({ nodeEnv: "production", enabled: "true", origin: "https://hgrmachinery.com", railwayGitBranch: "refs/heads/staging" });
+  assert.deepEqual(stageEnvironment, { index: false, follow: true });
+  assert.deepEqual(stageBranch, { index: false, follow: true });
+  assert.deepEqual(buildPublicSitemap(stageEnvironment, "https://staging.example.invalid", [{ slug: "sample-hgr-000001", stockStatus: "available" }]), []);
+  assert.deepEqual(buildPublicSitemap(stageBranch, "https://hgrmachinery.com", [{ slug: "sample-hgr-000001", stockStatus: "available" }]), []);
+  assert.deepEqual(getIndexingPolicy({ nodeEnv: "production", enabled: "true", origin: "https://hgrmachinery.com", railwayEnvironmentName: "production", railwayGitBranch: "main" }), { index: true, follow: true });
+});
+
 test("robots builder keeps pages crawlable while withholding sitemap until indexing is enabled", async () => {
   const { buildRobotsRoute } = await import("../src/lib/siteMetadata.ts");
   const closed = buildRobotsRoute({ index: false, follow: true }, "https://hgrmachinery.com");
@@ -129,14 +140,60 @@ test("inventory query variants remain canonical to the base route and noindex", 
 
 test("supporting page metadata follows visible content and withholds empty legal pages", async () => {
   const { buildSupportingPageMetadata } = await import("../src/lib/siteMetadata.ts");
-  const repairs = buildSupportingPageMetadata({ slug: "repair-services", title: "Repair & Services", visibleText: "", fallbackDescription: "Send a request with the machine location and issue so HGR can review your repair and service enquiry.", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
-  assert.equal(repairs.title, "Repair & Services");
+  const repairs = buildSupportingPageMetadata({ slug: "repair-services", title: "HGR Machinery Repairs", seoDescription: "Owner-approved repair and servicing information.", visibleText: "Published repair body copy.", fallbackDescription: "Send a request with the machine location and issue so HGR can review your repair and service enquiry.", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
+  assert.equal(repairs.title, "HGR Machinery Repairs");
   assert.equal(repairs.alternates.canonical, "https://hgrmachinery.com/repair-services");
-  assert.match(repairs.description, /repair and service enquiry/);
+  assert.equal(repairs.description, "Owner-approved repair and servicing information.");
   const about = buildSupportingPageMetadata({ slug: "about", title: "About HGR", visibleText: "HGR Equipment Resources is a Malaysian used heavy machinery business.", fallbackDescription: "About HGR.", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
   assert.equal(about.alternates.canonical, "https://hgrmachinery.com/about");
   assert.match(about.description, /Malaysian used heavy machinery business/);
+  const visibleFallback = buildSupportingPageMetadata({ slug: "about", title: "About HGR", visibleText: "Visible CMS page copy.", fallbackDescription: "Fallback copy.", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
+  assert.equal(visibleFallback.description, "Visible CMS page copy.");
+  const descriptionFallback = buildSupportingPageMetadata({ slug: "about", title: "About HGR", visibleText: "", fallbackDescription: "Static safe fallback.", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
+  assert.equal(descriptionFallback.description, "Static safe fallback.");
   assert.equal(buildSupportingPageMetadata({ slug: "privacy-policy", title: "Privacy Policy", visibleText: "", fallbackDescription: "", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } }), null);
   const policy = buildSupportingPageMetadata({ slug: "privacy-policy", title: "Privacy Policy", visibleText: "Owner-published privacy wording.", fallbackDescription: "", origin: "https://hgrmachinery.com", robots: { index: true, follow: true } });
   assert.equal(policy.alternates.canonical, "https://hgrmachinery.com/privacy-policy");
+});
+
+test("supporting page route passes SEO title and description through, including Repair & Services", async () => {
+  const source = await readFile(new URL("../src/app/(site)/[supportingPage]/page.tsx", import.meta.url), "utf8");
+  assert.match(source, /title:\s*typeof page\?\.seoTitle/);
+  assert.match(source, /seoDescription:\s*typeof page\?\.seoDescription/);
+});
+
+test("public detail error boundary does not expose technical details", async () => {
+  const errorBoundary = await readFile(new URL("../src/app/(site)/error.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(errorBoundary, /Foundation test could not load|database|SQL|Postgres|exception/i);
+  assert.match(errorBoundary, /Please try again in a moment/);
+});
+
+test("global and homepage metadata include factual launch defaults", async () => {
+  const layout = await readFile(new URL("../src/app/(site)/layout.tsx", import.meta.url), "utf8");
+  const home = await readFile(new URL("../src/app/(site)/page.tsx", import.meta.url), "utf8");
+  assert.match(layout, /metadataBase:\s*getSiteMetadataBase\(\)/);
+  assert.match(layout, /machinery repairs, servicing, spare parts, refurbishment and equipment rental in Malaysia/);
+  assert.match(layout, /openGraph:/);
+  assert.match(layout, /twitter:/);
+  assert.match(home, /title:\s*"Used Excavators in Malaysia"/);
+  assert.match(home, /HGR Equipment Resources/);
+});
+
+test("detail pages route missing records to notFound and unavailable data to the error boundary", async () => {
+  const { resolvePublicDetail } = await import("../src/lib/publicDetail.ts");
+  const missing = new Error("not-found sentinel");
+  assert.throws(() => resolvePublicDetail(null, false, () => { throw missing; }), (error) => error === missing);
+  let notFoundCalled = false;
+  assert.throws(() => resolvePublicDetail(null, true, () => { notFoundCalled = true; throw missing; }), /temporarily unavailable/);
+  assert.equal(notFoundCalled, false);
+
+  for (const file of [
+    "../src/app/(site)/machines/[slug]/page.tsx",
+    "../src/app/(site)/spare-parts/[slug]/page.tsx",
+    "../src/app/(site)/lubricants/[slug]/page.tsx",
+  ]) {
+    const route = await readFile(new URL(file, import.meta.url), "utf8");
+    assert.match(route, /resolvePublicDetail\(/);
+    assert.match(route, /throwIfPublicDetailUnavailable\(/);
+  }
 });

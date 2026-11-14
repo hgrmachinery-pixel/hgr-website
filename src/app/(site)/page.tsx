@@ -10,8 +10,8 @@ export const dynamic = "force-dynamic";
 
 export function generateMetadata() {
   return buildRouteMetadata({
-    title: "Used Machines",
-    description: "Browse HGR’s used excavator inventory in Malaysia and enquire about used machines, repair services, spare parts, lubricants and rental equipment.",
+    title: "Used Excavators in Malaysia",
+    description: "Explore used excavators and heavy machinery in Malaysia from HGR Equipment Resources. Ask our team about repairs, servicing, spare parts, refurbishment or equipment rental.",
     path: "/",
     origin: getPublicOrigin(),
     robots: getIndexingPolicy(),

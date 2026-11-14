@@ -53,7 +53,7 @@ export async function reviewMachinePhoto({ request, payload }: { request: Reques
     if (derivative.contentDigest !== digest) { await killTransaction(req); return { status: 409, error: "The image changed after review began; inspect the current revision again" }; }
     if (Number(revisions[derivative.photoIdentity]) !== derivative.revision) { await killTransaction(req); return { status: 409, error: "This is not the current photo revision" }; }
     const serialPolicyRevision = Number(machine.serialVisibilityRevision ?? 1);
-    if (derivative.review?.status === "approved" && derivative.review?.digest === digest && Number(derivative.review?.serialPolicyRevision) === serialPolicyRevision) {
+    if (event === "approved" && derivative.review?.status === "approved" && derivative.review?.digest === digest && Number(derivative.review?.serialPolicyRevision) === serialPolicyRevision) {
       await killTransaction(req);
       return { status: 200, id, approved: true, idempotent: true };
     }
@@ -64,7 +64,8 @@ export async function reviewMachinePhoto({ request, payload }: { request: Reques
     const auditHistory = [...priorAudit, { event, actor: auth.user.id, at: now, digest, revision: derivative.revision, serialPolicyRevision, checklist }];
     const data = {
       review: { status: uncertain || found ? "needs-review" as const : "approved" as const, revision: derivative.revision, digest, serialPolicyRevision, reviewedBy: auth.user.id, reviewedAt: now, checklist: reviewedChecklist },
-      ...(!uncertain && !found ? { approvedBy: auth.user.id, approvedAt: now } : {}),
+      approvedBy: !uncertain && !found ? auth.user.id : null,
+      approvedAt: !uncertain && !found ? now : null,
       lastModifiedBy: auth.user.id, lastModifiedAt: now, reviewHistory, auditHistory,
     };
     await payload.update({ collection: "machine-media", id, data, overrideAccess: true, req });

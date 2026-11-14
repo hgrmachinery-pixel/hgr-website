@@ -5,6 +5,8 @@ type IndexingEnvironment = {
   nodeEnv?: string;
   enabled?: string;
   origin?: string;
+  railwayEnvironmentName?: string;
+  railwayGitBranch?: string;
 };
 
 type PublicIndexingPolicy = { index: boolean; follow: boolean };
@@ -45,8 +47,13 @@ export function getIndexingPolicy(environment: IndexingEnvironment = {
   nodeEnv: process.env.NODE_ENV,
   enabled: process.env.HGR_PUBLIC_INDEXING_ENABLED,
   origin: process.env.SERVER_URL,
+  railwayEnvironmentName: process.env.RAILWAY_ENVIRONMENT_NAME,
+  railwayGitBranch: process.env.RAILWAY_GIT_BRANCH,
 }) {
-  const index = environment.nodeEnv === "production" && environment.enabled === "true" && Boolean(getPublicOrigin(environment.origin));
+  const environmentName = environment.railwayEnvironmentName?.trim().toLocaleLowerCase("en");
+  const branchName = environment.railwayGitBranch?.trim().toLocaleLowerCase("en").replace(/^refs\/heads\//, "");
+  const isStaging = environmentName === "staging" || branchName === "staging";
+  const index = !isStaging && environment.nodeEnv === "production" && environment.enabled === "true" && Boolean(getPublicOrigin(environment.origin));
   return { index, follow: true } satisfies NonNullable<Metadata["robots"]>;
 }
 
@@ -126,6 +133,19 @@ export function buildRouteMetadata({
     title,
     description: normalizeDescription(description),
     robots,
+    openGraph: {
+      type: "website",
+      siteName: "HGR Equipment Resources",
+      locale: "en_MY",
+      title,
+      description: normalizeDescription(description),
+      ...(canonical ? { url: canonical } : {}),
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description: normalizeDescription(description),
+    },
     ...(canonical ? { alternates: { canonical } } : {}),
   };
 }
@@ -148,6 +168,7 @@ export function buildInventoryMetadata(
 export function buildSupportingPageMetadata({
   slug,
   title,
+  seoDescription,
   visibleText,
   fallbackDescription,
   origin,
@@ -155,6 +176,7 @@ export function buildSupportingPageMetadata({
 }: {
   slug: string;
   title: string;
+  seoDescription?: string;
   visibleText: string;
   fallbackDescription: string;
   origin?: string;
@@ -164,7 +186,7 @@ export function buildSupportingPageMetadata({
   if (legal && !visibleText.trim()) return null;
   return buildRouteMetadata({
     title,
-    description: visibleText.trim() || fallbackDescription,
+    description: seoDescription?.trim() || visibleText.trim() || fallbackDescription,
     path: `/${slug}`,
     origin,
     robots,
@@ -176,11 +198,14 @@ export function buildMachineMetadata(machine: MachineForMetadata, origin?: strin
   const description = machine.description?.replace(/\s+/g, " ").trim().slice(0, 160) ||
     `${name}. Reference ${machine.reference}. Current status: ${statusText(machine.stockStatus)}.`;
   const canonical = origin ? new URL(publicMachinePath(machine.slug), origin).toString() : undefined;
-  const featuredLargeImage = machine.featuredImage && typeof machine.featuredImage.altText === "string"
-    ? getPublicImageURL(machine.featuredImage.largeUrl, true)
+  const featuredImage = machine.featuredImage;
+  const shareImageURL = featuredImage
+    ? [featuredImage.largeUrl, featuredImage.cardUrl, featuredImage.url]
+      .map((candidate) => getPublicImageURL(candidate, true))
+      .find((candidate): candidate is string => Boolean(candidate))
     : undefined;
-  const shareImage = featuredLargeImage
-    ? { url: origin ? new URL(featuredLargeImage, origin).toString() : featuredLargeImage, alt: machine.featuredImage?.altText ?? "" }
+  const shareImage = shareImageURL
+    ? { url: origin ? new URL(shareImageURL, origin).toString() : shareImageURL, alt: featuredImage?.altText ?? "" }
     : undefined;
   return {
     title: name,
@@ -188,12 +213,19 @@ export function buildMachineMetadata(machine: MachineForMetadata, origin?: strin
     ...(canonical ? { alternates: { canonical } } : {}),
     openGraph: {
       type: "website",
+      siteName: "HGR Equipment Resources",
+      locale: "en_MY",
       title: name,
       description,
       ...(canonical ? { url: canonical } : {}),
       ...(shareImage ? { images: [shareImage] } : {}),
     },
-    ...(shareImage ? { twitter: { card: "summary_large_image", images: [shareImage] } } : {}),
+    twitter: {
+      card: shareImage ? "summary_large_image" : "summary",
+      title: name,
+      description,
+      ...(shareImage ? { images: [shareImage] } : {}),
+    },
   };
 }
 

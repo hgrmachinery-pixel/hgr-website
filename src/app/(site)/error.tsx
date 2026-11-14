@@ -2,12 +2,9 @@
 
 export default function FoundationError({ reset }: { reset: () => void }) {
   return (
-    <main>
-      <h1>Foundation test could not load</h1>
-      <p>
-        The local test services may be unavailable. No machine inventory is
-        shown here.
-      </p>
+    <main className="page-shell">
+      <h1 className="page-title">We’re having trouble loading this page</h1>
+      <p className="page-intro">Please try again in a moment. If the problem continues, contact HGR for help.</p>
       <button type="button" onClick={reset}>
         Try again
       </button>

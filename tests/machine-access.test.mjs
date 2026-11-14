@@ -98,14 +98,15 @@ test("delegated document approvers cannot administer roles or staff accounts", a
   assert.equal(await Users.fields.find(({ name }) => name === "role").access.update({ req }), false);
 });
 
-test("first staff account receives the seeded Owner role; later accounts require Owner authority", async () => {
+test("first Owner bootstrap is denied without authorization and later accounts require Owner authority", async () => {
   const beforeChange = Users.hooks.beforeChange[0];
   let bootstrapLockCount = 0;
-  const run = (count, user, data = {}) => beforeChange({
+  const run = (count, user, data = {}, authorized = false) => beforeChange({
     data,
     operation: "create",
     req: {
       user,
+      headers: new Headers(authorized ? { "x-hgr-owner-bootstrap-token": "synthetic-owner-bootstrap-token-with-32-chars" } : {}),
       transactionID: "tx-1",
       payload: {
         count: async () => ({ totalDocs: count }),
@@ -119,14 +120,25 @@ test("first staff account receives the seeded Owner role; later accounts require
     },
   });
 
-  const first = await run(0, null, { email: "owner@example.invalid", role: 99 });
+  const priorToken = process.env.HGR_OWNER_BOOTSTRAP_TOKEN;
+  process.env.HGR_OWNER_BOOTSTRAP_TOKEN = "synthetic-owner-bootstrap-token-with-32-chars";
+  await assert.rejects(run(0, null, { email: "owner@example.invalid", role: 99 }), /not authorized/);
+  const first = await run(0, null, { email: "owner@example.invalid", role: 99 }, true);
+  if (priorToken === undefined) delete process.env.HGR_OWNER_BOOTSTRAP_TOKEN;
+  else process.env.HGR_OWNER_BOOTSTRAP_TOKEN = priorToken;
   assert.equal(first.role, 1);
   assert.equal(bootstrapLockCount, 1);
   const unauthorized = permissionRequest({ user: administrator, storedRole: 2, roles: new Map([[2, { id: 2, permissions: [] }]]) });
   await assert.rejects(beforeChange({ data: { email: "admin@example.invalid", role: 2 }, operation: "create", req: unauthorized.req }), /current Owner/);
 
-  const ownerState = permissionRequest({ count: 50 });
+  const ownerState = permissionRequest({ count: 0 });
+  assert.equal(await Users.access.create({ req: ownerState.req }), false);
+  ownerState.req.headers = new Headers({ "x-hgr-owner-bootstrap-token": "synthetic-owner-bootstrap-token-with-32-chars" });
+  const priorBootstrap = process.env.HGR_OWNER_BOOTSTRAP_TOKEN;
+  process.env.HGR_OWNER_BOOTSTRAP_TOKEN = "synthetic-owner-bootstrap-token-with-32-chars";
   assert.equal(await Users.access.create({ req: ownerState.req }), true);
+  if (priorBootstrap === undefined) delete process.env.HGR_OWNER_BOOTSTRAP_TOKEN;
+  else process.env.HGR_OWNER_BOOTSTRAP_TOKEN = priorBootstrap;
   const createdByOwner = permissionRequest({ count: 50, storedRole: 1 });
   assert.equal(await Users.access.create({ req: createdByOwner.req }), true);
   const second = await beforeChange({ data: { email: "admin@example.invalid", role: 2 }, operation: "create", req: createdByOwner.req });
@@ -134,11 +146,12 @@ test("first staff account receives the seeded Owner role; later accounts require
   assert.equal(Users.fields.find(({ name }) => name === "role").relationTo, "roles");
 });
 
-test("Payload create access probe is read-only; bootstrap serializes and recounts in beforeChange", async () => {
-  const counts = [0, 0, 0, 0, 1];
+test("Payload create access probe denies unauthorized bootstrap and authorized bootstrap serializes and recounts", async () => {
+  const counts = [0, 0, 0, 0, 0, 1];
   let lockCount = 0;
   const req = {
     user: null,
+    headers: new Headers(),
     transactionID: "tx-1",
     payload: {
       count: async () => ({ totalDocs: counts.shift() ?? 1 }),
@@ -150,8 +163,12 @@ test("Payload create access probe is read-only; bootstrap serializes and recount
       },
     },
   };
-  assert.equal(await Users.access.create({ req }), true);
+  assert.equal(await Users.access.create({ req }), false);
   assert.equal(lockCount, 0);
+  const priorToken = process.env.HGR_OWNER_BOOTSTRAP_TOKEN;
+  process.env.HGR_OWNER_BOOTSTRAP_TOKEN = "synthetic-owner-bootstrap-token-with-32-chars";
+  req.headers = new Headers({ "x-hgr-owner-bootstrap-token": "synthetic-owner-bootstrap-token-with-32-chars" });
+  assert.equal(await Users.access.create({ req }), true);
   const created = await Users.hooks.beforeChange[0]({
     data: { email: "first-owner@example.invalid", role: 99 },
     operation: "create",
@@ -164,7 +181,9 @@ test("Payload create access probe is read-only; bootstrap serializes and recount
     operation: "create",
     req,
   }), /current Owner/);
-  assert.equal(lockCount, 2);
+  assert.equal(lockCount, 1);
+  if (priorToken === undefined) delete process.env.HGR_OWNER_BOOTSTRAP_TOKEN;
+  else process.env.HGR_OWNER_BOOTSTRAP_TOKEN = priorToken;
 });
 
 test("role assignments and role permission changes are protected server-side", async () => {
@@ -343,7 +362,7 @@ test("phase 2 config registers protected users, recovery stub, preview secret, a
   assert.match(machines, /preview: \(doc\)/);
   assert.match(pages, /name: "body"[\s\S]*type: "richText"/);
   assert.match(envExample, /PREVIEW_SECRET=/);
-  assert.match(await readFile(new URL("../src/collections/Users.ts", import.meta.url), "utf8"), /secure: process\.env\.SERVER_URL\?\.startsWith\("https:\/\/"\)/);
+  assert.match(await readFile(new URL("../src/collections/Users.ts", import.meta.url), "utf8"), /secure: process\.env\.NODE_ENV === "production" \|\| process\.env\.SERVER_URL\?\.startsWith\("https:\/\/"\) === true/);
 });
 
 test("draft preview route builds without optional runtime configuration", async () => {

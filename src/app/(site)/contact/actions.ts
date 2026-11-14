@@ -7,6 +7,7 @@ import { resendEnquiryAdapter } from "../../../lib/email/enquiryAdapter";
 import { submitEnquiry, type EnquiryFieldErrors, type EnquiryKind, type EnquiryMetadata, type InventoryIdentity } from "../../../lib/enquiries/submit.ts";
 import { isLocalReviewMode } from "../../../lib/machines/publicQueries.ts";
 import { headers } from "next/headers";
+import { checkEnquiryRateLimit, enquiryClientKey } from "../../../lib/enquiries/rateLimit.ts";
 
 export type EnquiryFormState = {
   status: "idle" | "invalid" | "unavailable" | "failed" | "accepted";
@@ -22,6 +23,11 @@ export type EnquiryFormState = {
 const publicKinds: EnquiryKind[] = ["general", "machine", "rental", "service", "lubricant"];
 
 export async function sendEnquiry(expectedKind: EnquiryKind, expectedMachineSlug: string | undefined, expectedInventory: InventoryIdentity | undefined, _previous: EnquiryFormState, formData: FormData): Promise<EnquiryFormState> {
+  const requestHeaders = await headers();
+  const rateLimit = checkEnquiryRateLimit(enquiryClientKey(requestHeaders));
+  if (!rateLimit.allowed) {
+    return { status: "unavailable", message: "Too many enquiries have been submitted. Please wait a little and try again, or contact HGR by phone or WhatsApp." };
+  }
   const kind = publicKinds.includes(expectedKind) ? expectedKind : "general";
   const input: Record<string, unknown> = { kind };
   const submittedKeys = ["name", "company", "phone", "email", "preferredContact", "subject", "message", "machineRequired", "startDate", "rentalDuration", "needOperator", "projectLocation", "projectTiming", "viewingPreference", "machineInterest", "machineLocation", "brand", "model", "problemDescription", "urgent", "machineBrand", "machineModel", "lubricantRequired", "product", "application", "quantity", "purchaseTimeline", "budget", "tradeIn", "tradeInBrand", "tradeInModel", "tradeInYear", "referrer", "utmSource", "utmMedium", "utmCampaign", "utmTerm", "utmContent", "website"];
@@ -60,7 +66,6 @@ export async function sendEnquiry(expectedKind: EnquiryKind, expectedMachineSlug
       if (item && item._status === "published" && !item.archived) context.inventory = { name: item.name, type: "lubricant", referenceNumber: item.referenceNumber, canonicalURL: `/lubricants/${item.slug}` };
     }
   }
-  const requestHeaders = await headers();
   context.metadata = {
     leadSource: `website:${kind}`,
     referrer: typeof input.referrer === "string" ? input.referrer : requestHeaders.get("referer") ?? undefined,

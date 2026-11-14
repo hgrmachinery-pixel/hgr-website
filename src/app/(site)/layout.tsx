@@ -8,13 +8,30 @@ import "./inventory.css";
 import { SiteHeader } from "./siteHeader";
 import { SiteFooter } from "../../components/site/SiteFooter";
 import { FloatingWhatsApp } from "../../components/site/FloatingWhatsApp";
-import { getIndexingPolicy, getSiteMetadataBase } from "../../lib/siteMetadata";
+import { getIndexingPolicy, getPublicOrigin, getSiteMetadataBase } from "../../lib/siteMetadata";
+
+const defaultDescription = "HGR Equipment Resources trades used excavators and heavy machinery, and provides machinery repairs, servicing, spare parts, refurbishment and equipment rental in Malaysia.";
 
 export function generateMetadata(): Metadata {
+  const origin = getPublicOrigin();
   return {
     metadataBase: getSiteMetadataBase(),
     title: { default: "HGR Equipment Resources", template: "%s | HGR" },
+    description: defaultDescription,
     robots: getIndexingPolicy(),
+    openGraph: {
+      type: "website",
+      siteName: "HGR Equipment Resources",
+      locale: "en_MY",
+      title: "HGR Equipment Resources",
+      description: defaultDescription,
+      ...(origin ? { url: new URL("/", origin).toString() } : {}),
+    },
+    twitter: {
+      card: "summary",
+      title: "HGR Equipment Resources",
+      description: defaultDescription,
+    },
   };
 }
 

@@ -98,6 +98,17 @@ test("pagination clamps values and limits page size", () => {
 
 test("image URL accepts only same-origin Payload file routes", () => {
   assert.equal(getPublicImageURL("/api/machine-media/file/photo.jpg", true), "/api/machine-media/file/photo.jpg");
+  assert.equal(
+    getPublicImageURL("https://hgrmachinery.com/api/machine-media/file/photo.jpg", true, "https://hgrmachinery.com"),
+    "/api/machine-media/file/photo.jpg",
+  );
+  assert.equal(
+    getPublicImageURL("https://hgrmachinery.com/api/machine-media/file/photo.jpg?prefix=machine-media", true, "https://hgrmachinery.com"),
+    "/api/machine-media/file/photo.jpg?prefix=machine-media",
+  );
+  assert.equal(getPublicImageURL("/api/machine-media/file/photo.jpg?prefix=wrong", true), undefined);
+  assert.equal(getPublicImageURL("/api/machine-media/file/photo.jpg?prefix=machine-media&token=x", true), undefined);
+  assert.equal(getPublicImageURL("https://attacker.example/api/machine-media/file/photo.jpg", true, "https://hgrmachinery.com"), undefined);
   assert.equal(getPublicImageURL("https://bucket.storage.google.com/photo.jpg", true), undefined);
   assert.equal(getPublicImageURL("/api/machine-media/file/master-private.jpg", false), undefined);
   assert.equal(getPublicImageURL("/api/machine-documents/file/secret.pdf", true), undefined);

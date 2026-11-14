@@ -33,8 +33,13 @@ export async function generateMetadata({ params }: { params: Promise<{ supportin
   const visibleText = lexicalPlainText(page?.body).join(" ");
   const metadata = buildSupportingPageMetadata({
     slug: key,
-    title: key === "repair-services" ? definition.title : typeof page?.seoTitle === "string" && page.seoTitle.trim() ? page.seoTitle : typeof page?.title === "string" ? page.title : definition.title,
-    visibleText: key === "repair-services" ? "" : visibleText,
+    title: typeof page?.seoTitle === "string" && page.seoTitle.trim()
+      ? page.seoTitle.trim()
+      : typeof page?.title === "string" && page.title.trim()
+        ? page.title.trim()
+        : definition.title,
+    seoDescription: typeof page?.seoDescription === "string" ? page.seoDescription : undefined,
+    visibleText,
     fallbackDescription: definition.intro,
     origin: getPublicOrigin(),
     robots: getIndexingPolicy(),
